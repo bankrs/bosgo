@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 const (
@@ -33,18 +35,23 @@ func New(client *http.Client, addr string) *Client {
 	return c
 }
 
+func (c *Client) newReq(path string) req {
+	return req{
+		hc:      c.hc,
+		addr:    c.addr,
+		path:    path,
+		headers: headers{},
+		par:     params{},
+	}
+}
+
 // Login prepares and returns a request to log a developer into the Bankrs
 // API. Sending a successful request will return a new client that allows
 // access to services requiring a valid developer session.
 func (c *Client) Login(email, password string) *DeveloperLoginReq {
 	return &DeveloperLoginReq{
 		client: c,
-		req: req{
-			hc:      c.hc,
-			addr:    c.addr,
-			path:    "/v1/developers/login",
-			headers: headers{"Content-Type": "application/json"},
-		},
+		req:    c.newReq("/v1/developers/login"),
 		data: DeveloperCredentials{
 			Email:    email,
 			Password: password,
@@ -93,12 +100,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 func (c *Client) CreateDeveloper(email, password string) *DeveloperCreateReq {
 	return &DeveloperCreateReq{
 		client: c,
-		req: req{
-			hc:      c.hc,
-			addr:    c.addr,
-			path:    "/v1/developers",
-			headers: headers{"Content-Type": "application/json"},
-		},
+		req:    c.newReq("/v1/developers"),
 		data: DeveloperCredentials{
 			Email:    email,
 			Password: password,
@@ -149,18 +151,25 @@ type req struct {
 	headers headers
 }
 
-func (r *req) url() string {
-	return fmt.Sprintf("https://%s%s", r.addr, r.path)
+func (r *req) url() *url.URL {
+	u := url.URL{
+		Scheme:   "https",
+		Host:     r.addr,
+		Path:     r.path,
+		RawQuery: r.par.Encode(),
+	}
+	return &u
 }
 
-func (r *req) getJSON() (*http.Response, func(), error) {
-	req, err := http.NewRequest("GET", r.url(), nil)
+func (r *req) get() (*http.Response, func(), error) {
+	req, err := http.NewRequest("GET", r.url().String(), nil)
 	if err != nil {
 		return nil, func() {}, err
 	}
 	if r.ctx != nil {
 		req = req.WithContext(r.ctx)
 	}
+	// TODO: remove x-environment header
 	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
@@ -177,13 +186,17 @@ func (r *req) getJSON() (*http.Response, func(), error) {
 }
 
 func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
-	var encoded bytes.Buffer
-	err := json.NewEncoder(&encoded).Encode(data)
-	if err != nil {
-		return nil, func() {}, err
+	var body io.Reader
+	if data != nil {
+		var encoded bytes.Buffer
+		err := json.NewEncoder(&encoded).Encode(data)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		body = &encoded
 	}
 
-	req, err := http.NewRequest("POST", r.url(), &encoded)
+	req, err := http.NewRequest("POST", r.url().String(), body)
 	if err != nil {
 		return nil, func() {}, err
 	}
@@ -191,13 +204,71 @@ func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
 		req = req.WithContext(r.ctx)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	// TODO: remove x-environment header
 	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
 
-	fmt.Printf("%+v\n", req)
+	res, err := r.hc.Do(req)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if err := responseError(res); err != nil {
+		return nil, func() {}, err
+	}
+	return res, cleanup(res), nil
+}
 
+func (r *req) putJSON(data interface{}) (*http.Response, func(), error) {
+	var body io.Reader
+	if data != nil {
+		var encoded bytes.Buffer
+		err := json.NewEncoder(&encoded).Encode(data)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		body = &encoded
+	}
+
+	req, err := http.NewRequest("PUT", r.url().String(), body)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if r.ctx != nil {
+		req = req.WithContext(r.ctx)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	// TODO: remove x-environment header
+	req.Header.Set("x-environment", "sandbox")
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
+	}
+
+	res, err := r.hc.Do(req)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if err := responseError(res); err != nil {
+		return nil, func() {}, err
+	}
+	return res, cleanup(res), nil
+}
+
+func (r *req) delete() (*http.Response, func(), error) {
+	req, err := http.NewRequest("DELETE", r.url().String(), nil)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if r.ctx != nil {
+		req = req.WithContext(r.ctx)
+	}
+	// TODO: remove x-environment header
+	req.Header.Set("x-environment", "sandbox")
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
+	}
+	fmt.Printf("%+v\n", req)
 	res, err := r.hc.Do(req)
 	if err != nil {
 		return nil, func() {}, err
@@ -218,6 +289,23 @@ func cleanup(res *http.Response) func() {
 }
 
 type params map[string][]string
+
+func (p params) Get(key string) string {
+	vs := p[key]
+	if len(vs) == 0 {
+		return ""
+	}
+	return vs[0]
+}
+
+func (p params) Set(key, value string) {
+	p[key] = []string{value}
+}
+
+func (p params) Encode() string {
+	return url.Values(p).Encode()
+}
+
 type headers map[string]string
 
 type Error struct {

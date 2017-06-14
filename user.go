@@ -53,7 +53,7 @@ func (r *UserLogoutReq) Context(ctx context.Context) *UserLogoutReq {
 }
 
 func (r *UserLogoutReq) Send() error {
-	_, cleanup, err := r.req.getJSON()
+	_, cleanup, err := r.req.get()
 	defer cleanup()
 	if err != nil {
 		return err
