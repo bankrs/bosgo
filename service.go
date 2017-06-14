@@ -96,7 +96,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 
 // CreateDeveloper prepares and returns a request to create a developer account for the
 // Bankrs API. Sending a successful request will return a new client that
-// allows access to services reuqiring a valid developer session.
+// allows access to services requiring a valid developer session.
 func (c *Client) CreateDeveloper(email, password string) *DeveloperCreateReq {
 	return &DeveloperCreateReq{
 		client: c,
@@ -140,6 +140,82 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 
 type SessionToken struct {
 	Token string `json:"token"`
+}
+
+// CreateDeveloper prepares and returns a request to start the lost password process.
+func (c *Client) LostPassword(email string) *LostPasswordReq {
+	return &LostPasswordReq{
+		req: c.newReq("/v1/developers/lost_password"),
+		data: DeveloperEmail{
+			Email: email,
+		},
+	}
+}
+
+type DeveloperEmail struct {
+	Email string `json:"email"`
+}
+
+type LostPasswordReq struct {
+	req
+	data DeveloperEmail
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *LostPasswordReq) Context(ctx context.Context) *LostPasswordReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the lost password request.
+func (r *LostPasswordReq) Send() error {
+	_, cleanup, err := r.req.postJSON(&r.data)
+	defer cleanup()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateDeveloper prepares and returns a request to start the lost password process.
+func (c *Client) ResetPassword(password string, token string) *ResetPasswordReq {
+	return &ResetPasswordReq{
+		req: c.newReq("/v1/developers/reset_password"),
+		data: DeveloperPasswordReset{
+			Password: password,
+			Token:    token,
+		},
+	}
+}
+
+type DeveloperPasswordReset struct {
+	Password string `json:"email"`
+	Token    string `json:"token"`
+}
+
+type ResetPasswordReq struct {
+	req
+	data DeveloperPasswordReset
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *ResetPasswordReq) Context(ctx context.Context) *ResetPasswordReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the reset password request.
+func (r *ResetPasswordReq) Send() error {
+	_, cleanup, err := r.req.postJSON(&r.data)
+	defer cleanup()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type req struct {
@@ -209,6 +285,8 @@ func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
+
+	fmt.Printf("%+v\n", req)
 
 	res, err := r.hc.Do(req)
 	if err != nil {
@@ -321,8 +399,14 @@ type ErrorItem struct {
 }
 
 func (e *Error) Error() string {
+	if len(e.Errors) == 1 {
+		if e.Errors[0].Message == "" {
+			return fmt.Sprintf("%s (%s)", e.Errors[0].Code, e.Status)
+		}
+		return fmt.Sprintf("%s: %s (%s)", e.Errors[0].Code, e.Errors[0].Message, e.Status)
+	}
 	// TODO: expand on error message
-	return fmt.Sprintf("bosgo: request failed with status %s (%+v)", e.Status, *e)
+	return fmt.Sprintf("request failed with status %s (%+v)", e.Status, *e)
 }
 
 func responseError(res *http.Response) error {

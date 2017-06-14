@@ -28,9 +28,16 @@ func NewUserClient(client *http.Client, addr string, token string, applicationID
 	return uc
 }
 
-func (u *UserClient) newReq() req {
+func (u *UserClient) newReq(path string) req {
 	return req{
-		hc: u.hc,
+		hc:   u.hc,
+		addr: u.addr,
+		path: path,
+		headers: headers{
+			"x-token":          u.token,
+			"x-application-id": u.applicationID,
+		},
+		par: params{},
 	}
 }
 
@@ -39,7 +46,7 @@ func (u *UserClient) newReq() req {
 // should not be used.
 func (u *UserClient) Logout() *UserLogoutReq {
 	return &UserLogoutReq{
-		req: u.newReq(),
+		req: u.newReq("/v1/users/logout"),
 	}
 }
 
@@ -53,7 +60,7 @@ func (r *UserLogoutReq) Context(ctx context.Context) *UserLogoutReq {
 }
 
 func (r *UserLogoutReq) Send() error {
-	_, cleanup, err := r.req.get()
+	_, cleanup, err := r.req.postJSON(nil)
 	defer cleanup()
 	if err != nil {
 		return err
