@@ -419,7 +419,7 @@ func (r *StatsMerchantsReq) ToDate(date time.Time) *StatsMerchantsReq {
 	return r
 }
 
-func (r *StatsMerchantsReq) Send() (interface{}, error) {
+func (r *StatsMerchantsReq) Send() (*MerchantsStats, error) {
 	// TODO: remove environment parameter
 	r.req.par.Set("environment", "sandbox")
 
@@ -429,14 +429,12 @@ func (r *StatsMerchantsReq) Send() (interface{}, error) {
 		return nil, err
 	}
 
-	var stats interface{}
+	var stats MerchantsStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", stats)
-
-	return stats, nil
+	return &stats, nil
 }
 
 func (d *StatsService) Providers() *StatsProvidersReq {
@@ -464,7 +462,7 @@ func (r *StatsProvidersReq) ToDate(date time.Time) *StatsProvidersReq {
 	return r
 }
 
-func (r *StatsProvidersReq) Send() (interface{}, error) {
+func (r *StatsProvidersReq) Send() (*ProvidersStats, error) {
 	// TODO: remove environment parameter
 	r.req.par.Set("environment", "sandbox")
 
@@ -474,14 +472,12 @@ func (r *StatsProvidersReq) Send() (interface{}, error) {
 		return nil, err
 	}
 
-	var stats interface{}
+	var stats ProvidersStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", stats)
-
-	return stats, nil
+	return &stats, nil
 }
 
 func (d *StatsService) Transfers() *StatsTransfersReq {
@@ -554,7 +550,7 @@ func (r *StatsUsersReq) ToDate(date time.Time) *StatsUsersReq {
 	return r
 }
 
-func (r *StatsUsersReq) Send() (interface{}, error) {
+func (r *StatsUsersReq) Send() (*UsersStats, error) {
 	// TODO: remove environment parameter
 	r.req.par.Set("environment", "sandbox")
 
@@ -564,14 +560,12 @@ func (r *StatsUsersReq) Send() (interface{}, error) {
 		return nil, err
 	}
 
-	var stats interface{}
+	var stats UsersStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", stats)
-
-	return stats, nil
+	return &stats, nil
 }
 
 func (d *StatsService) Requests() *StatsRequestsReq {
@@ -599,7 +593,7 @@ func (r *StatsRequestsReq) ToDate(date time.Time) *StatsRequestsReq {
 	return r
 }
 
-func (r *StatsRequestsReq) Send() (interface{}, error) {
+func (r *StatsRequestsReq) Send() (*RequestsStats, error) {
 	// TODO: remove environment parameter
 	r.req.par.Set("environment", "sandbox")
 
@@ -609,12 +603,88 @@ func (r *StatsRequestsReq) Send() (interface{}, error) {
 		return nil, err
 	}
 
-	var stats interface{}
+	var stats RequestsStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", stats)
+	return &stats, nil
+}
 
-	return stats, nil
+type StatsPeriod struct {
+	From   string `json:"from_date"`
+	To     string `json:"to_date"`
+	Domain string `json:"domain"`
+}
+
+type UsersStats struct {
+	StatsPeriod
+	UsersTotal StatsValue        `json:"users_total"` // with weekly relative change
+	UsersToday StatsValue        `json:"users_today"` // with daily relative change
+	Stats      []DailyUsersStats `json:"stats"`
+}
+
+type StatsValue struct {
+	Value int64 `json:"value"`
+}
+
+type DailyUsersStats struct {
+	Date        string `json:"date"`
+	UsersTotal  int64  `json:"users_total"`
+	NewUsers    int64  `json:"new_users"`
+	ActiveUsers int64  `json:"active_users"`
+}
+
+type TransfersStats struct {
+	StatsPeriod
+	TotalOut StatsMoneyAmount      `json:"total_out"`
+	TodayOut StatsMoneyAmount      `json:"today_out"`
+	Stats    []DailyTransfersStats `json:"stats"`
+}
+
+type DailyTransfersStats struct {
+	Date string           `json:"date"`
+	Out  StatsMoneyAmount `json:"out"`
+}
+
+type MerchantsStats struct {
+	StatsPeriod
+	Stats []DailyMerchantsStats `json:"stats"`
+}
+
+type DailyMerchantsStats struct {
+	Date      string      `json:"date"`
+	Merchants []NameValue `json:"merchants"`
+}
+
+type ProvidersStats struct {
+	StatsPeriod
+	Stats []DailyProvidersStats `json:"stats"`
+}
+
+type DailyProvidersStats struct {
+	Date      string      `json:"date"`
+	Providers []NameValue `json:"providers"`
+}
+
+type StatsMoneyAmount struct {
+	Value    float64 `json:"value"`
+	Currency string  `json:"currency"`
+}
+
+type NameValue struct {
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
+}
+
+type RequestsStats struct {
+	StatsPeriod
+	RequestsTotal StatsValue           `json:"requests_total"`
+	RequestsToday StatsValue           `json:"requests_today"`
+	Stats         []DailyRequestsStats `json:"stats"`
+}
+
+type DailyRequestsStats struct {
+	Date          string `json:"date"`
+	RequestsTotal int64  `json:"requests_total"`
 }
