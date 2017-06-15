@@ -275,17 +275,17 @@ type ProviderSearchResult struct {
 }
 
 type Provider struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	Country     string      `json:"country"`
-	URL         string      `json:"url"`
-	Address     string      `json:"address"`
-	PostalCode  string      `json:"postal_code"`
-	Challenges  []Challenge `json:"challenges"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Country     string          `json:"country"`
+	URL         string          `json:"url"`
+	Address     string          `json:"address"`
+	PostalCode  string          `json:"postal_code"`
+	Challenges  []ChallengeSpec `json:"challenges"`
 }
 
-type Challenge struct {
+type ChallengeSpec struct {
 	ID          string            `json:"id"`
 	Description string            `json:"desc"`
 	Type        string            `json:"type"`

@@ -204,14 +204,14 @@ func (r *ListApplicationsReq) Context(ctx context.Context) *ListApplicationsReq 
 	return r
 }
 
-func (r *ListApplicationsReq) Send() (*ApplicationListPage, error) {
+func (r *ListApplicationsReq) Send() (*ApplicationPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
 	if err != nil {
 		return nil, err
 	}
 
-	var page ApplicationListPage
+	var page ApplicationPage
 	if err := json.NewDecoder(res.Body).Decode(&page.Applications); err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (r *ListApplicationsReq) Send() (*ApplicationListPage, error) {
 	return &page, nil
 }
 
-type ApplicationListPage struct {
+type ApplicationPage struct {
 	Applications []ApplicationMetadata
 }
 
