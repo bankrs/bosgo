@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 // UserClient is a client used for interacting with services in the context of
@@ -16,8 +17,12 @@ type UserClient struct {
 	token         string // session token
 	applicationID string
 
-	Accesses *AccessesService
-	Jobs     *JobsService
+	Accesses              *AccessesService
+	Jobs                  *JobsService
+	Accounts              *AccountsService
+	Transactions          *TransactionsService
+	ScheduledTransactions *ScheduledTransactionsService
+	RepeatedTransactions  *RepeatedTransactionsService
 }
 
 // NewUserClient creates a new user client, ready to use.
@@ -30,6 +35,10 @@ func NewUserClient(client *http.Client, addr string, token string, applicationID
 	}
 	uc.Accesses = NewAccessesService(uc)
 	uc.Jobs = NewJobsService(uc)
+	uc.Accounts = NewAccountsService(uc)
+	uc.Transactions = NewTransactionsService(uc)
+	uc.ScheduledTransactions = NewScheduledTransactionsService(uc)
+	uc.RepeatedTransactions = NewRepeatedTransactionsService(uc)
 
 	return uc
 }
@@ -246,10 +255,9 @@ type BankAccessWithAccounts struct {
 }
 
 type Account struct {
-	ID           int64 `json:"id"`
-	BankId       int64 `json:"bank_id"`
-	BankAccessId int64 `json:"bank_access_id"`
-
+	ID           int64                `json:"id"`
+	BankId       int64                `json:"bank_id"`
+	BankAccessId int64                `json:"bank_access_id"`
 	Name         string               `json:"name"`
 	Type         string               `json:"type"`
 	Number       string               `json:"number"`
@@ -500,4 +508,359 @@ type AccountResponse struct {
 	Supported bool   `json:"supported"`
 	Number    string `json:"number"`
 	IBAN      string `json:"iban"`
+}
+
+type AccountsService struct {
+	client *UserClient
+}
+
+func NewAccountsService(u *UserClient) *AccountsService { return &AccountsService{client: u} }
+
+func (a *AccountsService) List() *ListAccountsReq {
+	return &ListAccountsReq{
+		req: a.client.newReq("/v1/accounts"),
+	}
+}
+
+type ListAccountsReq struct {
+	req
+}
+
+func (r *ListAccountsReq) Context(ctx context.Context) *ListAccountsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListAccountsReq) Send() (*AccountPage, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var page AccountPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Accounts); err != nil {
+		return nil, err
+	}
+
+	return &page, nil
+}
+
+type AccountPage struct {
+	Accounts []Account
+}
+
+func (a *AccountsService) Get(id string) *GetAccountReq {
+	return &GetAccountReq{
+		req: a.client.newReq("/v1/accounts/" + id),
+	}
+}
+
+type GetAccountReq struct {
+	req
+}
+
+func (r *GetAccountReq) Context(ctx context.Context) *GetAccountReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *GetAccountReq) Send() (*Account, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var account Account
+	if err := json.NewDecoder(res.Body).Decode(&account); err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
+type Transaction struct {
+	ID                    int64            `json:"id"`
+	AccessID              int64            `json:"user_bank_access_id,omitempty"`
+	UserAccountID         int64            `json:"user_bank_account_id,omitempty"`
+	UserAccount           AccountRef       `json:"user_account,omitempty"`
+	CategoryID            int64            `json:"category_id,omitempty"`
+	RepeatedTransactionID int64            `json:"repeated_transaction_id,omitempty"`
+	Counterparty          CounterpartyWrap `json:"counterparty,omitempty"`
+
+	// EntryDate is the time the transaction became known in the account
+	EntryDate time.Time `json:"entry_date,omitempty"`
+
+	// SettlementDate is the time the transaction is cleared
+	SettlementDate time.Time `json:"settlement_date,omitempty"`
+
+	// Transaction Amount - value and currency
+	Amount *Money `json:"amount,omitempty"`
+
+	// Usage is the main description field
+	Usage string `json:"usage,omitempty"`
+
+	// TransactionType is extracted directly from the finsnap
+	TransactionType string `json:"transaction_type,omitempty"`
+}
+
+type AccountRef struct {
+	ProviderID string `json:"provider_id"`
+	IBAN       string `json:"iban,omitempty"`
+	Label      string `json:"label,omitempty"`
+	ID         string `json:"id,omitempty"`
+}
+
+type Merchant struct {
+	Name string `json:"name"`
+}
+
+type Counterparty struct {
+	Name    string     `json:"name"`
+	Account AccountRef `json:"account,omitempty"`
+}
+
+type CounterpartyWrap struct {
+	Counterparty
+	Merchant *Merchant `json:"merchant,omitempty"`
+}
+
+// TODO: unmarshal money
+type Money struct {
+	E uint8  `json:"exp,omitempty"`  // negative exponent, or inverse exponent 10^-E
+	S int64  `json:"val,omitempty"`  // significand, or mantissa
+	C uint16 `json:"code,omitempty"` // currency number (iso-4217:2008) and bitmasked status flag - highest 3 bits are reserved for error/statusflags
+}
+
+type TransactionsService struct {
+	client *UserClient
+}
+
+func NewTransactionsService(u *UserClient) *TransactionsService {
+	return &TransactionsService{client: u}
+}
+
+func (a *TransactionsService) List() *ListTransactionsReq {
+	return &ListTransactionsReq{
+		req: a.client.newReq("/v1/transactions"),
+	}
+}
+
+type ListTransactionsReq struct {
+	req
+}
+
+func (r *ListTransactionsReq) Context(ctx context.Context) *ListTransactionsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var page TransactionPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+		return nil, err
+	}
+
+	return &page, nil
+}
+
+type TransactionPage struct {
+	Transactions []Transaction
+}
+
+func (a *TransactionsService) Get(id string) *GetTransactionReq {
+	return &GetTransactionReq{
+		req: a.client.newReq("/v1/transactions/" + id),
+	}
+}
+
+type GetTransactionReq struct {
+	req
+}
+
+func (r *GetTransactionReq) Context(ctx context.Context) *GetTransactionReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *GetTransactionReq) Send() (*Transaction, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var tx Transaction
+	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
+		return nil, err
+	}
+
+	return &tx, nil
+}
+
+type ScheduledTransactionsService struct {
+	client *UserClient
+}
+
+func NewScheduledTransactionsService(u *UserClient) *ScheduledTransactionsService {
+	return &ScheduledTransactionsService{client: u}
+}
+
+func (a *ScheduledTransactionsService) List() *ListScheduledTransactionsReq {
+	return &ListScheduledTransactionsReq{
+		req: a.client.newReq("/v1/scheduled_transactions"),
+	}
+}
+
+type ListScheduledTransactionsReq struct {
+	req
+}
+
+func (r *ListScheduledTransactionsReq) Context(ctx context.Context) *ListScheduledTransactionsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListScheduledTransactionsReq) Send() (*TransactionPage, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var page TransactionPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+		return nil, err
+	}
+
+	return &page, nil
+}
+
+func (a *ScheduledTransactionsService) Get(id string) *GetScheduledTransactionReq {
+	return &GetScheduledTransactionReq{
+		req: a.client.newReq("/v1/scheduled_transactions/" + id),
+	}
+}
+
+type GetScheduledTransactionReq struct {
+	req
+}
+
+func (r *GetScheduledTransactionReq) Context(ctx context.Context) *GetScheduledTransactionReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *GetScheduledTransactionReq) Send() (*Transaction, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var tx Transaction
+	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
+		return nil, err
+	}
+
+	return &tx, nil
+}
+
+type RepeatedTransactionsService struct {
+	client *UserClient
+}
+
+func NewRepeatedTransactionsService(u *UserClient) *RepeatedTransactionsService {
+	return &RepeatedTransactionsService{client: u}
+}
+
+func (a *RepeatedTransactionsService) List() *ListRepeatedTransactionsReq {
+	return &ListRepeatedTransactionsReq{
+		req: a.client.newReq("/v1/repeated_transactions"),
+	}
+}
+
+type ListRepeatedTransactionsReq struct {
+	req
+}
+
+func (r *ListRepeatedTransactionsReq) Context(ctx context.Context) *ListRepeatedTransactionsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var page RepeatedTransactionPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+		return nil, err
+	}
+
+	return &page, nil
+}
+
+type RepeatedTransactionPage struct {
+	Transactions []RepeatedTransaction
+}
+
+func (a *RepeatedTransactionsService) Get(id string) *GetRepeatedTransactionReq {
+	return &GetRepeatedTransactionReq{
+		req: a.client.newReq("/v1/repeated_transactions/" + id),
+	}
+}
+
+type GetRepeatedTransactionReq struct {
+	req
+}
+
+func (r *GetRepeatedTransactionReq) Context(ctx context.Context) *GetRepeatedTransactionReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var tx RepeatedTransaction
+	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
+		return nil, err
+	}
+
+	return &tx, nil
+}
+
+type RepeatedTransaction struct {
+	ID            int64      `json:"id"`
+	UserAccountID int64      `json:"user_bank_account_id"`
+	UserAccount   AccountRef `json:"user_account"`
+	RemoteAccount AccountRef `json:"remote_account"`
+	AccessID      int64      `json:"user_bank_access_id"`
+	RemoteID      string     `json:"remote_id"`
+	Schedule      RRule      `json:"schedule"`
+	Amount        *Money     `json:"amount"`
+	Usage         string     `json:"usage"`
+}
+
+type RRule struct {
+	Start    time.Time `json:"start"`
+	Until    time.Time `json:"until"`
+	Freq     string    `json:"frequency"`
+	Interval int       `json:"interval"`
+	ByDay    int       `json:"by_day"`
 }
