@@ -87,7 +87,7 @@ func (d *DevClient) newReq(path string) req {
 // should not be used.
 func (d *DevClient) Logout() *DeveloperLogoutReq {
 	return &DeveloperLogoutReq{
-		req: d.newReq("/v1/developers/logout"),
+		req: d.newReq(apiV1 + "/developers/logout"),
 	}
 }
 
@@ -116,7 +116,7 @@ func (r *DeveloperLogoutReq) Send() error {
 // sent the client is no longer valid and should not be used.
 func (d *DevClient) Delete() *DeveloperDeleteReq {
 	return &DeveloperDeleteReq{
-		req: d.newReq("/v1/developers"),
+		req: d.newReq(apiV1 + "/developers"),
 	}
 }
 
@@ -144,7 +144,7 @@ func (r *DeveloperDeleteReq) Send() error {
 // password.
 func (d *DevClient) ChangePassword(old, new string) *DeveloperChangePasswordReq {
 	return &DeveloperChangePasswordReq{
-		req: d.newReq("/v1/developers/password"),
+		req: d.newReq(apiV1 + "/developers/password"),
 		data: DeveloperChangePasswordData{
 			OldPassword: old,
 			NewPassword: new,
@@ -180,7 +180,7 @@ func (r *DeveloperChangePasswordReq) Send() error {
 // Profile retrieves the developer's profile.
 func (d *DevClient) Profile() *DeveloperProfileReq {
 	return &DeveloperProfileReq{
-		req: d.newReq("/v1/developers/profile"),
+		req: d.newReq(apiV1 + "/developers/profile"),
 	}
 }
 
@@ -216,7 +216,7 @@ type DeveloperProfile struct {
 // SetProfile sets the developer's profile.
 func (d *DevClient) SetProfile(profile *DeveloperProfile) *DeveloperSetProfileReq {
 	return &DeveloperSetProfileReq{
-		req:  d.newReq("/v1/developers/profile"),
+		req:  d.newReq(apiV1 + "/developers/profile"),
 		data: *profile,
 	}
 }
@@ -250,7 +250,7 @@ func NewApplicationsService(c *DevClient) *ApplicationsService { return &Applica
 
 func (d *ApplicationsService) List() *ListApplicationsReq {
 	return &ListApplicationsReq{
-		req: d.client.newReq("/v1/developers/applications"),
+		req: d.client.newReq(apiV1 + "/developers/applications"),
 	}
 }
 
@@ -290,7 +290,7 @@ type ApplicationMetadata struct {
 
 func (d *ApplicationsService) Create(label string) *CreateApplicationsReq {
 	return &CreateApplicationsReq{
-		req: d.client.newReq("/v1/developers/applications"),
+		req: d.client.newReq(apiV1 + "/developers/applications"),
 		data: ApplicationMetadata{
 			Label: label,
 		},
@@ -328,7 +328,7 @@ type CreateApplicationsResponse struct {
 
 func (d *ApplicationsService) Update(applicationID string, label string) *UpdateApplicationReq {
 	return &UpdateApplicationReq{
-		req: d.client.newReq("/v1/developers/applications/" + applicationID),
+		req: d.client.newReq(apiV1 + "/developers/applications/" + applicationID),
 		data: ApplicationMetadata{
 			Label: label,
 		},
@@ -357,7 +357,7 @@ func (r *UpdateApplicationReq) Send() error {
 
 func (d *ApplicationsService) Delete(applicationID string) *DeleteApplicationsReq {
 	return &DeleteApplicationsReq{
-		req: d.client.newReq("/v1/developers/applications/" + applicationID),
+		req: d.client.newReq(apiV1 + "/developers/applications/" + applicationID),
 	}
 }
 
@@ -389,7 +389,7 @@ func NewStatsService(c *DevClient) *StatsService { return &StatsService{client: 
 
 func (d *StatsService) Merchants() *StatsMerchantsReq {
 	return &StatsMerchantsReq{
-		req: d.client.newReq("/v1/stats/merchants"),
+		req: d.client.newReq(apiV1 + "/stats/merchants"),
 	}
 }
 
@@ -432,7 +432,7 @@ func (r *StatsMerchantsReq) Send() (*MerchantsStats, error) {
 
 func (d *StatsService) Providers() *StatsProvidersReq {
 	return &StatsProvidersReq{
-		req: d.client.newReq("/v1/stats/providers"),
+		req: d.client.newReq(apiV1 + "/stats/providers"),
 	}
 }
 
@@ -475,7 +475,7 @@ func (r *StatsProvidersReq) Send() (*ProvidersStats, error) {
 
 func (d *StatsService) Transfers() *StatsTransfersReq {
 	return &StatsTransfersReq{
-		req: d.client.newReq("/v1/stats/transfers"),
+		req: d.client.newReq(apiV1 + "/stats/transfers"),
 	}
 }
 
@@ -520,7 +520,7 @@ func (r *StatsTransfersReq) Send() (interface{}, error) {
 
 func (d *StatsService) Users() *StatsUsersReq {
 	return &StatsUsersReq{
-		req: d.client.newReq("/v1/stats/users"),
+		req: d.client.newReq(apiV1 + "/stats/users"),
 	}
 }
 
@@ -563,7 +563,7 @@ func (r *StatsUsersReq) Send() (*UsersStats, error) {
 
 func (d *StatsService) Requests() *StatsRequestsReq {
 	return &StatsRequestsReq{
-		req: d.client.newReq("/v1/stats/requests"),
+		req: d.client.newReq(apiV1 + "/stats/requests"),
 	}
 }
 

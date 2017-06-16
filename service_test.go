@@ -24,13 +24,17 @@ import (
 )
 
 var (
-	devLoginSuccessHandler = func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"token":"session-token"}`)
+	noContentHandler = func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
 	}
 
-	devLoginUnknownHandler = func(w http.ResponseWriter, r *http.Request) {
+	devTokenHandler = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"token":"devtoken"}`)
+	}
+
+	unauthorizedHandler = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, `{"errors":[{"code":"authentication_failed"}]}`)
@@ -61,7 +65,7 @@ func startTestServer(t *testing.T, routes routeMap) (*http.Client, func()) {
 	}
 
 	client := &http.Client{
-		Transport: RewriteTransport{URL: u},
+		Transport: urlRewriteTransport{URL: u},
 	}
 
 	return client, func() {
@@ -69,12 +73,12 @@ func startTestServer(t *testing.T, routes routeMap) (*http.Client, func()) {
 	}
 }
 
-type RewriteTransport struct {
+type urlRewriteTransport struct {
 	Transport http.RoundTripper
 	URL       *url.URL
 }
 
-func (t RewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t urlRewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.URL.Scheme = t.URL.Scheme
 	req.URL.Host = t.URL.Host
 	req.URL.Path = path.Join(t.URL.Path, req.URL.Path)
@@ -88,7 +92,7 @@ func (t RewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestDeveloperLoginSuccess(t *testing.T) {
 	routes := routeMap{
 		"/v1/developers/login": {
-			http.MethodPost: devLoginSuccessHandler,
+			http.MethodPost: devTokenHandler,
 		},
 	}
 
@@ -106,15 +110,15 @@ func TestDeveloperLoginSuccess(t *testing.T) {
 		t.Fatal("got nil developer client, wanted non-nil")
 	}
 
-	if devClient.SessionToken() != "session-token" {
-		t.Errorf("got session token %q, wanted %q", devClient.SessionToken(), "session-token")
+	if devClient.SessionToken() != "devtoken" {
+		t.Errorf("got session token %q, wanted %q", devClient.SessionToken(), "devtoken")
 	}
 }
 
 func TestDeveloperLoginUnknown(t *testing.T) {
 	routes := routeMap{
 		"/v1/developers/login": {
-			http.MethodPost: devLoginUnknownHandler,
+			http.MethodPost: unauthorizedHandler,
 		},
 	}
 
@@ -132,4 +136,39 @@ func TestDeveloperLoginUnknown(t *testing.T) {
 	if serr.StatusCode != http.StatusUnauthorized {
 		t.Errorf("got status code %d, wanted %d", serr.StatusCode, http.StatusUnauthorized)
 	}
+}
+
+func TestCreateDeveloper(t *testing.T) {
+	routes := routeMap{
+		"/v1/developers": {
+			http.MethodPost: devTokenHandler,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	client := New(hc, SandboxAddr)
+	devClient, err := client.CreateDeveloper("dev@example.com", "pwd").Send()
+
+	if err != nil {
+		t.Fatalf("failed to send request: %v", err)
+	}
+
+	if devClient == nil {
+		t.Fatal("got nil developer client, wanted non-nil")
+	}
+
+	if devClient.SessionToken() != "devtoken" {
+		t.Errorf("got session token %q, wanted %q", devClient.SessionToken(), "devtoken")
+	}
+
+	if devClient.addr != client.addr {
+		t.Errorf("got addr %q, wanted %q", devClient.addr, client.addr)
+	}
+
+	if devClient.ua != client.ua {
+		t.Errorf("got ua %q, wanted %q", devClient.ua, client.ua)
+	}
+
 }

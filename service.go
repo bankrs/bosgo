@@ -28,6 +28,8 @@ const (
 
 	// UserAgent is the default user agent header used by the bosgo library.
 	UserAgent = "bosgo-bankrs-os-client/" + Version
+
+	apiV1 = "/v1"
 )
 
 const (
@@ -90,7 +92,7 @@ func (c *Client) userAgent() string {
 func (c *Client) Login(email, password string) *DeveloperLoginReq {
 	return &DeveloperLoginReq{
 		client: c,
-		req:    c.newReq("/v1/developers/login"),
+		req:    c.newReq(apiV1 + "/developers/login"),
 		data: DeveloperCredentials{
 			Email:    email,
 			Password: password,
@@ -141,7 +143,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 func (c *Client) CreateDeveloper(email, password string) *DeveloperCreateReq {
 	return &DeveloperCreateReq{
 		client: c,
-		req:    c.newReq("/v1/developers"),
+		req:    c.newReq(apiV1 + "/developers"),
 		data: DeveloperCredentials{
 			Email:    email,
 			Password: password,
@@ -189,7 +191,7 @@ type SessionToken struct {
 // LostPassword prepares and returns a request to start the lost password process.
 func (c *Client) LostPassword(email string) *LostPasswordReq {
 	return &LostPasswordReq{
-		req: c.newReq("/v1/developers/lost_password"),
+		req: c.newReq(apiV1 + "/developers/lost_password"),
 		data: DeveloperEmail{
 			Email: email,
 		},
@@ -226,7 +228,7 @@ func (r *LostPasswordReq) Send() error {
 // ResetPassword prepares and returns a request to reset a lost password.
 func (c *Client) ResetPassword(password string, token string) *ResetPasswordReq {
 	return &ResetPasswordReq{
-		req: c.newReq("/v1/developers/reset_password"),
+		req: c.newReq(apiV1 + "/developers/reset_password"),
 		data: DeveloperPasswordReset{
 			Password: password,
 			Token:    token,

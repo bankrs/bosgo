@@ -232,6 +232,7 @@ type Error struct {
 	StatusCode int         // the HTTP status code from the service response
 	Status     string      // the HTTP status line from the service response
 	Header     http.Header // the HTTP headers from the service response
+	RequestID  string      // the ID of the request that generated the error
 }
 
 // ErrorItem is a detailed error code & message.
@@ -243,12 +244,12 @@ type ErrorItem struct {
 func (e *Error) Error() string {
 	if len(e.Errors) == 1 {
 		if e.Errors[0].Message == "" {
-			return fmt.Sprintf("%s (%s)", e.Errors[0].Code, e.Status)
+			return fmt.Sprintf("%s: %s [request-id: %s]", e.Errors[0].Code, e.Status, e.RequestID)
 		}
-		return fmt.Sprintf("%s: %s (%s)", e.Errors[0].Code, e.Errors[0].Message, e.Status)
+		return fmt.Sprintf("%s: %s [request-id: %s]", e.Errors[0].Code, e.Errors[0].Message, e.RequestID)
 	}
 	// TODO: expand on error message
-	return fmt.Sprintf("request failed with status %s (%+v)", e.Status, *e)
+	return fmt.Sprintf("request failed with status %s [request-id: %s]", e.Status, e.RequestID)
 }
 
 func responseError(res *http.Response) error {
@@ -265,6 +266,7 @@ func responseError(res *http.Response) error {
 		StatusCode: res.StatusCode,
 		Status:     res.Status,
 		Header:     res.Header,
+		RequestID:  res.Header.Get("X-Request-Id"),
 	}
 
 	if res.Body == nil {

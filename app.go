@@ -85,7 +85,7 @@ func NewCategoriesService(a *AppClient) *CategoriesService { return &CategoriesS
 // List returns a request that may be used to request a list of classification categories.
 func (c *CategoriesService) List() *CategoriesReq {
 	return &CategoriesReq{
-		req: c.client.newReq("/v1/categories"),
+		req: c.client.newReq(apiV1 + "/categories"),
 	}
 }
 
@@ -133,7 +133,7 @@ func NewProvidersService(a *AppClient) *ProvidersService { return &ProvidersServ
 
 // Search returns a request that may be used to search the list of financial providers.
 func (c *ProvidersService) Search(query string) *ProvidersSearchReq {
-	r := c.client.newReq("/v1/providers")
+	r := c.client.newReq(apiV1 + "/providers")
 	r.par.Set("q", query)
 	return &ProvidersSearchReq{
 		req: r,
@@ -170,7 +170,7 @@ func (r *ProvidersSearchReq) Send() (*ProviderSearchResults, error) {
 // Get returns a request that may be used to get the details of a single financial provider.
 func (c *ProvidersService) Get(id string) *ProvidersGetReq {
 	return &ProvidersGetReq{
-		req: c.client.newReq("/v1/providers/" + id),
+		req: c.client.newReq(apiV1 + "/providers/" + id),
 	}
 }
 
@@ -237,7 +237,7 @@ func NewAppUsersService(c *AppClient) *AppUsersService { return &AppUsersService
 
 func (a *AppUsersService) List() *ListDevUsersReq {
 	return &ListDevUsersReq{
-		req: a.client.newReq("/v1/developers/users"),
+		req: a.client.newReq(apiV1 + "/developers/users"),
 	}
 }
 
@@ -299,7 +299,7 @@ type UserListPage struct {
 // Create returns a request that may be used to create a user with the given username and password.
 func (a *AppUsersService) Create(username, password string) *UserCreateReq {
 	return &UserCreateReq{
-		req:    a.client.newReq("/v1/users"),
+		req:    a.client.newReq(apiV1 + "/users"),
 		client: a.client,
 		data: UserCredentials{
 			Username: username,
@@ -354,7 +354,7 @@ type UserToken struct {
 // Login returns a request that may be used to login a user with the given username and password.
 func (a *AppUsersService) Login(username, password string) *UserLoginReq {
 	return &UserLoginReq{
-		req:    a.client.newReq("/v1/users/login"),
+		req:    a.client.newReq(apiV1 + "/users/login"),
 		client: a.client,
 		data: UserCredentials{
 			Username: username,
@@ -398,7 +398,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 // ResetPassword prepares and returns a request to reset a user's password.
 func (a *AppUsersService) ResetPassword(username, password string) *ResetUserPasswordReq {
 	return &ResetUserPasswordReq{
-		req: a.client.newReq("/v1/users/reset_password"),
+		req: a.client.newReq(apiV1 + "/users/reset_password"),
 		data: UserCredentials{
 			Username: username,
 			Password: password,
