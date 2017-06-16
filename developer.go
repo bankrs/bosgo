@@ -17,7 +17,6 @@ type DevClient struct {
 	token string // session token
 
 	Applications *ApplicationsService
-	Users        *DevUsersService
 	Stats        *StatsService
 }
 
@@ -29,7 +28,6 @@ func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 		token: token,
 	}
 	dc.Applications = NewApplicationsService(dc)
-	dc.Users = NewDevUsersService(dc)
 	dc.Stats = NewStatsService(dc)
 
 	return dc
@@ -75,6 +73,35 @@ func (r *DeveloperLogoutReq) Context(ctx context.Context) *DeveloperLogoutReq {
 // this request has been sent the developer client should not be used again.
 func (r *DeveloperLogoutReq) Send() error {
 	_, cleanup, err := r.req.postJSON(nil)
+	defer cleanup()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete prepares and returns a request to delete the developer account and
+// all it's associated data in all environments. Once this request has been
+// sent the client is no longer valid and should not be used.
+func (d *DevClient) Delete() *DeveloperDeleteReq {
+	return &DeveloperDeleteReq{
+		req: d.newReq("/v1/developers"),
+	}
+}
+
+type DeveloperDeleteReq struct {
+	req
+}
+
+func (r *DeveloperDeleteReq) Context(ctx context.Context) *DeveloperDeleteReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the request to delete developer. Once this request has been sent
+// the developer client should not be used again.
+func (r *DeveloperDeleteReq) Send() error {
+	_, cleanup, err := r.req.delete()
 	defer cleanup()
 	if err != nil {
 		return err
@@ -319,73 +346,6 @@ func (r *DeleteApplicationsReq) Send() error {
 	}
 
 	return nil
-}
-
-type DevUsersService struct {
-	client *DevClient
-}
-
-func NewDevUsersService(c *DevClient) *DevUsersService { return &DevUsersService{client: c} }
-
-func (d *DevUsersService) List() *ListDevUsersReq {
-	return &ListDevUsersReq{
-		req: d.client.newReq("/v1/developers/users"),
-	}
-}
-
-type ListDevUsersReq struct {
-	req
-	data PageParams
-}
-
-type PageParams struct {
-	Cursor string `json:"cursor"`
-	Limit  int    `json:"limit"`
-}
-
-func (r *ListDevUsersReq) Context(ctx context.Context) *ListDevUsersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-func (r *ListDevUsersReq) Cursor(cursor string) *ListDevUsersReq {
-	r.data.Cursor = cursor
-	return r
-}
-
-func (r *ListDevUsersReq) Limit(v int) *ListDevUsersReq {
-	r.data.Limit = v
-	return r
-}
-
-func (r *ListDevUsersReq) Send() (*UserListPage, error) {
-	if r.data.Limit < 0 {
-		return nil, fmt.Errorf("limit must be non-negative")
-	}
-
-	var res *http.Response
-	var cleanup func()
-	var err error
-	if r.data.Limit == 0 {
-		res, cleanup, err = r.req.get()
-	} else {
-		res, cleanup, err = r.req.postJSON(r.data)
-	}
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var list UserListPage
-	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
-		return nil, err
-	}
-	return &list, nil
-}
-
-type UserListPage struct {
-	Users      []string `json:"users,omitempty"`
-	NextCursor string   `json:"next,omitempty"`
 }
 
 type StatsService struct {

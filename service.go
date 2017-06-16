@@ -357,6 +357,41 @@ func (r *req) delete() (*http.Response, func(), error) {
 	return res, cleanup(res), nil
 }
 
+func (r *req) deleteJSON(data interface{}) (*http.Response, func(), error) {
+	var body io.Reader
+	if data != nil {
+		var encoded bytes.Buffer
+		err := json.NewEncoder(&encoded).Encode(data)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		body = &encoded
+	}
+
+	req, err := http.NewRequest("DELETE", r.url().String(), body)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if r.ctx != nil {
+		req = req.WithContext(r.ctx)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	// TODO: remove x-environment header
+	req.Header.Set("x-environment", "sandbox")
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
+	}
+	fmt.Printf("%+v\n", req)
+	res, err := r.hc.Do(req)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	if err := responseError(res); err != nil {
+		return nil, func() {}, err
+	}
+	return res, cleanup(res), nil
+}
+
 func cleanup(res *http.Response) func() {
 	return func() {
 		if res == nil || res.Body == nil {

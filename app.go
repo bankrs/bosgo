@@ -3,6 +3,7 @@ package bosgo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -18,6 +19,7 @@ type AppClient struct {
 
 	Categories *CategoriesService
 	Providers  *ProvidersService
+	Users      *AppUsersService
 }
 
 // NewAppClient creates a new client that may be used to interact with
@@ -32,6 +34,7 @@ func NewAppClient(client *http.Client, addr string, token string, applicationID 
 
 	ac.Categories = NewCategoriesService(ac)
 	ac.Providers = NewProvidersService(ac)
+	ac.Users = NewAppUsersService(ac)
 	return ac
 }
 
@@ -46,101 +49,6 @@ func (a *AppClient) newReq(path string) req {
 		},
 		par: params{},
 	}
-}
-
-// CreateUser returns a request that may be used to create a user with the given username and password.
-func (a *AppClient) CreateUser(username, password string) *UserCreateReq {
-	return &UserCreateReq{
-		req:    a.newReq("/v1/users"),
-		client: a,
-		data: UserCredentials{
-			Username: username,
-			Password: password,
-		},
-	}
-}
-
-// UserCreateReq is a request that may be used to create a user.
-type UserCreateReq struct {
-	req
-	client *AppClient
-	data   UserCredentials
-}
-
-type UserCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *UserCreateReq) Context(ctx context.Context) *UserCreateReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// Send sends the request to create the user and returns a client that can be
-// used to access services within the new users's session.
-func (r *UserCreateReq) Send() (*UserClient, error) {
-	res, cleanup, err := r.req.postJSON(r.data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var t UserToken
-	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, err
-	}
-
-	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
-}
-
-type UserToken struct {
-	ID    string `json:"id"`    // globally unique identifier for a user
-	Token string `json:"token"` // session token
-}
-
-// UserLogin returns a request that may be used to login a user with the given username and password.
-func (a *AppClient) UserLogin(username, password string) *UserLoginReq {
-	return &UserLoginReq{
-		req:    a.newReq("/v1/users/login"),
-		client: a,
-		data: UserCredentials{
-			Username: username,
-			Password: password,
-		},
-	}
-}
-
-type UserLoginReq struct {
-	req
-	client *AppClient
-	data   UserCredentials
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *UserLoginReq) Context(ctx context.Context) *UserLoginReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// Send sends the request to login the user and returns a client that can be
-// used to access services within the new users's session.
-func (r *UserLoginReq) Send() (*UserClient, error) {
-	res, cleanup, err := r.req.postJSON(r.data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var t UserToken
-	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, err
-	}
-
-	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
 }
 
 type CategoriesService struct {
@@ -292,4 +200,197 @@ type ChallengeSpec struct {
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
 	Options     map[string]string `json:"options,omitempty"`
+}
+
+type AppUsersService struct {
+	client *AppClient
+}
+
+func NewAppUsersService(c *AppClient) *AppUsersService { return &AppUsersService{client: c} }
+
+func (a *AppUsersService) List() *ListDevUsersReq {
+	return &ListDevUsersReq{
+		req: a.client.newReq("/v1/developers/users"),
+	}
+}
+
+type ListDevUsersReq struct {
+	req
+	data PageParams
+}
+
+type PageParams struct {
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit"`
+}
+
+func (r *ListDevUsersReq) Context(ctx context.Context) *ListDevUsersReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListDevUsersReq) Cursor(cursor string) *ListDevUsersReq {
+	r.data.Cursor = cursor
+	return r
+}
+
+func (r *ListDevUsersReq) Limit(v int) *ListDevUsersReq {
+	r.data.Limit = v
+	return r
+}
+
+func (r *ListDevUsersReq) Send() (*UserListPage, error) {
+	if r.data.Limit < 0 {
+		return nil, fmt.Errorf("limit must be non-negative")
+	}
+
+	var res *http.Response
+	var cleanup func()
+	var err error
+	if r.data.Limit == 0 {
+		res, cleanup, err = r.req.get()
+	} else {
+		res, cleanup, err = r.req.postJSON(r.data)
+	}
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var list UserListPage
+	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
+		return nil, err
+	}
+	return &list, nil
+}
+
+type UserListPage struct {
+	Users      []string `json:"users,omitempty"`
+	NextCursor string   `json:"next,omitempty"`
+}
+
+// Create returns a request that may be used to create a user with the given username and password.
+func (a *AppUsersService) Create(username, password string) *UserCreateReq {
+	return &UserCreateReq{
+		req:    a.client.newReq("/v1/users"),
+		client: a.client,
+		data: UserCredentials{
+			Username: username,
+			Password: password,
+		},
+	}
+}
+
+// UserCreateReq is a request that may be used to create a user.
+type UserCreateReq struct {
+	req
+	client *AppClient
+	data   UserCredentials
+}
+
+type UserCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *UserCreateReq) Context(ctx context.Context) *UserCreateReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the request to create the user and returns a client that can be
+// used to access services within the new users's session.
+func (r *UserCreateReq) Send() (*UserClient, error) {
+	res, cleanup, err := r.req.postJSON(r.data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var t UserToken
+	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+
+	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
+}
+
+type UserToken struct {
+	ID    string `json:"id"`    // globally unique identifier for a user
+	Token string `json:"token"` // session token
+}
+
+// Login returns a request that may be used to login a user with the given username and password.
+func (a *AppUsersService) Login(username, password string) *UserLoginReq {
+	return &UserLoginReq{
+		req:    a.client.newReq("/v1/users/login"),
+		client: a.client,
+		data: UserCredentials{
+			Username: username,
+			Password: password,
+		},
+	}
+}
+
+type UserLoginReq struct {
+	req
+	client *AppClient
+	data   UserCredentials
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *UserLoginReq) Context(ctx context.Context) *UserLoginReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the request to login the user and returns a client that can be
+// used to access services within the new users's session.
+func (r *UserLoginReq) Send() (*UserClient, error) {
+	res, cleanup, err := r.req.postJSON(r.data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var t UserToken
+	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+
+	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
+}
+
+// ResetPassword prepares and returns a request to reset a user's password.
+func (a *AppUsersService) ResetPassword(username, password string) *ResetUserPasswordReq {
+	return &ResetUserPasswordReq{
+		req: a.client.newReq("/v1/users/reset_password"),
+		data: UserCredentials{
+			Username: username,
+			Password: password,
+		},
+	}
+}
+
+type ResetUserPasswordReq struct {
+	req
+	data UserCredentials
+}
+
+func (r *ResetUserPasswordReq) Context(ctx context.Context) *ResetUserPasswordReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Send sends the request to retrieve the developer's profile.
+func (r *ResetUserPasswordReq) Send() error {
+	_, cleanup, err := r.req.postJSON(r.data)
+	defer cleanup()
+	if err != nil {
+		return err
+	}
+	return nil
 }
