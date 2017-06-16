@@ -7,8 +7,11 @@ import (
 )
 
 const (
+
+	// Version is the current version of the bosgo library.
 	Version = "0.1"
 
+	// UserAgent is the default user agent header used by the bosgo library.
 	UserAgent = "bosgo-bankrs-os-client/" + Version
 )
 
@@ -39,6 +42,9 @@ func New(client *http.Client, addr string, opts ...ClientOption) *Client {
 	c := &Client{
 		hc:   client,
 		addr: addr,
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	return c
 }
@@ -165,7 +171,7 @@ type SessionToken struct {
 	Token string `json:"token"`
 }
 
-// CreateDeveloper prepares and returns a request to start the lost password process.
+// LostPassword prepares and returns a request to start the lost password process.
 func (c *Client) LostPassword(email string) *LostPasswordReq {
 	return &LostPasswordReq{
 		req: c.newReq("/v1/developers/lost_password"),
@@ -202,7 +208,7 @@ func (r *LostPasswordReq) Send() error {
 	return nil
 }
 
-// CreateDeveloper prepares and returns a request to start the lost password process.
+// ResetPassword prepares and returns a request to reset a lost password.
 func (c *Client) ResetPassword(password string, token string) *ResetPasswordReq {
 	return &ResetPasswordReq{
 		req: c.newReq("/v1/developers/reset_password"),

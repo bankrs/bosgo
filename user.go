@@ -129,6 +129,7 @@ func (r *UserDeleteReq) Send() error {
 	return nil
 }
 
+// AccessesService provides access to bank access related API services.
 type AccessesService struct {
 	client *UserClient
 }
@@ -308,8 +309,8 @@ type BankAccessWithAccounts struct {
 
 type Account struct {
 	ID           int64                `json:"id"`
-	BankId       int64                `json:"bank_id"`
-	BankAccessId int64                `json:"bank_access_id"`
+	BankID       int64                `json:"bank_id"`
+	BankAccessID int64                `json:"bank_access_id"`
 	Name         string               `json:"name"`
 	Type         string               `json:"type"`
 	Number       string               `json:"number"`
@@ -404,6 +405,7 @@ func (r *RefreshAccessesReq) Send() ([]Job, error) {
 	return jobs, nil
 }
 
+// JobsService provides access to jobs related API services.
 type JobsService struct {
 	client *UserClient
 }
@@ -487,7 +489,7 @@ func (r *JobAnswerReq) Send() error {
 	return nil
 }
 
-// Get returns a request that may be used to cancel a job.
+// Cancel returns a request that may be used to cancel a job.
 func (j *JobsService) Cancel(uri string) *JobCancelReq {
 	return &JobCancelReq{
 		req: j.client.newReq("/v1" + uri),
@@ -520,7 +522,7 @@ type JobStatus struct {
 	Finished  bool            `json:"finished"`
 	Stage     string          `json:"stage"`
 	Challenge *Challenge      `json:"challenge,omitempty"`
-	Uri       string          `json:"uri,omitempty"`
+	URI       string          `json:"uri,omitempty"`
 	Errors    []APIError      `json:"errors,omitempty"`
 	Access    *AccessResponse `json:"access,omitempty"`
 }
@@ -560,20 +562,21 @@ type ChallengeField struct {
 }
 
 type AccessResponse struct {
-	Id       int64             `json:"id,omitempty"`
-	BankId   int64             `json:"bank_id,omitempty"`
+	ID       int64             `json:"id,omitempty"`
+	BankID   int64             `json:"bank_id,omitempty"`
 	Name     string            `json:"name,omitempty"`
 	Accounts []AccountResponse `json:"accounts,omitempty"`
 }
 
 type AccountResponse struct {
-	Id        int64  `json:"id,omitempty"`
+	ID        int64  `json:"id,omitempty"`
 	Name      string `json:"name"`
 	Supported bool   `json:"supported"`
 	Number    string `json:"number"`
 	IBAN      string `json:"iban"`
 }
 
+// AccountsService provides access to account related API services.
 type AccountsService struct {
 	client *UserClient
 }
@@ -690,6 +693,7 @@ type CounterpartyWrap struct {
 	Merchant *Merchant `json:"merchant,omitempty"`
 }
 
+// TransactionsService provides access to transaction related API services.
 type TransactionsService struct {
 	client *UserClient
 }
@@ -799,6 +803,7 @@ func (r *CategoriseTransactionsReq) Send() error {
 	return nil
 }
 
+// ScheduledTransactionsService provides access to scheduled transaction related API services.
 type ScheduledTransactionsService struct {
 	client *UserClient
 }
@@ -867,6 +872,7 @@ func (r *GetScheduledTransactionReq) Send() (*Transaction, error) {
 	return &tx, nil
 }
 
+// RepeatedTransactionsService provides access to repeated transaction related API services.
 type RepeatedTransactionsService struct {
 	client *UserClient
 }
@@ -993,14 +999,14 @@ type RecurringTransferJob struct {
 	*RecurringTransfer
 
 	ID      string        `json:"id"`
-	Version int           `json:"version"` // Optimistic lock version
+	Version int           `json:"version"`
 	State   string        `json:"state"`
 	Errors  []Problem     `json:"errors,omitempty"`
 	Step    *TransferStep `json:"step"`
 }
 
 type RecurringTransfer struct {
-	ID       string           `json:"id"` // Financial institution unique identifier
+	ID       string           `json:"id"`
 	From     *TransferAddress `json:"from"`
 	To       *TransferAddress `json:"to"`
 	Schedule *RecurrenceRule  `json:"schedule"`
@@ -1012,31 +1018,27 @@ type RecurringTransferOptions struct {
 	BankHoliday string `json:"bank_holiday"`
 }
 
-// Transfer is used as a request/response type for payments public APIs
 type PaymentTransferParams struct {
-	// Business fields
-	From             *TransferAddress   `json:"from"` // Transfer source
-	To               *TransferAddress   `json:"to"`   // Transfer recipient
+	From             *TransferAddress   `json:"from"`
+	To               *TransferAddress   `json:"to"`
 	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
-	Amount           *MoneyAmount       `json:"amount"`                      // Transfer amount (e.g. 10.00)
-	Description      string             `json:"usage"`                       // Transfer description (e.g. Rent June 2015)
-	EntryDate        time.Time          `json:"booking_date,omitempty"`      // Date when the transfer has been placed to the payment platform
-	SettlementDate   time.Time          `json:"effective_date,omitempty"`    // Date upon which the transfer takes effect
-	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"` // Challenge answers map
-
-	// Technical fields
-	ID      string        `json:"id"`      // Primary key
-	Version int           `json:"version"` // Record version (for optimistic lock)
-	Step    *TransferStep `json:"step"`    // State machine
-	State   string        `json:"state"`
-	Created time.Time     `json:"created,omitempty"`
-	Updated time.Time     `json:"updated,omitempty"`
-	Errors  []Problem     `json:"errors"`
+	Amount           *MoneyAmount       `json:"amount"`
+	Description      string             `json:"usage"`
+	EntryDate        time.Time          `json:"booking_date,omitempty"`
+	SettlementDate   time.Time          `json:"effective_date,omitempty"`
+	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
+	ID               string             `json:"id"`
+	Version          int                `json:"version"`
+	Step             *TransferStep      `json:"step"`
+	State            string             `json:"state"`
+	Created          time.Time          `json:"created,omitempty"`
+	Updated          time.Time          `json:"updated,omitempty"`
+	Errors           []Problem          `json:"errors"`
 }
 
 type PaymentTransferCancelParams struct {
-	ID      string `json:"id"`      // Primary key
-	Version int    `json:"version"` // Record version (for optimistic lock)
+	ID      string `json:"id"`
+	Version int    `json:"version"`
 }
 
 type TransferStep struct {
@@ -1062,6 +1064,7 @@ type TransferStepData struct {
 //             TRANSFERS SERVICE
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// TransfersService provides access to money transfer related API services.
 type TransfersService struct {
 	client *UserClient
 }
@@ -1183,8 +1186,7 @@ func (t *TransfersService) Cancel(id string, version int) *CancelTransferReq {
 
 type CancelTransferReq struct {
 	req
-	version   int
-	transType TransferType
+	version int
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -1222,6 +1224,7 @@ func (r *CancelTransferReq) Send() (*PaymentTransferParams, error) {
 //           RECURRING TRANSFERS SERVICE
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// RecurringTransfersService provides access to recurring money transfer related API services.
 type RecurringTransfersService struct {
 	client *UserClient
 }

@@ -61,13 +61,14 @@ func (a *AppClient) userAgent() string {
 	return UserAgent + " " + a.ua
 }
 
+// CategoriesService provides access to category related API services.
 type CategoriesService struct {
 	client *AppClient
 }
 
 func NewCategoriesService(a *AppClient) *CategoriesService { return &CategoriesService{client: a} }
 
-// Categories returns a request that may be used to request a list of classification categories.
+// List returns a request that may be used to request a list of classification categories.
 func (c *CategoriesService) List() *CategoriesReq {
 	return &CategoriesReq{
 		req: c.client.newReq("/v1/categories"),
@@ -109,18 +110,19 @@ type Category struct {
 	Group string            `json:"group"` // spending or income, e.g.
 }
 
+// ProvidersService provides access to financial provider related API services.
 type ProvidersService struct {
 	client *AppClient
 }
 
 func NewProvidersService(a *AppClient) *ProvidersService { return &ProvidersService{client: a} }
 
-// Categories returns a request that may be used to search the list of financial providers.
+// Search returns a request that may be used to search the list of financial providers.
 func (c *ProvidersService) Search(query string) *ProvidersSearchReq {
-	req := c.client.newReq("/v1/providers")
-	req.par.Set("q", query)
+	r := c.client.newReq("/v1/providers")
+	r.par.Set("q", query)
 	return &ProvidersSearchReq{
-		req: req,
+		req: r,
 	}
 }
 
@@ -212,6 +214,7 @@ type ChallengeSpec struct {
 	Options     map[string]string `json:"options,omitempty"`
 }
 
+// AppUsersService provides access to application user related API services.
 type AppUsersService struct {
 	client *AppClient
 }

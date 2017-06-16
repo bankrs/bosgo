@@ -227,6 +227,7 @@ func (r *DeveloperSetProfileReq) Send() error {
 	return nil
 }
 
+// ApplicationsService provides access to application related API services.
 type ApplicationsService struct {
 	client *DevClient
 }
@@ -365,6 +366,7 @@ func (r *DeleteApplicationsReq) Send() error {
 	return nil
 }
 
+// StatsService provides access to statistic related API services.
 type StatsService struct {
 	client *DevClient
 }
