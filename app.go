@@ -16,6 +16,7 @@ type AppClient struct {
 	addr          string
 	token         string // session token
 	applicationID string
+	ua            string
 
 	Categories *CategoriesService
 	Providers  *ProvidersService
@@ -44,11 +45,20 @@ func (a *AppClient) newReq(path string) req {
 		addr: a.addr,
 		path: path,
 		headers: headers{
+			"User-Agent":       a.userAgent(),
 			"x-token":          a.token,
 			"x-application-id": a.applicationID,
 		},
 		par: params{},
 	}
+}
+
+func (a *AppClient) userAgent() string {
+	if a.ua == "" {
+		return UserAgent
+	}
+
+	return UserAgent + " " + a.ua
 }
 
 type CategoriesService struct {
@@ -314,7 +324,9 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
-	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
+	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
+	uc.ua = r.client.ua
+	return uc, nil
 }
 
 type UserToken struct {
@@ -361,7 +373,9 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
-	return NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID), nil
+	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
+	uc.ua = r.client.ua
+	return uc, nil
 }
 
 // ResetPassword prepares and returns a request to reset a user's password.

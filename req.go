@@ -212,6 +212,7 @@ func (p params) Encode() string {
 
 type headers map[string]string
 
+// Error contains an error response from a service.
 type Error struct {
 	Errors     []ErrorItem `json:"errors"` // error messages reported by the service
 	StatusCode int         // the HTTP status code from the service response
@@ -219,6 +220,7 @@ type Error struct {
 	Header     http.Header // the HTTP headers from the service response
 }
 
+// ErrorItem is a detailed error code & message.
 type ErrorItem struct {
 	Code    string `json:"code"`    // standard error code
 	Message string `json:"message"` // additional information about the error

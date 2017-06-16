@@ -15,6 +15,7 @@ type DevClient struct {
 	hc    *http.Client
 	addr  string
 	token string // session token
+	ua    string
 
 	Applications *ApplicationsService
 	Stats        *StatsService
@@ -33,6 +34,14 @@ func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 	return dc
 }
 
+func (d *DevClient) userAgent() string {
+	if d.ua == "" {
+		return UserAgent
+	}
+
+	return UserAgent + " " + d.ua
+}
+
 // SessionToken returns the current session token.
 func (d *DevClient) SessionToken() string {
 	return d.token
@@ -41,7 +50,9 @@ func (d *DevClient) SessionToken() string {
 // WithApplication returns a new client that may be used to interact with
 // services that require a specific application context.
 func (d *DevClient) WithApplication(applicationID string) *AppClient {
-	return NewAppClient(d.hc, d.addr, d.token, applicationID)
+	ac := NewAppClient(d.hc, d.addr, d.token, applicationID)
+	ac.ua = d.ua
+	return ac
 }
 
 func (d *DevClient) newReq(path string) req {
@@ -50,7 +61,8 @@ func (d *DevClient) newReq(path string) req {
 		addr: d.addr,
 		path: path,
 		headers: headers{
-			"x-token": d.token,
+			"User-Agent": d.userAgent(),
+			"x-token":    d.token,
 		},
 		par: params{},
 	}

@@ -16,6 +16,7 @@ type UserClient struct {
 	addr          string
 	token         string // session token
 	applicationID string
+	ua            string
 
 	Accesses              *AccessesService
 	Jobs                  *JobsService
@@ -47,12 +48,20 @@ func NewUserClient(client *http.Client, addr string, token string, applicationID
 	return uc
 }
 
+func (u *UserClient) userAgent() string {
+	if u.ua == "" {
+		return UserAgent
+	}
+
+	return UserAgent + " " + u.ua
+}
 func (u *UserClient) newReq(path string) req {
 	return req{
 		hc:   u.hc,
 		addr: u.addr,
 		path: path,
 		headers: headers{
+			"User-Agent":       u.userAgent(),
 			"x-token":          u.token,
 			"x-application-id": u.applicationID,
 		},

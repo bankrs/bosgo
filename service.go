@@ -7,6 +7,12 @@ import (
 )
 
 const (
+	Version = "0.1"
+
+	UserAgent = "bosgo-bankrs-os-client/" + Version
+)
+
+const (
 	SandboxAddr    = "api.sandbox.bankrs.com"
 	ProductionAddr = "api.bankrs.com"
 )
@@ -22,11 +28,14 @@ type Client struct {
 	// never modified once they have been set
 	hc   *http.Client
 	addr string
+	ua   string
 }
+
+type ClientOption func(*Client)
 
 // New creates a new client that will use the supplied HTTP client and connect
 // via the specified API host address.
-func New(client *http.Client, addr string) *Client {
+func New(client *http.Client, addr string, opts ...ClientOption) *Client {
 	c := &Client{
 		hc:   client,
 		addr: addr,
@@ -36,12 +45,22 @@ func New(client *http.Client, addr string) *Client {
 
 func (c *Client) newReq(path string) req {
 	return req{
-		hc:      c.hc,
-		addr:    c.addr,
-		path:    path,
-		headers: headers{},
-		par:     params{},
+		hc:   c.hc,
+		addr: c.addr,
+		path: path,
+		headers: headers{
+			"User-Agent": c.userAgent(),
+		},
+		par: params{},
 	}
+}
+
+func (c *Client) userAgent() string {
+	if c.ua == "" {
+		return UserAgent
+	}
+
+	return UserAgent + " " + c.ua
 }
 
 // Login prepares and returns a request to log a developer into the Bankrs
@@ -90,7 +109,9 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
-	return NewDevClient(r.client.hc, r.client.addr, t.Token), nil
+	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
+	dc.ua = r.client.ua
+	return dc, nil
 }
 
 // CreateDeveloper prepares and returns a request to create a developer account for the
@@ -134,7 +155,10 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
-	return NewDevClient(r.client.hc, r.client.addr, t.Token), nil
+	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
+	dc.ua = r.client.ua
+	return dc, nil
+
 }
 
 type SessionToken struct {
@@ -215,4 +239,10 @@ func (r *ResetPasswordReq) Send() error {
 	}
 
 	return nil
+}
+
+// WithUserAgent is a client option that may be used to add information to the user agent header used by
+// the client.
+func WithUserAgent(ua string) ClientOption {
+	return func(c *Client) { c.ua = ua }
 }
