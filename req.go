@@ -52,8 +52,6 @@ func (r *req) get() (*http.Response, func(), error) {
 	if r.ctx != nil {
 		req = req.WithContext(r.ctx)
 	}
-	// TODO: remove x-environment header
-	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -87,8 +85,6 @@ func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
 		req = req.WithContext(r.ctx)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// TODO: remove x-environment header
-	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -122,8 +118,6 @@ func (r *req) putJSON(data interface{}) (*http.Response, func(), error) {
 		req = req.WithContext(r.ctx)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// TODO: remove x-environment header
-	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -146,8 +140,6 @@ func (r *req) delete() (*http.Response, func(), error) {
 	if r.ctx != nil {
 		req = req.WithContext(r.ctx)
 	}
-	// TODO: remove x-environment header
-	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -181,8 +173,6 @@ func (r *req) deleteJSON(data interface{}) (*http.Response, func(), error) {
 		req = req.WithContext(r.ctx)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// TODO: remove x-environment header
-	req.Header.Set("x-environment", "sandbox")
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
