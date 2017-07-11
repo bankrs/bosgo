@@ -28,7 +28,6 @@ type AppClient struct {
 	// never modified once they have been set
 	hc            *http.Client
 	addr          string
-	token         string // session token
 	applicationID string
 	ua            string
 
@@ -39,11 +38,10 @@ type AppClient struct {
 
 // NewAppClient creates a new client that may be used to interact with
 // services that require a specific application context.
-func NewAppClient(client *http.Client, addr string, token string, applicationID string) *AppClient {
+func NewAppClient(client *http.Client, addr string, applicationID string) *AppClient {
 	ac := &AppClient{
 		hc:            client,
 		addr:          addr,
-		token:         token,
 		applicationID: applicationID,
 	}
 
@@ -60,7 +58,6 @@ func (a *AppClient) newReq(path string) req {
 		path: path,
 		headers: headers{
 			"User-Agent":       a.userAgent(),
-			"x-token":          a.token,
 			"x-application-id": a.applicationID,
 		},
 		par: params{},

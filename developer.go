@@ -61,14 +61,6 @@ func (d *DevClient) SessionToken() string {
 	return d.token
 }
 
-// WithApplication returns a new client that may be used to interact with
-// services that require a specific application context.
-func (d *DevClient) WithApplication(applicationID string) *AppClient {
-	ac := NewAppClient(d.hc, d.addr, d.token, applicationID)
-	ac.ua = d.ua
-	return ac
-}
-
 func (d *DevClient) newReq(path string) req {
 	return req{
 		hc:   d.hc,

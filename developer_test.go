@@ -35,24 +35,3 @@ func TestDeveloperLogout(t *testing.T) {
 		t.Fatalf("failed to send logout request: %v", err)
 	}
 }
-
-func TestWithApplication(t *testing.T) {
-	hc, cleanup := startTestServer(t, nil)
-	defer cleanup()
-
-	devClient := NewDevClient(hc, SandboxAddr, "devtoken")
-	appClient := devClient.WithApplication("appid")
-
-	if appClient.token != devClient.token {
-		t.Errorf("got token %q, wanted %q", appClient.token, devClient.token)
-	}
-
-	if appClient.addr != devClient.addr {
-		t.Errorf("got addr %q, wanted %q", appClient.addr, devClient.addr)
-	}
-
-	if appClient.ua != devClient.ua {
-		t.Errorf("got ua %q, wanted %q", appClient.ua, devClient.ua)
-	}
-
-}

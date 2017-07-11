@@ -72,7 +72,8 @@ if err != nil {
 Once an application has been created, it can be used to create user accounts:
 
 ```go
-userClient, err := devClient.WithApplication(applicationID).Users.Create("username", "password")
+appClient := bosgo.NewAppClient(http.DefaultClient, bosgo.SandboxAddr, applicationID)
+userClient, err := appClient.Users.Create("username", "password")
 if err != nil {
     log.Fatalf("failed to create user: %v", err)
 }
@@ -81,12 +82,8 @@ if err != nil {
 ### Login on behalf of a user
 
 ```go
-client := bosgo.NewClient(http.DefaultClient, bosgo.SandboxAddr)
-devClient, err := client.CreateDeveloper("email", "password").Send()
-if err != nil {
-    log.Fatalf("failed to create developer: %v", err)
-}
-userClient, err := devClient.WithApplication("application").Users.Login("username", "password")
+appClient := bosgo.NewAppClient(http.DefaultClient, bosgo.SandboxAddr, "application")
+userClient, err := appClientUsers.Login("username", "password")
 if err != nil {
     log.Fatalf("failed to login as user: %v", err)
 }
