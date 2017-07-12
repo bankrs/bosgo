@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -252,9 +253,9 @@ type Job struct {
 	URI string `json:"uri"`
 }
 
-func (a *AccessesService) Delete(id string) *DeleteAccessReq {
+func (a *AccessesService) Delete(id int64) *DeleteAccessReq {
 	return &DeleteAccessReq{
-		req: a.client.newReq(apiV1 + "/accesses/" + id),
+		req: a.client.newReq(apiV1 + "/accesses/" + strconv.FormatInt(id, 10)),
 	}
 }
 
@@ -285,9 +286,9 @@ func (r *DeleteAccessReq) Send() (string, error) {
 	return deleted.ID, nil
 }
 
-func (a *AccessesService) Get(id string) *GetAccessReq {
+func (a *AccessesService) Get(id int64) *GetAccessReq {
 	return &GetAccessReq{
-		req: a.client.newReq(apiV1 + "/accesses/" + id),
+		req: a.client.newReq(apiV1 + "/accesses/" + strconv.FormatInt(id, 10)),
 	}
 }
 
