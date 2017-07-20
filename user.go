@@ -584,11 +584,12 @@ type AccessResponse struct {
 }
 
 type AccountResponse struct {
-	ID        int64  `json:"id,omitempty"`
-	Name      string `json:"name"`
-	Supported bool   `json:"supported"`
-	Number    string `json:"number"`
-	IBAN      string `json:"iban"`
+	ID         int64  `json:"id,omitempty"`
+	Name       string `json:"name"`
+	Supported  bool   `json:"supported"`
+	Number     string `json:"number"`
+	IBAN       string `json:"iban"`
+	ProviderID string `json:"provider_id,omitempty"`
 }
 
 // AccountsService provides access to account related API services.
