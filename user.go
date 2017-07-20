@@ -187,7 +187,7 @@ type BankAccessPage struct {
 
 type BankAccess struct {
 	ID         int64  `json:"id"`
-	BankID     int64  `json:"bank_id"`
+	ProviderID string `json:"provider_id"`
 	Name       string `json:"name"`
 	IsPinSaved bool   `json:"is_pin_saved"`
 	Enabled    bool   `json:"enabled"`
@@ -324,7 +324,7 @@ type BankAccessWithAccounts struct {
 
 type Account struct {
 	ID           int64                `json:"id"`
-	BankID       int64                `json:"bank_id"`
+	ProviderID   string               `json:"provider_id"`
 	BankAccessID int64                `json:"bank_access_id"`
 	Name         string               `json:"name"`
 	Type         string               `json:"type"`
@@ -577,10 +577,10 @@ type ChallengeField struct {
 }
 
 type AccessResponse struct {
-	ID       int64             `json:"id,omitempty"`
-	BankID   int64             `json:"bank_id,omitempty"`
-	Name     string            `json:"name,omitempty"`
-	Accounts []AccountResponse `json:"accounts,omitempty"`
+	ID         int64             `json:"id,omitempty"`
+	ProviderID string            `json:"provider_id,omitempty"`
+	Name       string            `json:"name,omitempty"`
+	Accounts   []AccountResponse `json:"accounts,omitempty"`
 }
 
 type AccountResponse struct {
