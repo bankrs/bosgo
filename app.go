@@ -66,10 +66,10 @@ func (a *AppClient) newReq(path string) req {
 
 func (a *AppClient) userAgent() string {
 	if a.ua == "" {
-		return UserAgent
+		return DefaultUserAgent
 	}
 
-	return UserAgent + " " + a.ua
+	return DefaultUserAgent + " " + a.ua
 }
 
 // CategoriesService provides access to category related API services.
@@ -111,14 +111,6 @@ func (r *CategoriesReq) Send() (*CategoryList, error) {
 	}
 
 	return &list, nil
-}
-
-type CategoryList []Category
-
-type Category struct {
-	ID    int64             `json:"id"`
-	Names map[string]string `json:"names"`
-	Group string            `json:"group"` // spending or income, e.g.
 }
 
 // ProvidersService provides access to financial provider related API services.
@@ -198,33 +190,6 @@ func (r *ProvidersGetReq) Send() (*Provider, error) {
 	return &p, nil
 }
 
-type ProviderSearchResults []ProviderSearchResult
-
-type ProviderSearchResult struct {
-	Score    float64  `json:"score"`
-	Provider Provider `json:"provider"`
-}
-
-type Provider struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Country     string          `json:"country"`
-	URL         string          `json:"url"`
-	Address     string          `json:"address"`
-	PostalCode  string          `json:"postal_code"`
-	Challenges  []ChallengeSpec `json:"challenges"`
-}
-
-type ChallengeSpec struct {
-	ID          string            `json:"id"`
-	Description string            `json:"desc"`
-	Type        string            `json:"type"`
-	Secure      bool              `json:"secure"`
-	UnStoreable bool              `json:"unstoreable"`
-	Options     map[string]string `json:"options,omitempty"`
-}
-
 // AppUsersService provides access to application user related API services.
 type AppUsersService struct {
 	client *AppClient
@@ -288,11 +253,6 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 	return &list, nil
 }
 
-type UserListPage struct {
-	Users      []string `json:"users,omitempty"`
-	NextCursor string   `json:"next,omitempty"`
-}
-
 // Create returns a request that may be used to create a user with the given username and password.
 func (a *AppUsersService) Create(username, password string) *UserCreateReq {
 	return &UserCreateReq{
@@ -310,11 +270,6 @@ type UserCreateReq struct {
 	req
 	client *AppClient
 	data   UserCredentials
-}
-
-type UserCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -341,11 +296,6 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
 	uc.ua = r.client.ua
 	return uc, nil
-}
-
-type UserToken struct {
-	ID    string `json:"id"`    // globally unique identifier for a user
-	Token string `json:"token"` // session token
 }
 
 // Login returns a request that may be used to login a user with the given username and password.

@@ -26,8 +26,8 @@ const (
 	// Version is the current version of the bosgo library.
 	Version = "0.1"
 
-	// UserAgent is the default user agent header used by the bosgo library.
-	UserAgent = "bosgo-bankrs-os-client/" + Version
+	// DefaultUserAgent is the default user agent header used by the bosgo library.
+	DefaultUserAgent = "bosgo-bankrs-os-client/" + Version
 
 	apiV1 = "/v1"
 )
@@ -80,10 +80,16 @@ func (c *Client) newReq(path string) req {
 
 func (c *Client) userAgent() string {
 	if c.ua == "" {
-		return UserAgent
+		return DefaultUserAgent
 	}
 
-	return UserAgent + " " + c.ua
+	return DefaultUserAgent + " " + c.ua
+}
+
+func (c *Client) WithApplicationID(applicationID string) *AppClient {
+	ac := NewAppClient(c.hc, c.addr, applicationID)
+	ac.ua = c.ua
+	return ac
 }
 
 // Login prepares and returns a request to log a developer into the Bankrs
@@ -106,9 +112,8 @@ type DeveloperLoginReq struct {
 	data   DeveloperCredentials
 }
 
-type DeveloperCredentials struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+type sessionToken struct {
+	Token string `json:"token"`
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -127,7 +132,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 		return nil, err
 	}
 
-	var t SessionToken
+	var t sessionToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
@@ -173,7 +178,7 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 		return nil, err
 	}
 
-	var t SessionToken
+	var t sessionToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
@@ -184,27 +189,23 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 
 }
 
-type SessionToken struct {
-	Token string `json:"token"`
-}
-
 // LostPassword prepares and returns a request to start the lost password process.
 func (c *Client) LostPassword(email string) *LostPasswordReq {
 	return &LostPasswordReq{
 		req: c.newReq(apiV1 + "/developers/lost_password"),
-		data: DeveloperEmail{
+		data: developerEmail{
 			Email: email,
 		},
 	}
 }
 
-type DeveloperEmail struct {
+type developerEmail struct {
 	Email string `json:"email"`
 }
 
 type LostPasswordReq struct {
 	req
-	data DeveloperEmail
+	data developerEmail
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -229,21 +230,21 @@ func (r *LostPasswordReq) Send() error {
 func (c *Client) ResetPassword(password string, token string) *ResetPasswordReq {
 	return &ResetPasswordReq{
 		req: c.newReq(apiV1 + "/developers/reset_password"),
-		data: DeveloperPasswordReset{
+		data: developerPasswordReset{
 			Password: password,
 			Token:    token,
 		},
 	}
 }
 
-type DeveloperPasswordReset struct {
+type developerPasswordReset struct {
 	Password string `json:"email"`
 	Token    string `json:"token"`
 }
 
 type ResetPasswordReq struct {
 	req
-	data DeveloperPasswordReset
+	data developerPasswordReset
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -264,8 +265,8 @@ func (r *ResetPasswordReq) Send() error {
 	return nil
 }
 
-// WithUserAgent is a client option that may be used to add information to the user agent header used by
+// UserAgent is a client option that may be used to add information to the user agent header used by
 // the client.
-func WithUserAgent(ua string) ClientOption {
+func UserAgent(ua string) ClientOption {
 	return func(c *Client) { c.ua = ua }
 }
