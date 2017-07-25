@@ -50,10 +50,10 @@ func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 
 func (d *DevClient) userAgent() string {
 	if d.ua == "" {
-		return UserAgent
+		return DefaultUserAgent
 	}
 
-	return UserAgent + " " + d.ua
+	return DefaultUserAgent + " " + d.ua
 }
 
 // SessionToken returns the current session token.
@@ -137,21 +137,21 @@ func (r *DeveloperDeleteReq) Send() error {
 func (d *DevClient) ChangePassword(old, new string) *DeveloperChangePasswordReq {
 	return &DeveloperChangePasswordReq{
 		req: d.newReq(apiV1 + "/developers/password"),
-		data: DeveloperChangePasswordData{
+		data: developerChangePasswordData{
 			OldPassword: old,
 			NewPassword: new,
 		},
 	}
 }
 
-type DeveloperChangePasswordData struct {
+type developerChangePasswordData struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
 
 type DeveloperChangePasswordReq struct {
 	req
-	data DeveloperChangePasswordData
+	data developerChangePasswordData
 }
 
 func (r *DeveloperChangePasswordReq) Context(ctx context.Context) *DeveloperChangePasswordReq {
@@ -198,11 +198,6 @@ func (r *DeveloperProfileReq) Send() (*DeveloperProfile, error) {
 	}
 
 	return &profile, nil
-}
-
-type DeveloperProfile struct {
-	Company             string `json:"company"`
-	HasProductionAccess bool   `json:"has_production_access"`
 }
 
 // SetProfile sets the developer's profile.
@@ -268,16 +263,6 @@ func (r *ListApplicationsReq) Send() (*ApplicationPage, error) {
 	}
 
 	return &page, nil
-}
-
-type ApplicationPage struct {
-	Applications []ApplicationMetadata
-}
-
-type ApplicationMetadata struct {
-	ApplicationID string    `json:"application_id,omitempty"`
-	Label         string    `json:"label,omitempty"`
-	CreatedAt     time.Time `json:"created_at,omitempty"`
 }
 
 func (d *ApplicationsService) Create(label string) *CreateApplicationsReq {
@@ -594,82 +579,4 @@ func (r *StatsRequestsReq) Send() (*RequestsStats, error) {
 	}
 
 	return &stats, nil
-}
-
-type StatsPeriod struct {
-	From   string `json:"from_date"`
-	To     string `json:"to_date"`
-	Domain string `json:"domain"`
-}
-
-type UsersStats struct {
-	StatsPeriod
-	UsersTotal StatsValue        `json:"users_total"` // with weekly relative change
-	UsersToday StatsValue        `json:"users_today"` // with daily relative change
-	Stats      []DailyUsersStats `json:"stats"`
-}
-
-type StatsValue struct {
-	Value int64 `json:"value"`
-}
-
-type DailyUsersStats struct {
-	Date        string `json:"date"`
-	UsersTotal  int64  `json:"users_total"`
-	NewUsers    int64  `json:"new_users"`
-	ActiveUsers int64  `json:"active_users"`
-}
-
-type TransfersStats struct {
-	StatsPeriod
-	TotalOut StatsMoneyAmount      `json:"total_out"`
-	TodayOut StatsMoneyAmount      `json:"today_out"`
-	Stats    []DailyTransfersStats `json:"stats"`
-}
-
-type DailyTransfersStats struct {
-	Date string           `json:"date"`
-	Out  StatsMoneyAmount `json:"out"`
-}
-
-type MerchantsStats struct {
-	StatsPeriod
-	Stats []DailyMerchantsStats `json:"stats"`
-}
-
-type DailyMerchantsStats struct {
-	Date      string      `json:"date"`
-	Merchants []NameValue `json:"merchants"`
-}
-
-type ProvidersStats struct {
-	StatsPeriod
-	Stats []DailyProvidersStats `json:"stats"`
-}
-
-type DailyProvidersStats struct {
-	Date      string      `json:"date"`
-	Providers []NameValue `json:"providers"`
-}
-
-type StatsMoneyAmount struct {
-	Value    float64 `json:"value"`
-	Currency string  `json:"currency"`
-}
-
-type NameValue struct {
-	Name  string `json:"name"`
-	Value int64  `json:"value"`
-}
-
-type RequestsStats struct {
-	StatsPeriod
-	RequestsTotal StatsValue           `json:"requests_total"`
-	RequestsToday StatsValue           `json:"requests_today"`
-	Stats         []DailyRequestsStats `json:"stats"`
-}
-
-type DailyRequestsStats struct {
-	Date          string `json:"date"`
-	RequestsTotal int64  `json:"requests_total"`
 }
