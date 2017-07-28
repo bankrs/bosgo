@@ -575,6 +575,16 @@ func (r *ListTransactionsReq) Context(ctx context.Context) *ListTransactionsReq 
 	return r
 }
 
+func (r *ListTransactionsReq) AccountID(id int64) *ListTransactionsReq {
+	r.req.par["account_id"] = []string{strconv.FormatInt(id, 10)}
+	return r
+}
+
+func (r *ListTransactionsReq) AccessID(id int64) *ListTransactionsReq {
+	r.req.par["access_id"] = []string{strconv.FormatInt(id, 10)}
+	return r
+}
+
 func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
@@ -747,6 +757,16 @@ type ListRepeatedTransactionsReq struct {
 
 func (r *ListRepeatedTransactionsReq) Context(ctx context.Context) *ListRepeatedTransactionsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListRepeatedTransactionsReq) AccountID(id int64) *ListRepeatedTransactionsReq {
+	r.req.par["account_id"] = []string{strconv.FormatInt(id, 10)}
+	return r
+}
+
+func (r *ListRepeatedTransactionsReq) AccessID(id int64) *ListRepeatedTransactionsReq {
+	r.req.par["access_id"] = []string{strconv.FormatInt(id, 10)}
 	return r
 }
 
