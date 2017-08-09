@@ -94,6 +94,7 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/users/reset_password", s.handleUsersResetPassword)
 
 	s.mux.HandleFunc("/v1/accesses", s.handleAccesses)
+	s.mux.HandleFunc("/v1/accounts", s.handleAccounts)
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
 
 	return &s
@@ -643,4 +644,22 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 	}
 
 	return &status
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	var page bosgo.AccountPage
+	for _, acc := range user.Accesses {
+		page.Accounts = append(page.Accounts, acc.Accounts...)
+	}
+	s.sendJSON(w, http.StatusOK, &page)
 }

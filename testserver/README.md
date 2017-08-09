@@ -10,6 +10,8 @@ Current API coverage is minimal and focussed on the happy path:
  - [x] User login
  - [x] User logout
  - [x] Add an access to a user
+ - [x] List user accesses
+ - [x] List user accounts
 
 **Documentation:** [![GoDoc](https://godoc.org/github.com/bankrs/bosgo/testserver?status.svg)](https://godoc.org/github.com/bankrs/bosgo/testserver)  
 
