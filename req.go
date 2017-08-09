@@ -223,6 +223,7 @@ type Error struct {
 	Status     string      // the HTTP status line from the service response
 	Header     http.Header // the HTTP headers from the service response
 	RequestID  string      // the ID of the request that generated the error
+	URL        string      // the request URL
 }
 
 // ErrorItem is a detailed error code & message.
@@ -234,9 +235,9 @@ type ErrorItem struct {
 func (e *Error) Error() string {
 	if len(e.Errors) == 1 {
 		if e.Errors[0].Message == "" {
-			return fmt.Sprintf("%s: %s [request-id: %s]", e.Errors[0].Code, e.Status, e.RequestID)
+			return fmt.Sprintf("%s: %s [request-id: %s; URL: %s]", e.Errors[0].Code, e.Status, e.RequestID, e.URL)
 		}
-		return fmt.Sprintf("%s: %s [request-id: %s]", e.Errors[0].Code, e.Errors[0].Message, e.RequestID)
+		return fmt.Sprintf("%s: %s [request-id: %s; URL: %s]", e.Errors[0].Code, e.Errors[0].Message, e.RequestID, e.URL)
 	}
 	// TODO: expand on error message
 	return fmt.Sprintf("request failed with status %s [request-id: %s]", e.Status, e.RequestID)
@@ -257,6 +258,7 @@ func responseError(res *http.Response) error {
 		Status:     res.Status,
 		Header:     res.Header,
 		RequestID:  res.Header.Get("X-Request-Id"),
+		URL:        res.Request.URL.String(),
 	}
 
 	if res.Body == nil {
@@ -278,7 +280,7 @@ func responseError(res *http.Response) error {
 	if err != nil {
 		rerr.Errors = append(rerr.Errors, ErrorItem{
 			Code:    "unable_to_unmarshal_error_response",
-			Message: err.Error(),
+			Message: fmt.Sprintf("received %s", string(body[:256])),
 		})
 		return rerr
 	}
