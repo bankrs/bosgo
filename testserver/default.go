@@ -34,7 +34,7 @@ func NewWithDefaults() *Server {
 	s.setUser(user)
 
 	s.AddAccess(
-		s.makeDefaultAccess(),
+		s.MakeAccess(DefaultProviderID, "default access"),
 		map[string]string{
 			"login": DefaultAccessLogin,
 			"pin":   DefaultAccessPIN,
@@ -44,18 +44,19 @@ func NewWithDefaults() *Server {
 	return s
 }
 
-func (s *Server) makeDefaultAccess() *bosgo.Access {
+// MakeAccess makes an access with an account
+func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 	accID := s.nextID()
 	acc := bosgo.Access{
 		ID:         accID,
-		ProviderID: DefaultProviderID,
+		ProviderID: providerID,
 		Enabled:    true,
-		Name:       "default access",
+		Name:       name,
 
 		Accounts: []bosgo.Account{
 			{
 				ID:           s.nextID(),
-				ProviderID:   DefaultProviderID,
+				ProviderID:   providerID,
 				BankAccessID: accID,
 				Name:         "Account 1",
 				Type:         bosgo.AccountTypeBank,

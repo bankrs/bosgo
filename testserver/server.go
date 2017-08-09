@@ -153,6 +153,7 @@ func (s *Server) Close() {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	s.Logf("received request: %s %s", req.Method, req.URL.Path)
 	s.mux.ServeHTTP(w, req)
 }
 
@@ -197,7 +198,7 @@ func (s *Server) readJSON(w http.ResponseWriter, req *http.Request, v interface{
 		return false
 	}
 
-	s.Logf("%s read: %s", req.URL.Path, string(body))
+	s.Logf("read: %s", string(body))
 	if err := json.Unmarshal(body, v); err != nil {
 		s.Logf("failed to unmarshal body: %v", err)
 		s.sendError(w, http.StatusBadRequest, "general")
@@ -252,6 +253,20 @@ func (s *Server) getUser(id string) (User, bool) {
 	}
 	user, exists := s.Users[id]
 	return user, exists
+}
+
+func (s *Server) getUserByName(name string) (User, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.Users == nil {
+		return User{}, false
+	}
+	for _, user := range s.Users {
+		if user.Username == name {
+			return user, true
+		}
+	}
+	return User{}, false
 }
 
 func (s *Server) setUser(user User) {
@@ -422,7 +437,21 @@ func (s *Server) AddAccess(access *bosgo.Access, challengeMap map[string]string)
 		Access:       *access,
 		ChallengeMap: challengeMap,
 	}
+	// TODO: support multiple possible accesses for each provider id
 	s.Accesses[access.ProviderID] = ad
+}
+
+// AssignAccess assigns a known access to a user
+func (s *Server) AssignAccess(username string, access *bosgo.Access) error {
+	user, found := s.getUserByName(username)
+	if !found {
+		return fmt.Errorf("unknown user: %s", username)
+	}
+
+	user.Accesses = append(user.Accesses, *access)
+	s.setUser(user)
+
+	return nil
 }
 
 func (s *Server) handleUsers(w http.ResponseWriter, req *http.Request) {
@@ -685,11 +714,11 @@ func (s *Server) handleAccounts(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var page bosgo.AccountPage
+	var accounts []bosgo.Account
 	for _, acc := range user.Accesses {
-		page.Accounts = append(page.Accounts, acc.Accounts...)
+		accounts = append(accounts, acc.Accounts...)
 	}
-	s.sendJSON(w, http.StatusOK, &page)
+	s.sendJSON(w, http.StatusOK, accounts)
 }
 
 func (s *Server) handleAccess(w http.ResponseWriter, req *http.Request) {
