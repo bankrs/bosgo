@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -94,6 +95,7 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/users/reset_password", s.handleUsersResetPassword)
 
 	s.mux.HandleFunc("/v1/accesses", s.handleAccesses)
+	s.mux.HandleFunc("/v1/accesses/", s.handleAccess)
 	s.mux.HandleFunc("/v1/accounts", s.handleAccounts)
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
 
@@ -386,6 +388,32 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	s.setUser(user)
 }
 
+func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.Access, bool) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return bosgo.Access{}, false
+	}
+	if !strings.HasPrefix(req.URL.Path, "/v1/accesses/") {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return bosgo.Access{}, false
+	}
+
+	accessID, err := strconv.ParseInt(req.URL.Path[13:], 10, 64)
+	if err != nil {
+		s.Logf("failed to parse accessID: %v", err)
+		s.sendError(w, http.StatusBadRequest, "general")
+		return bosgo.Access{}, false
+	}
+
+	for _, acc := range user.Accesses {
+		if acc.ID == accessID {
+			return acc, true
+		}
+	}
+	s.sendError(w, http.StatusNotFound, "resource_not_found")
+	return bosgo.Access{}, false
+}
+
 // AddAccess adds configuration for an access so it can be added to a user via the server API
 func (s *Server) AddAccess(access *bosgo.Access, challengeMap map[string]string) {
 	s.mu.Lock()
@@ -400,10 +428,10 @@ func (s *Server) AddAccess(access *bosgo.Access, challengeMap map[string]string)
 func (s *Server) handleUsers(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		s.handlerUserCreate(w, req)
+		s.handleUserCreate(w, req)
 		return
 	case http.MethodDelete:
-		s.handlerUserDelete(w, req)
+		s.handleUserDelete(w, req)
 		return
 	}
 
@@ -411,7 +439,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func (s *Server) handlerUserCreate(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 	app, proceed := s.requireApp(w, req)
 	if !proceed {
 		return
@@ -449,7 +477,7 @@ func (s *Server) handlerUserCreate(w http.ResponseWriter, req *http.Request) {
 	s.sendJSON(w, http.StatusCreated, &ut)
 }
 
-func (s *Server) handlerUserDelete(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleUserDelete(w http.ResponseWriter, req *http.Request) {
 	s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
 }
 
@@ -521,10 +549,10 @@ func (s *Server) handleUsersResetPassword(w http.ResponseWriter, req *http.Reque
 func (s *Server) handleAccesses(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		s.handlerAccessCreate(w, req)
+		s.handleAccessCreate(w, req)
 		return
 	case http.MethodGet:
-		s.handlerAccessesList(w, req)
+		s.handleAccessesList(w, req)
 		return
 	}
 
@@ -532,7 +560,7 @@ func (s *Server) handleAccesses(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func (s *Server) handlerAccessCreate(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleAccessCreate(w http.ResponseWriter, req *http.Request) {
 	user, _, found := s.requireUser(w, req)
 	if !found {
 		return
@@ -551,7 +579,7 @@ func (s *Server) handlerAccessCreate(w http.ResponseWriter, req *http.Request) {
 	s.sendJSON(w, http.StatusAccepted, &job)
 }
 
-func (s *Server) handlerAccessesList(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleAccessesList(w http.ResponseWriter, req *http.Request) {
 	user, _, found := s.requireUser(w, req)
 	if !found {
 		return
@@ -563,13 +591,13 @@ func (s *Server) handlerAccessesList(w http.ResponseWriter, req *http.Request) {
 func (s *Server) handleJobs(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		s.handlerJobStatus(w, req)
+		s.handleJobStatus(w, req)
 		return
 	case http.MethodPut:
-		s.handlerJobAnswer(w, req)
+		s.handleJobAnswer(w, req)
 		return
 	case http.MethodDelete:
-		s.handlerJobDelete(w, req)
+		s.handleJobDelete(w, req)
 		return
 	}
 
@@ -577,7 +605,7 @@ func (s *Server) handleJobs(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func (s *Server) handlerJobStatus(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleJobStatus(w http.ResponseWriter, req *http.Request) {
 	job, found := s.requireJob(w, req)
 	if !found {
 		return
@@ -585,7 +613,7 @@ func (s *Server) handlerJobStatus(w http.ResponseWriter, req *http.Request) {
 	s.sendJSON(w, http.StatusOK, s.jobStatus(&job))
 }
 
-func (s *Server) handlerJobAnswer(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleJobAnswer(w http.ResponseWriter, req *http.Request) {
 	job, found := s.requireJob(w, req)
 	if !found {
 		return
@@ -604,7 +632,7 @@ func (s *Server) handlerJobAnswer(w http.ResponseWriter, req *http.Request) {
 	s.sendJSON(w, http.StatusOK, s.jobStatus(&job))
 }
 
-func (s *Server) handlerJobDelete(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handleJobDelete(w http.ResponseWriter, req *http.Request) {
 	job, found := s.requireJob(w, req)
 	if !found {
 		return
@@ -662,4 +690,29 @@ func (s *Server) handleAccounts(w http.ResponseWriter, req *http.Request) {
 		page.Accounts = append(page.Accounts, acc.Accounts...)
 	}
 	s.sendJSON(w, http.StatusOK, &page)
+}
+
+func (s *Server) handleAccess(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		s.handleAccessGet(w, req)
+		return
+	case http.MethodPost:
+		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		return
+	case http.MethodDelete:
+		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		return
+	}
+
+	http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+	return
+}
+
+func (s *Server) handleAccessGet(w http.ResponseWriter, req *http.Request) {
+	access, found := s.requireAccess(w, req)
+	if !found {
+		return
+	}
+	s.sendJSON(w, http.StatusOK, access)
 }

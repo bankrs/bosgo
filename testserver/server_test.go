@@ -322,3 +322,51 @@ func TestAccessCreateAddsAccessToList(t *testing.T) {
 		t.Errorf("got %d accesses, wanted 1", len(ac.Accesses))
 	}
 }
+
+func TestAccessCreateEnabledGetAccess(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	req := userClient.Accesses.Add(DefaultProviderID)
+
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "login",
+		Value: DefaultAccessLogin,
+	})
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "pin",
+		Value: DefaultAccessPIN,
+	})
+
+	job, err := req.Send()
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Access == nil {
+		t.Fatalf("got nil access, wanted non-nil")
+	}
+
+	acc, err := userClient.Accesses.Get(status.Access.ID).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve accesses: %v", err)
+	}
+	if acc.Name != "default access" {
+		t.Errorf("got access %s, wanted %s", acc.Name, "default access")
+	}
+}
