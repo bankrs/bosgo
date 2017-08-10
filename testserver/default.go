@@ -1,6 +1,8 @@
 package testserver
 
 import (
+	"time"
+
 	"github.com/bankrs/bosgo"
 )
 
@@ -33,8 +35,101 @@ func NewWithDefaults() *Server {
 	}
 	s.setUser(user)
 
+	access := s.MakeAccess(DefaultProviderID, "default access")
+	txs := []bosgo.Transaction{
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[0].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       access.Accounts[0].IBAN,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "-24.34",
+			},
+			EntryDate:      time.Date(2017, 7, 31, 0, 0, 0, 0, time.UTC),
+			SettlementDate: time.Date(2017, 7, 31, 0, 0, 0, 0, time.UTC),
+			Usage:          "Goods bought",
+			Counterparty: bosgo.Counterparty{
+				Name: "PayPal Europe Sarl",
+				Account: bosgo.AccountRef{
+					ProviderID: "DE-BIN-75290000",
+					IBAN:       "DE84200700245353762745",
+				},
+				Merchant: &bosgo.Merchant{
+					Name: "PayPal",
+				},
+			},
+		},
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[0].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       access.Accounts[0].IBAN,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "0.05",
+			},
+			EntryDate:      time.Date(2017, 7, 30, 0, 0, 0, 0, time.UTC),
+			SettlementDate: time.Date(2017, 7, 30, 0, 0, 0, 0, time.UTC),
+			Usage:          "Interest payment",
+			Counterparty:   bosgo.Counterparty{},
+		},
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[1].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       access.Accounts[1].IBAN,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "60.00",
+			},
+			EntryDate:      time.Date(2017, 7, 30, 0, 0, 0, 0, time.UTC),
+			SettlementDate: time.Date(2017, 7, 30, 0, 0, 0, 0, time.UTC),
+			Usage:          "Money transfer",
+			Counterparty:   bosgo.Counterparty{},
+		},
+	}
+
+	rtxs := []bosgo.RepeatedTransaction{
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[0].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       "DE84200700245353762745",
+			},
+			RemoteAccount: bosgo.AccountRef{
+				IBAN: "DE04200800957050250010",
+			},
+			Schedule: bosgo.RecurrenceRule{
+				Start:     time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC),
+				Until:     time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
+				Frequency: bosgo.FrequencyMonthly,
+				Interval:  1,
+				ByDay:     24,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "500.00",
+			},
+			Usage: "Rent",
+		},
+	}
+
 	s.AddAccess(
-		s.MakeAccess(DefaultProviderID, "default access"),
+		access,
+		txs,
+		rtxs,
 		map[string]string{
 			"login": DefaultAccessLogin,
 			"pin":   DefaultAccessPIN,
@@ -65,7 +160,26 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				BalanceDate:  "2017-07-13T22:00:00Z",
 				Enabled:      true,
 				Currency:     "EUR",
-				IBAN:         "DE75524206009411376450",
+				IBAN:         "DE84200700245353762745",
+				Supported:    true,
+				Capabilities: bosgo.AccountCapabilities{
+					AccountStatement:  []string{"read"},
+					Transfer:          []string{"read"},
+					RecurringTransfer: []string{"read"},
+				},
+			},
+			{
+				ID:           s.nextID(),
+				ProviderID:   providerID,
+				BankAccessID: accID,
+				Name:         "Account 2",
+				Type:         bosgo.AccountTypeBank,
+				Number:       "704357301",
+				Balance:      "45.00 EUR",
+				BalanceDate:  "2017-07-13T22:00:00Z",
+				Enabled:      true,
+				Currency:     "EUR",
+				IBAN:         "DE56200800950445688921",
 				Supported:    true,
 				Capabilities: bosgo.AccountCapabilities{
 					AccountStatement:  []string{"read"},

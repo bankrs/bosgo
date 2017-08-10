@@ -26,11 +26,13 @@ type App struct {
 }
 
 type User struct {
-	ID            string
-	Username      string
-	Password      string
-	ApplicationID string
-	Accesses      []bosgo.Access
+	ID                   string
+	Username             string
+	Password             string
+	ApplicationID        string
+	Accesses             []bosgo.Access
+	Transactions         []bosgo.Transaction
+	RepeatedTransactions []bosgo.RepeatedTransaction
 }
 
 type Job struct {
@@ -45,8 +47,10 @@ type Job struct {
 }
 
 type AccessDetails struct {
-	Access       bosgo.Access
-	ChallengeMap map[string]string
+	Access               bosgo.Access
+	Transactions         []bosgo.Transaction
+	RepeatedTransactions []bosgo.RepeatedTransaction
+	ChallengeMap         map[string]string
 }
 
 func (j *Job) isAnswered(id, val string) bool {
@@ -98,6 +102,8 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/accesses/", s.handleAccess)
 	s.mux.HandleFunc("/v1/accounts", s.handleAccounts)
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
+	s.mux.HandleFunc("/v1/transactions", s.handleTransactions)
+	s.mux.HandleFunc("/v1/repeated_transactions", s.handleRepeatedTransactions)
 
 	return &s
 }
@@ -245,7 +251,7 @@ func (s *Server) requireApp(w http.ResponseWriter, req *http.Request) (App, bool
 	return s.getApp(id)
 }
 
-func (s *Server) getUser(id string) (User, bool) {
+func (s *Server) GetUser(id string) (User, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.Users == nil {
@@ -255,7 +261,7 @@ func (s *Server) getUser(id string) (User, bool) {
 	return user, exists
 }
 
-func (s *Server) getUserByName(name string) (User, bool) {
+func (s *Server) GetUserByName(name string) (User, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.Users == nil {
@@ -294,7 +300,7 @@ func (s *Server) requireUser(w http.ResponseWriter, req *http.Request) (User, st
 		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
 		return User{}, "", false
 	}
-	user, found := s.getUser(id)
+	user, found := s.GetUser(id)
 	if !found || user.ApplicationID != app.ID {
 		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
 		return User{}, "", false
@@ -395,11 +401,13 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	j.Stage = bosgo.JobStageFinished
 	j.Succeeded = true
 
-	user, found := s.getUser(j.UserID)
+	user, found := s.GetUser(j.UserID)
 	if !found {
 		return
 	}
 	user.Accesses = append(user.Accesses, j.AccessDetails.Access)
+	user.Transactions = append(user.Transactions, j.AccessDetails.Transactions...)
+	user.RepeatedTransactions = append(user.RepeatedTransactions, j.AccessDetails.RepeatedTransactions...)
 	s.setUser(user)
 }
 
@@ -429,13 +437,15 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	return bosgo.Access{}, false
 }
 
-// AddAccess adds configuration for an access so it can be added to a user via the server API
-func (s *Server) AddAccess(access *bosgo.Access, challengeMap map[string]string) {
+// AddAccess adds configuration for an access with its transactions so it can be added to a user via the server API
+func (s *Server) AddAccess(access *bosgo.Access, txs []bosgo.Transaction, rtxs []bosgo.RepeatedTransaction, challengeMap map[string]string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	ad := AccessDetails{
-		Access:       *access,
-		ChallengeMap: challengeMap,
+		Access:               *access,
+		Transactions:         txs,
+		RepeatedTransactions: rtxs,
+		ChallengeMap:         challengeMap,
 	}
 	// TODO: support multiple possible accesses for each provider id
 	s.Accesses[access.ProviderID] = ad
@@ -443,12 +453,38 @@ func (s *Server) AddAccess(access *bosgo.Access, challengeMap map[string]string)
 
 // AssignAccess assigns a known access to a user
 func (s *Server) AssignAccess(username string, access *bosgo.Access) error {
-	user, found := s.getUserByName(username)
+	user, found := s.GetUserByName(username)
 	if !found {
 		return fmt.Errorf("unknown user: %s", username)
 	}
 
 	user.Accesses = append(user.Accesses, *access)
+	s.setUser(user)
+
+	return nil
+}
+
+// AssignTransactions assigns a set of transactions to a user, overwriting any existing transactions
+func (s *Server) AssignTransactions(username string, txs []bosgo.Transaction) error {
+	user, found := s.GetUserByName(username)
+	if !found {
+		return fmt.Errorf("unknown user: %s", username)
+	}
+
+	user.Transactions = txs
+	s.setUser(user)
+
+	return nil
+}
+
+// AssignRepeatedTransactions assigns a set of repeated transactions to a user, overwriting any existing transactions
+func (s *Server) AssignRepeatedTransactions(username string, txs []bosgo.RepeatedTransaction) error {
+	user, found := s.GetUserByName(username)
+	if !found {
+		return fmt.Errorf("unknown user: %s", username)
+	}
+
+	user.RepeatedTransactions = txs
 	s.setUser(user)
 
 	return nil
@@ -744,4 +780,98 @@ func (s *Server) handleAccessGet(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s.sendJSON(w, http.StatusOK, access)
+}
+
+type txParams struct {
+	accessID  int64
+	accountID int64
+}
+
+func (s *Server) parseTransactionParams(w http.ResponseWriter, req *http.Request) (txParams, bool) {
+	var params txParams
+	var err error
+
+	accessIDStr := req.URL.Query().Get("access_id")
+	if accessIDStr != "" {
+		params.accessID, err = strconv.ParseInt(accessIDStr, 10, 64)
+		if err != nil {
+			s.Logf("failed to parse access_id: %v", err)
+			s.sendError(w, http.StatusBadRequest, "general")
+			return txParams{}, false
+		}
+	}
+
+	accountIDStr := req.URL.Query().Get("account_id")
+	if accountIDStr != "" {
+		params.accountID, err = strconv.ParseInt(accountIDStr, 10, 64)
+		if err != nil {
+			s.Logf("failed to parse account_id: %v", err)
+			s.sendError(w, http.StatusBadRequest, "general")
+			return txParams{}, false
+		}
+	}
+
+	return params, true
+}
+
+func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	params, ok := s.parseTransactionParams(w, req)
+	if !ok {
+		return
+	}
+
+	if params.accessID == 0 && params.accountID == 0 {
+		s.sendJSON(w, http.StatusOK, user.Transactions)
+		return
+	}
+
+	txs := []bosgo.Transaction{}
+	for _, tx := range user.Transactions {
+		if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
+			txs = append(txs, tx)
+		}
+	}
+
+	s.sendJSON(w, http.StatusOK, txs)
+}
+
+func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	params, ok := s.parseTransactionParams(w, req)
+	if !ok {
+		return
+	}
+
+	if params.accessID == 0 && params.accountID == 0 {
+		s.sendJSON(w, http.StatusOK, user.RepeatedTransactions)
+		return
+	}
+
+	txs := []bosgo.RepeatedTransaction{}
+	for _, tx := range user.RepeatedTransactions {
+		if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
+			txs = append(txs, tx)
+		}
+	}
+
+	s.sendJSON(w, http.StatusOK, txs)
 }
