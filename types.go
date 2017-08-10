@@ -188,7 +188,7 @@ type Account struct {
 	Type         AccountType         `json:"type"`
 	Number       string              `json:"number"`
 	Balance      string              `json:"balance"`
-	BalanceDate  string              `json:"balance_date"`
+	BalanceDate  time.Time           `json:"balance_date"`
 	Enabled      bool                `json:"enabled"`
 	Currency     string              `json:"currency"`
 	IBAN         string              `json:"iban"`
