@@ -17,6 +17,7 @@ package bosgo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -587,6 +588,12 @@ func (r *ListTransactionsReq) AccessID(id int64) *ListTransactionsReq {
 
 func (r *ListTransactionsReq) Since(t time.Time) *ListTransactionsReq {
 	r.req.par["since"] = []string{t.Format(time.RFC3339)}
+	return r
+}
+
+func (r *ListTransactionsReq) Piece(offset int, limit int) *ListTransactionsReq {
+	r.req.par["offset"] = []string{fmt.Sprintf("%d", offset)}
+	r.req.par["limit"] = []string{fmt.Sprintf("%d", limit)}
 	return r
 }
 
