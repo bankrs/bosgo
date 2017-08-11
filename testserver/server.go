@@ -1,6 +1,7 @@
 package testserver
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -187,9 +188,16 @@ func (s *Server) sendError(w http.ResponseWriter, status int, errcode string) {
 func (s *Server) sendJSON(w http.ResponseWriter, code int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	data, _ := json.Marshal(v)
-	s.Logf("wrote: %s", data)
-	fmt.Fprintf(w, "%s", data)
+
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		return
+	}
+
+	bb := buf.Bytes()
+	s.Logf("wrote %d bytes: %.512s", len(bb), string(bb))
+	buf.WriteTo(w)
 }
 
 func (s *Server) sendNoContent(w http.ResponseWriter) {
@@ -204,7 +212,7 @@ func (s *Server) readJSON(w http.ResponseWriter, req *http.Request, v interface{
 		return false
 	}
 
-	s.Logf("read: %s", string(body))
+	s.Logf("read %d bytes: %.512s", len(body), string(body))
 	if err := json.Unmarshal(body, v); err != nil {
 		s.Logf("failed to unmarshal body: %v", err)
 		s.sendError(w, http.StatusBadRequest, "general")
@@ -413,6 +421,7 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	user.Accesses = append(user.Accesses, j.AccessDetails.Access)
 	user.Transactions = append(user.Transactions, j.AccessDetails.Transactions...)
 	user.RepeatedTransactions = append(user.RepeatedTransactions, j.AccessDetails.RepeatedTransactions...)
+
 	s.setUser(user)
 }
 
@@ -840,7 +849,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	txs := []bosgo.Transaction{}
+	txs := make([]bosgo.Transaction, 0, len(user.Transactions))
 	for _, tx := range user.Transactions {
 		if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
 			txs = append(txs, tx)
