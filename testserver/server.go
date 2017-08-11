@@ -248,7 +248,12 @@ func (s *Server) requireApp(w http.ResponseWriter, req *http.Request) (App, bool
 		s.sendError(w, http.StatusUnauthorized, "authentication_app_id_invalid")
 		return App{}, false
 	}
-	return s.getApp(id)
+	app, exists := s.getApp(id)
+	if !exists {
+		s.sendError(w, http.StatusUnauthorized, "authentication_app_id_invalid")
+		return App{}, false
+	}
+	return app, true
 }
 
 func (s *Server) GetUser(id string) (User, bool) {
