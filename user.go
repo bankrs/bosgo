@@ -585,6 +585,11 @@ func (r *ListTransactionsReq) AccessID(id int64) *ListTransactionsReq {
 	return r
 }
 
+func (r *ListTransactionsReq) Since(t time.Time) *ListTransactionsReq {
+	r.req.par["since"] = []string{t.Format(time.RFC3339)}
+	return r
+}
+
 func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
