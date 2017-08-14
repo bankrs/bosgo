@@ -286,6 +286,7 @@ type JobAccount struct {
 
 type TransactionPage struct {
 	Transactions []Transaction
+	Total        int
 }
 
 type Transaction struct {

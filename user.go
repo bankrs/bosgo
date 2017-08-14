@@ -608,6 +608,15 @@ func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
+	if total := (*res).Header.Get("X-Total-Entries"); total == "" {
+		page.Total = len(page.Transactions)
+	} else {
+		totalInt, err := strconv.Atoi(total)
+		if err != nil {
+			return nil, err
+		}
+		page.Total = totalInt
+	}
 
 	return &page, nil
 }
