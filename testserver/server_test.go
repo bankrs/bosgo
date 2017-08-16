@@ -422,3 +422,37 @@ func TestListRepeatedTransactions(t *testing.T) {
 		t.Errorf("got %d transactions, wanted 1", len(txs.Transactions))
 	}
 }
+
+func TestCreateTransfer(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	amount := MoneyAmount{
+		Currency: "EUR",
+		Value:    "12.50",
+	}
+
+	addr := TransferAddress{
+		Name:      "",
+		IBAN:      "",
+		AccessID:  "",
+		AccountID: "",
+	}
+
+	userClient.Transfers.Create(from, addr, amount).Send()
+
+}
