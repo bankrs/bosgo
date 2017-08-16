@@ -825,7 +825,7 @@ type TransfersService struct {
 }
 
 type transferParams struct {
-	From             string              `json:"from,omitempty"`
+	From             int64               `json:"from,omitempty"`
 	To               TransferAddress     `json:"to,omitempty"`
 	Amount           MoneyAmount         `json:"amount,omitempty"`
 	Schedule         *RecurrenceRule     `json:"schedule,omitempty"`
@@ -848,7 +848,7 @@ func NewTransfersService(u *UserClient) *TransfersService {
 }
 
 // Create returns a request that may be used to create a money transfer.
-func (t *TransfersService) Create(from string, to TransferAddress, amount MoneyAmount) *CreateTransferReq {
+func (t *TransfersService) Create(from int64, to TransferAddress, amount MoneyAmount) *CreateTransferReq {
 	return &CreateTransferReq{
 		req: t.client.newReq(apiV1 + "/transfers"),
 		data: transferParams{
@@ -1015,8 +1015,8 @@ func NewRecurringTransfersService(u *UserClient) *RecurringTransfersService {
 	return &RecurringTransfersService{client: u}
 }
 
-// Create returns a request that may be used to create a money transfer.
-func (t *RecurringTransfersService) Create(from string, to TransferAddress, amount MoneyAmount, rule RecurrenceRule) *CreateRecurringTransferReq {
+// Create returns a request that may be used to create a money transfer. from is an account id belonging to the user.
+func (t *RecurringTransfersService) Create(from int64, to TransferAddress, amount MoneyAmount, rule RecurrenceRule) *CreateRecurringTransferReq {
 	return &CreateRecurringTransferReq{
 		req: t.client.newReq(apiV1 + "/transfers"),
 		data: transferParams{
