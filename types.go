@@ -285,8 +285,10 @@ type JobAccount struct {
 }
 
 type TransactionPage struct {
-	Transactions []Transaction
-	Total        int
+	Transactions []Transaction `json:"data"`
+	Total        int           `json:"total"`
+	Limit        int           `json:"limit"`
+	Offset       int           `json:"offset"`
 }
 
 type Transaction struct {
