@@ -361,8 +361,8 @@ type MoneyAmount struct {
 type TransferAddress struct {
 	Name      string `json:"name"`
 	IBAN      string `json:"iban"`
-	AccessID  string `json:"bank_access_id,omitempty"`
-	AccountID string `json:"bank_account_id,omitempty"`
+	AccessID  int64  `json:"bank_access_id,omitempty"`
+	AccountID int64  `json:"bank_account_id,omitempty"`
 }
 
 type TransferType string
