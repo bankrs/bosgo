@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+const (
+	paginationLimit = 100 // Default limit for paginated requests. Obviously that default offset is 0
+)
+
 // UserClient is a client used for interacting with services in the context of
 // a registered application and a valid user session. It is safe for
 // concurrent use by multiple goroutines.
@@ -591,9 +595,19 @@ func (r *ListTransactionsReq) Since(t time.Time) *ListTransactionsReq {
 	return r
 }
 
-func (r *ListTransactionsReq) Piece(offset int, limit int) *ListTransactionsReq {
-	r.req.par["offset"] = []string{fmt.Sprintf("%d", offset)}
+func (r *ListTransactionsReq) Limit(limit int) *ListTransactionsReq {
 	r.req.par["limit"] = []string{fmt.Sprintf("%d", limit)}
+	if r.req.par["offset"] == nil || len(r.req.par["offset"]) == 0 {
+		r.req.par["offset"] = []string{"0"}
+	}
+	return r
+}
+
+func (r *ListTransactionsReq) Offset(offset int) *ListTransactionsReq {
+	r.req.par["offset"] = []string{fmt.Sprintf("%d", offset)}
+	if r.req.par["limit"] == nil || len(r.req.par["limit"]) == 0 {
+		r.req.par["limit"] = []string{fmt.Sprintf("%d", paginationLimit)}
+	}
 	return r
 }
 
