@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bankrs/bosgo"
 )
@@ -47,11 +48,25 @@ type Job struct {
 	Succeeded       bool
 }
 
+type Transfer struct {
+	UserID        string
+	Type          bosgo.TransferType
+	Transfer      bosgo.Transfer
+	AccessDetails AccessDetails
+}
+
 type AccessDetails struct {
 	Access               bosgo.Access
 	Transactions         []bosgo.Transaction
 	RepeatedTransactions []bosgo.RepeatedTransaction
 	ChallengeMap         map[string]string
+	TransferAuth         TransferAuth
+}
+
+type TransferAuth struct {
+	Method  string
+	Message string
+	Answer  string
 }
 
 func (j *Job) isAnswered(id, val string) bool {
@@ -80,6 +95,7 @@ type Server struct {
 	UserTokens map[string]string        // map of tokens to user ID
 	Jobs       map[string]Job           // map of jobs indexed by ID
 	Accesses   map[string]AccessDetails // map of access details indexed by provider ID
+	Transfers  map[string]Transfer      // map of transfers indexed by ID
 }
 
 func New() *Server {
@@ -90,6 +106,7 @@ func New() *Server {
 		UserTokens: make(map[string]string),
 		Jobs:       make(map[string]Job),
 		Accesses:   make(map[string]AccessDetails),
+		Transfers:  make(map[string]Transfer),
 	}
 	s.Svr = httptest.NewTLSServer(&s)
 
@@ -105,6 +122,8 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
 	s.mux.HandleFunc("/v1/transactions", s.handleTransactions)
 	s.mux.HandleFunc("/v1/repeated_transactions", s.handleRepeatedTransactions)
+	s.mux.HandleFunc("/v1/transfers", s.handleTransfers)
+	s.mux.HandleFunc("/v1/transfers/", s.handleTransfer)
 
 	return &s
 }
@@ -451,18 +470,136 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	return bosgo.Access{}, false
 }
 
-// AddAccess adds configuration for an access with its transactions so it can be added to a user via the server API
-func (s *Server) AddAccess(access *bosgo.Access, txs []bosgo.Transaction, rtxs []bosgo.RepeatedTransaction, challengeMap map[string]string) {
+func (s *Server) newTransfer(userID string, providerID string, trp *transferParams) Transfer {
+	tr := Transfer{
+		Transfer: bosgo.Transfer{
+			ID: s.nextIDStr(),
+		},
+		UserID: userID,
+		Type:   trp.Type,
+	}
+
+	s.mu.Lock()
+	ad, exists := s.Accesses[providerID]
+	s.mu.Unlock()
+	if !exists {
+		tr.Transfer.State = bosgo.TransferStateFailed
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "resource_not_found"})
+		s.setTransfer(tr)
+		return tr
+	}
+
+	tr.AccessDetails = ad
+	tr.Transfer.State = bosgo.TransferStateOngoing
+	tr.Transfer.Step = bosgo.TransferStep{
+		Intent: bosgo.TransferIntentProvidePIN,
+	}
+	s.progressTransfer(&tr, false, trp.ChallengeAnswers)
+	s.setTransfer(tr)
+	return tr
+
+}
+
+func (s *Server) setTransfer(tr Transfer) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	ad := AccessDetails{
-		Access:               *access,
-		Transactions:         txs,
-		RepeatedTransactions: rtxs,
-		ChallengeMap:         challengeMap,
+	s.Transfers[tr.Transfer.ID] = tr
+}
+
+func (s *Server) getTransfer(id string) (Transfer, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tr, exists := s.Transfers[id]
+	return tr, exists
+}
+
+func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (Transfer, bool) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return Transfer{}, false
 	}
-	// TODO: support multiple possible accesses for each provider id
-	s.Accesses[access.ProviderID] = ad
+	if !strings.HasPrefix(req.URL.Path, "/v1/transfers/") {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return Transfer{}, false
+	}
+	id := req.URL.Path[14:]
+
+	tr, exists := s.getTransfer(id)
+	if !exists {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return Transfer{}, false
+	}
+	if tr.UserID != user.ID {
+		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
+		return Transfer{}, false
+	}
+
+	return tr, true
+}
+
+func (s *Server) progressTransfer(tr *Transfer, confirm bool, answers []bosgo.ChallengeAnswer) {
+	switch tr.Transfer.Step.Intent {
+	case bosgo.TransferIntentProvidePIN:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		for _, ans := range answers {
+			if ans.ID == "pin" && ans.Value == tr.AccessDetails.ChallengeMap["pin"] {
+				tr.Transfer.Step = bosgo.TransferStep{
+					Intent: bosgo.TransferIntentSelectAuthMethod,
+					Data: &bosgo.TransferStepData{
+						TANType: bosgo.TANTypeMobile,
+						AuthMethods: []bosgo.AuthMethod{
+							{ID: tr.AccessDetails.TransferAuth.Method},
+						},
+					},
+				}
+				return
+			}
+		}
+
+	case bosgo.TransferIntentSelectAuthMethod:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		for _, ans := range answers {
+			if ans.ID == "auth_method" && ans.Value == tr.AccessDetails.TransferAuth.Method {
+				tr.Transfer.Step = bosgo.TransferStep{
+					Intent: bosgo.TransferIntentProvideChallengeAnswer,
+					Data: &bosgo.TransferStepData{
+						ChallengeMessage: tr.AccessDetails.TransferAuth.Message,
+					},
+				}
+				return
+			}
+		}
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "auth_method_not_supported_or_not_found"})
+		tr.Transfer.State = bosgo.TransferStateFailed
+		tr.Transfer.Step = bosgo.TransferStep{}
+
+	case bosgo.TransferIntentProvideChallengeAnswer:
+		for _, ans := range answers {
+			if ans.ID == "tan" && ans.Value == tr.AccessDetails.TransferAuth.Answer {
+				tr.Transfer.State = bosgo.TransferStateSucceeded
+				tr.Transfer.Step = bosgo.TransferStep{}
+				now := time.Now()
+				tr.Transfer.EntryDate = now
+				tr.Transfer.SettlementDate = now
+				return
+			}
+		}
+
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "wrong_tan"})
+		tr.Transfer.Step = bosgo.TransferStep{}
+	case bosgo.TransferIntentConfirmSimilarTransfer:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+	}
+}
+
+// AddAccess adds configuration for an access with its transactions so it can be added to a user via the server API
+func (s *Server) AddAccess(ad AccessDetails) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Accesses[ad.Access.ProviderID] = ad
 }
 
 // AssignAccess assigns a known access to a user
@@ -888,4 +1025,113 @@ func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Req
 	}
 
 	s.sendJSON(w, http.StatusOK, txs)
+}
+
+type transferParams struct {
+	From             int64                     `json:"from,omitempty"`
+	To               bosgo.TransferAddress     `json:"to,omitempty"`
+	Amount           bosgo.MoneyAmount         `json:"amount,omitempty"`
+	Schedule         *bosgo.RecurrenceRule     `json:"schedule,omitempty"`
+	EntryDate        string                    `json:"entry_date,omitempty"`
+	Usage            string                    `json:"usage,omitempty"`
+	Type             bosgo.TransferType        `json:"type,omitempty"`
+	ChallengeAnswers bosgo.ChallengeAnswerList `json:"challenge_answers,omitempty"`
+}
+
+func (s *Server) handleTransfers(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	var data transferParams
+
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+
+	var providerID string
+accessloop:
+	for _, acc := range user.Accesses {
+		for _, ac := range acc.Accounts {
+			if ac.ID == data.From {
+				providerID = acc.ProviderID
+				break accessloop
+			}
+		}
+	}
+	if providerID == "" {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return
+	}
+
+	tr := s.newTransfer(user.ID, providerID, &data)
+
+	s.sendJSON(w, http.StatusCreated, &tr.Transfer)
+}
+
+func (s *Server) handleTransfer(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		s.handleTransferProcess(w, req)
+		return
+	case http.MethodPut:
+		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		return
+	case http.MethodDelete:
+		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		return
+	}
+
+	http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+	return
+}
+
+type transferProcessParams struct {
+	Intent           bosgo.TransferIntent      `json:"intent"`
+	Version          int                       `json:"version,omitempty"`
+	Type             bosgo.TransferType        `json:"type"`
+	Confirm          bool                      `json:"confirm,omitempty"`
+	ChallengeAnswers bosgo.ChallengeAnswerList `json:"challenge_answers,omitempty"`
+}
+
+func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request) {
+	tr, found := s.requireTransfer(w, req)
+	if !found {
+		return
+	}
+
+	var data transferProcessParams
+
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+
+	if data.Version != tr.Transfer.Version {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "versions_mismatch"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	if data.Intent != tr.Transfer.Step.Intent {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "intents_mismatch"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	if tr.Transfer.State != bosgo.TransferStateOngoing {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "state_" + string(tr.Transfer.State) + "_unprocessable"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	s.progressTransfer(&tr, data.Confirm, data.ChallengeAnswers)
+	s.setTransfer(tr)
+
+	s.sendJSON(w, http.StatusOK, &tr.Transfer)
 }
