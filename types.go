@@ -129,7 +129,7 @@ type Provider struct {
 
 type ChallengeSpec struct {
 	ID          string            `json:"id"`
-	Description string            `json:"desc"`
+	Description string            `json:"description"`
 	Type        ChallengeType     `json:"type"`
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
