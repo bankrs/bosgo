@@ -48,8 +48,17 @@ type Job struct {
 	Succeeded       bool
 }
 
-type Transfer struct {
+type OrderOp int
+
+const (
+	OrderOpCreate OrderOp = iota
+	OrderOpUpdate
+	OrderOpDelete
+)
+
+type TransferOrder struct {
 	UserID        string
+	Operation     OrderOp
 	Type          bosgo.TransferType
 	Transfer      bosgo.Transfer
 	AccessDetails AccessDetails
@@ -95,7 +104,7 @@ type Server struct {
 	UserTokens map[string]string        // map of tokens to user ID
 	Jobs       map[string]Job           // map of jobs indexed by ID
 	Accesses   map[string]AccessDetails // map of access details indexed by provider ID
-	Transfers  map[string]Transfer      // map of transfers indexed by ID
+	Transfers  map[string]TransferOrder // map of transfer orders indexed by ID
 }
 
 func New() *Server {
@@ -106,7 +115,7 @@ func New() *Server {
 		UserTokens: make(map[string]string),
 		Jobs:       make(map[string]Job),
 		Accesses:   make(map[string]AccessDetails),
-		Transfers:  make(map[string]Transfer),
+		Transfers:  make(map[string]TransferOrder),
 	}
 	s.Svr = httptest.NewTLSServer(&s)
 
@@ -470,8 +479,8 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	return bosgo.Access{}, false
 }
 
-func (s *Server) newTransfer(userID string, providerID string, trp *transferParams) Transfer {
-	tr := Transfer{
+func (s *Server) newTransfer(userID string, providerID string, trp *transferParams) TransferOrder {
+	tr := TransferOrder{
 		Transfer: bosgo.Transfer{
 			ID: s.nextIDStr(),
 		},
@@ -500,44 +509,44 @@ func (s *Server) newTransfer(userID string, providerID string, trp *transferPara
 
 }
 
-func (s *Server) setTransfer(tr Transfer) {
+func (s *Server) setTransfer(tr TransferOrder) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Transfers[tr.Transfer.ID] = tr
 }
 
-func (s *Server) getTransfer(id string) (Transfer, bool) {
+func (s *Server) getTransfer(id string) (TransferOrder, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	tr, exists := s.Transfers[id]
 	return tr, exists
 }
 
-func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (Transfer, bool) {
+func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (TransferOrder, bool) {
 	user, _, found := s.requireUser(w, req)
 	if !found {
-		return Transfer{}, false
+		return TransferOrder{}, false
 	}
 	if !strings.HasPrefix(req.URL.Path, "/v1/transfers/") {
 		s.sendError(w, http.StatusBadRequest, "general")
-		return Transfer{}, false
+		return TransferOrder{}, false
 	}
 	id := req.URL.Path[14:]
 
 	tr, exists := s.getTransfer(id)
 	if !exists {
 		s.sendError(w, http.StatusNotFound, "resource_not_found")
-		return Transfer{}, false
+		return TransferOrder{}, false
 	}
 	if tr.UserID != user.ID {
 		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
-		return Transfer{}, false
+		return TransferOrder{}, false
 	}
 
 	return tr, true
 }
 
-func (s *Server) progressTransfer(tr *Transfer, confirm bool, answers []bosgo.ChallengeAnswer) {
+func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bosgo.ChallengeAnswer) {
 	switch tr.Transfer.Step.Intent {
 	case bosgo.TransferIntentProvidePIN:
 		tr.Transfer.State = bosgo.TransferStateOngoing
@@ -1084,7 +1093,7 @@ func (s *Server) handleTransfer(w http.ResponseWriter, req *http.Request) {
 		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
 		return
 	case http.MethodDelete:
-		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		s.handleTransferDelete(w, req)
 		return
 	}
 
@@ -1134,4 +1143,12 @@ func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request)
 	s.setTransfer(tr)
 
 	s.sendJSON(w, http.StatusOK, &tr.Transfer)
+}
+
+func (s *Server) handleTransferDelete(w http.ResponseWriter, req *http.Request) {
+	tr, found := s.requireTransfer(w, req)
+	if !found {
+		return
+	}
+	_ = tr
 }
