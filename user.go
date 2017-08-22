@@ -761,9 +761,9 @@ func NewRepeatedTransactionsService(u *UserClient) *RepeatedTransactionsService 
 	return &RepeatedTransactionsService{client: u}
 }
 
-func (a *RepeatedTransactionsService) List() *ListRepeatedTransactionsReq {
+func (r *RepeatedTransactionsService) List() *ListRepeatedTransactionsReq {
 	return &ListRepeatedTransactionsReq{
-		req: a.client.newReq(apiV1 + "/repeated_transactions"),
+		req: r.client.newReq(apiV1 + "/repeated_transactions"),
 	}
 }
 
@@ -801,9 +801,9 @@ func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
 	return &page, nil
 }
 
-func (a *RepeatedTransactionsService) Get(id string) *GetRepeatedTransactionReq {
+func (r *RepeatedTransactionsService) Get(id string) *GetRepeatedTransactionReq {
 	return &GetRepeatedTransactionReq{
-		req: a.client.newReq(apiV1 + "/repeated_transactions/" + id),
+		req: r.client.newReq(apiV1 + "/repeated_transactions/" + id),
 	}
 }
 
@@ -829,6 +829,116 @@ func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
 	}
 
 	return &tx, nil
+}
+
+// Delete returns a request that may be used to delete a repeated transaction.
+func (r *RepeatedTransactionsService) Delete(id string) *DeleteRepeatedTransactionReq {
+	return &DeleteRepeatedTransactionReq{
+		req:     r.client.newReq(apiV1 + "/repeated_transaction/" + id),
+		answers: ChallengeAnswerList{},
+	}
+}
+
+type DeleteRepeatedTransactionReq struct {
+	req
+	answers ChallengeAnswerList
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *DeleteRepeatedTransactionReq) Context(ctx context.Context) *DeleteRepeatedTransactionReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the deletion.
+func (r *DeleteRepeatedTransactionReq) ChallengeAnswer(answer ChallengeAnswer) *DeleteRepeatedTransactionReq {
+	r.answers = append(r.answers, answer)
+	return r
+}
+
+// Send sends the request to delete a repeated transaction. It returns
+// information about the long running recurring transfer job that may be used
+// to track and progress the deletion.
+func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
+	data := struct {
+		ChallengeAnswers ChallengeAnswerList `json:"challenge_answers"`
+	}{
+		ChallengeAnswers: r.answers,
+	}
+
+	res, cleanup, err := r.req.deleteJSON(&data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var tr RecurringTransfer
+	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
+		return nil, wrap(errContextInvalidServiceResponse, err)
+	}
+
+	return &tr, nil
+}
+
+// Update returns a request that may be used to update a repeated transaction.
+func (r *RepeatedTransactionsService) Update(id string, to TransferAddress, amount MoneyAmount) *UpdateRepeatedTransactionReq {
+	return &UpdateRepeatedTransactionReq{
+		req: r.client.newReq(apiV1 + "/repeated_transaction/" + id),
+		data: transferParams{
+			To:     to,
+			Amount: amount,
+			Type:   TransferTypeRecurring,
+		},
+	}
+}
+
+type UpdateRepeatedTransactionReq struct {
+	req
+	data transferParams
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *UpdateRepeatedTransactionReq) Context(ctx context.Context) *UpdateRepeatedTransactionReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// Schedule sets a recurrence schedule for the transaction.
+func (r *UpdateRepeatedTransactionReq) Schedule(rule RecurrenceRule) *UpdateRepeatedTransactionReq {
+	r.data.Schedule = &rule
+	return r
+}
+
+// Description sets a human readable description for the transaction.
+func (r *UpdateRepeatedTransactionReq) Description(s string) *UpdateRepeatedTransactionReq {
+	r.data.Usage = s
+	return r
+}
+
+// ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the update.
+func (r *UpdateRepeatedTransactionReq) ChallengeAnswer(answer ChallengeAnswer) *UpdateRepeatedTransactionReq {
+	r.data.ChallengeAnswers = append(r.data.ChallengeAnswers, answer)
+	return r
+}
+
+// Send sends the request to update a repeated transaction. It returns
+// information about the long running recurring transfer job that may be used
+// to track and progress the update.
+func (r *UpdateRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
+	res, cleanup, err := r.req.putJSON(r.data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var tr RecurringTransfer
+	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
+		return nil, wrap(errContextInvalidServiceResponse, err)
+	}
+
+	return &tr, nil
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1078,112 +1188,6 @@ func (r *CreateRecurringTransferReq) ChallengeAnswer(answer ChallengeAnswer) *Cr
 // Send sends the request to create a money transfer.
 func (r *CreateRecurringTransferReq) Send() (*RecurringTransfer, error) {
 	res, cleanup, err := r.req.postJSON(r.data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var tr RecurringTransfer
-	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
-	}
-
-	return &tr, nil
-}
-
-// Delete returns a request that may be used to delete a recurring money transfer.
-func (t *RecurringTransfersService) Delete(id string) *DeleteRecurringTransferReq {
-	return &DeleteRecurringTransferReq{
-		req:     t.client.newReq(apiV1 + "/transfers/" + id),
-		answers: ChallengeAnswerList{},
-	}
-}
-
-type DeleteRecurringTransferReq struct {
-	req
-	answers ChallengeAnswerList
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *DeleteRecurringTransferReq) Context(ctx context.Context) *DeleteRecurringTransferReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the deletion of the transfer.
-func (r *DeleteRecurringTransferReq) ChallengeAnswer(answer ChallengeAnswer) *DeleteRecurringTransferReq {
-	r.answers = append(r.answers, answer)
-	return r
-}
-
-// Send sends the request to create a money transfer.
-func (r *DeleteRecurringTransferReq) Send() (*RecurringTransfer, error) {
-	data := struct {
-		ChallengeAnswers ChallengeAnswerList `json:"challenge_answers"`
-	}{
-		ChallengeAnswers: r.answers,
-	}
-
-	res, cleanup, err := r.req.deleteJSON(&data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var tr RecurringTransfer
-	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
-	}
-
-	return &tr, nil
-}
-
-// Update returns a request that may be used to update a recurring money transfer.
-func (t *RecurringTransfersService) Update(id string, to TransferAddress, amount MoneyAmount) *UpdateRecurringTransferReq {
-	return &UpdateRecurringTransferReq{
-		req: t.client.newReq(apiV1 + "/transfers/" + id),
-		data: transferParams{
-			To:     to,
-			Amount: amount,
-			Type:   TransferTypeRecurring,
-		},
-	}
-}
-
-type UpdateRecurringTransferReq struct {
-	req
-	data transferParams
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *UpdateRecurringTransferReq) Context(ctx context.Context) *UpdateRecurringTransferReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// Schedule sets a recurrence schedule for the transfer.
-func (r *UpdateRecurringTransferReq) Schedule(rule RecurrenceRule) *UpdateRecurringTransferReq {
-	r.data.Schedule = &rule
-	return r
-}
-
-// Description sets a human readable description for the transfer.
-func (r *UpdateRecurringTransferReq) Description(s string) *UpdateRecurringTransferReq {
-	r.data.Usage = s
-	return r
-}
-
-// ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the transfer.
-func (r *UpdateRecurringTransferReq) ChallengeAnswer(answer ChallengeAnswer) *UpdateRecurringTransferReq {
-	r.data.ChallengeAnswers = append(r.data.ChallengeAnswers, answer)
-	return r
-}
-
-// Send sends the request to update a money transfer.
-func (r *UpdateRecurringTransferReq) Send() (*RecurringTransfer, error) {
-	res, cleanup, err := r.req.putJSON(r.data)
 	defer cleanup()
 	if err != nil {
 		return nil, err
