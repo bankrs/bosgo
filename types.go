@@ -403,7 +403,7 @@ type RecurringTransfer struct {
 	Usage            string             `json:"usage"`
 	Version          int                `json:"version"`
 	Step             TransferStep       `json:"step"`
-	State            string             `json:"state"`
+	State            TransferState      `json:"state"`
 	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
 	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
 	Errors           []Problem          `json:"errors,omitempty"`
