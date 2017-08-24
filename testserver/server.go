@@ -69,7 +69,7 @@ type AccessDetails struct {
 	Transactions         []bosgo.Transaction
 	RepeatedTransactions []bosgo.RepeatedTransaction
 	ChallengeMap         map[string]string
-	TransferAuth         TransferAuth
+	TransferAuths        []TransferAuth
 }
 
 type TransferAuth struct {
@@ -555,12 +555,15 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 				tr.Transfer.Step = bosgo.TransferStep{
 					Intent: bosgo.TransferIntentSelectAuthMethod,
 					Data: &bosgo.TransferStepData{
-						TANType: bosgo.TANTypeMobile,
-						AuthMethods: []bosgo.AuthMethod{
-							{ID: tr.AccessDetails.TransferAuth.Method},
-						},
+						TANType:     bosgo.TANTypeMobile,
+						AuthMethods: []bosgo.AuthMethod{},
 					},
 				}
+
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					tr.Transfer.Step.Data.AuthMethods = append(tr.Transfer.Step.Data.AuthMethods, bosgo.AuthMethod{ID: ta.Method})
+				}
+
 				return
 			}
 		}
@@ -568,14 +571,18 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 	case bosgo.TransferIntentSelectAuthMethod:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		for _, ans := range answers {
-			if ans.ID == "auth_method" && ans.Value == tr.AccessDetails.TransferAuth.Method {
-				tr.Transfer.Step = bosgo.TransferStep{
-					Intent: bosgo.TransferIntentProvideChallengeAnswer,
-					Data: &bosgo.TransferStepData{
-						ChallengeMessage: tr.AccessDetails.TransferAuth.Message,
-					},
+			if ans.ID == "auth_method" {
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					if ans.Value == ta.Method {
+						tr.Transfer.Step = bosgo.TransferStep{
+							Intent: bosgo.TransferIntentProvideChallengeAnswer,
+							Data: &bosgo.TransferStepData{
+								ChallengeMessage: ta.Message,
+							},
+						}
+						return
+					}
 				}
-				return
 			}
 		}
 		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "auth_method_not_supported_or_not_found"})
@@ -584,13 +591,17 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 
 	case bosgo.TransferIntentProvideChallengeAnswer:
 		for _, ans := range answers {
-			if ans.ID == "tan" && ans.Value == tr.AccessDetails.TransferAuth.Answer {
-				tr.Transfer.State = bosgo.TransferStateSucceeded
-				tr.Transfer.Step = bosgo.TransferStep{}
-				now := time.Now()
-				tr.Transfer.EntryDate = now
-				tr.Transfer.SettlementDate = now
-				return
+			if ans.ID == "tan" {
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					if ans.Value == ta.Answer {
+						tr.Transfer.State = bosgo.TransferStateSucceeded
+						tr.Transfer.Step = bosgo.TransferStep{}
+						now := time.Now()
+						tr.Transfer.EntryDate = now
+						tr.Transfer.SettlementDate = now
+						return
+					}
+				}
 			}
 		}
 

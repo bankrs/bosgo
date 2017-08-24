@@ -141,10 +141,12 @@ func NewWithDefaults() *Server {
 			ChallengeLogin: DefaultAccessLogin,
 			ChallengePIN:   DefaultAccessPIN,
 		},
-		TransferAuth: TransferAuth{
-			Method:  DefaultAuthMethod,
-			Message: DefaultAuthMessage,
-			Answer:  DefaultAuthAnswer,
+		TransferAuths: []TransferAuth{
+			{
+				Method:  DefaultAuthMethod,
+				Message: DefaultAuthMessage,
+				Answer:  DefaultAuthAnswer,
+			},
 		},
 	}
 	s.AddAccess(ad)
