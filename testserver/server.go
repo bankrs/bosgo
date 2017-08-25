@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -1182,4 +1183,74 @@ func (s *Server) handleTransferDelete(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 	_ = tr
+}
+
+// WriteState writes the current state of the server to w as a series of JSON documents.
+func (s *Server) WriteState(w io.Writer) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	if err := enc.Encode(s.Devs); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Apps); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Users); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.UserTokens); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Jobs); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Accesses); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Transfers); err != nil {
+		return err
+	}
+
+	if _, err := buf.WriteTo(w); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadState reads a series of JSON documents from r and replaces the state of the server with the read data.
+func (s *Server) ReadState(r io.Reader) error {
+	dec := json.NewDecoder(r)
+
+	var tmp Server
+	if err := dec.Decode(&tmp.Devs); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Apps); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Users); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.UserTokens); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Jobs); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Accesses); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Transfers); err != nil {
+		return err
+	}
+
+	s.Devs = tmp.Devs
+	s.Apps = tmp.Apps
+	s.Users = tmp.Users
+	s.UserTokens = tmp.UserTokens
+	s.Jobs = tmp.Jobs
+	s.Accesses = tmp.Accesses
+	s.Transfers = tmp.Transfers
+
+	return nil
 }

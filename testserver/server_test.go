@@ -1,6 +1,7 @@
 package testserver
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
@@ -524,4 +525,59 @@ func TestCreateTransfer(t *testing.T) {
 	if transfer.State != bosgo.TransferStateSucceeded {
 		t.Errorf("got state %v, wanted %v", transfer.State, bosgo.TransferStateSucceeded)
 	}
+}
+
+func TestWriteReadState(t *testing.T) {
+	s := NewWithDefaults()
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, accountID, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := s.WriteState(&buf); err != nil {
+		t.Fatalf("unexpected error writing state: %v", err)
+	}
+
+	s2 := New()
+	defer s2.Close()
+	s2.ReadState(&buf)
+
+	appClient2 := bosgo.NewAppClient(s2.Client(), s2.Addr(), DefaultApplicationID)
+	userClient2, err := appClient2.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login to new server as user: %v", err)
+	}
+
+	amount := bosgo.MoneyAmount{
+		Currency: "EUR",
+		Value:    "12.50",
+	}
+
+	addr := bosgo.TransferAddress{
+		Name: "Jane Doe",
+		IBAN: "DE28500105175552834822",
+	}
+
+	// Create the transfer
+	transfer, err := userClient2.Transfers.Create(accountID, addr, amount).Send()
+	if err != nil {
+		t.Fatalf("failed to create transfer: %v", err)
+	}
+
+	if len(transfer.Errors) > 0 {
+		for _, pr := range transfer.Errors {
+			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+		}
+		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
+	}
+
 }
