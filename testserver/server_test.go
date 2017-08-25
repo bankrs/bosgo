@@ -457,6 +457,13 @@ func TestCreateTransfer(t *testing.T) {
 		t.Fatalf("failed to create transfer: %v", err)
 	}
 
+	if len(transfer.Errors) > 0 {
+		for _, pr := range transfer.Errors {
+			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+		}
+		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
+	}
+
 	if transfer.Step.Intent != bosgo.TransferIntentProvidePIN {
 		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvidePIN)
 	}

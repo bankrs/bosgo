@@ -78,6 +78,10 @@ type TransferAuth struct {
 	Answer  string
 }
 
+const (
+	transferInit = "transfer_init"
+)
+
 func (j *Job) isAnswered(id, val string) bool {
 	for _, ans := range j.SuppliedAnswers {
 		if ans.ID == id && ans.Value == val {
@@ -501,7 +505,7 @@ func (s *Server) newTransfer(userID string, providerID string, trp *transferPara
 	tr.AccessDetails = ad
 	tr.Transfer.State = bosgo.TransferStateOngoing
 	tr.Transfer.Step = bosgo.TransferStep{
-		Intent: bosgo.TransferIntentProvidePIN,
+		Intent: transferInit,
 	}
 	s.progressTransfer(&tr, false, trp.ChallengeAnswers)
 	s.setTransfer(tr)
@@ -548,6 +552,16 @@ func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (Tran
 
 func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bosgo.ChallengeAnswer) {
 	switch tr.Transfer.Step.Intent {
+	case transferInit:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+		if len(answers) == 0 {
+			break
+		}
+		fallthrough
+
 	case bosgo.TransferIntentProvidePIN:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		for _, ans := range answers {
@@ -568,6 +582,12 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 			}
 		}
 
+		// No pin supplied or it didn't match
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_invalid_loginname_pin"})
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+
 	case bosgo.TransferIntentSelectAuthMethod:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		for _, ans := range answers {
@@ -585,7 +605,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 				}
 			}
 		}
-		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "auth_method_not_supported_or_not_found"})
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_account_blocked"})
 		tr.Transfer.State = bosgo.TransferStateFailed
 		tr.Transfer.Step = bosgo.TransferStep{}
 
@@ -605,7 +625,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 			}
 		}
 
-		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "wrong_tan"})
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_account_blocked"})
 		tr.Transfer.Step = bosgo.TransferStep{}
 	case bosgo.TransferIntentConfirmSimilarTransfer:
 		tr.Transfer.State = bosgo.TransferStateOngoing
