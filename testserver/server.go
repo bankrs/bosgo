@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bankrs/bosgo"
 )
@@ -47,12 +49,39 @@ type Job struct {
 	Succeeded       bool
 }
 
+type OrderOp int
+
+const (
+	OrderOpCreate OrderOp = iota
+	OrderOpUpdate
+	OrderOpDelete
+)
+
+type TransferOrder struct {
+	UserID        string
+	Operation     OrderOp
+	Type          bosgo.TransferType
+	Transfer      bosgo.Transfer
+	AccessDetails AccessDetails
+}
+
 type AccessDetails struct {
 	Access               bosgo.Access
 	Transactions         []bosgo.Transaction
 	RepeatedTransactions []bosgo.RepeatedTransaction
 	ChallengeMap         map[string]string
+	TransferAuths        []TransferAuth
 }
+
+type TransferAuth struct {
+	Method  string
+	Message string
+	Answer  string
+}
+
+const (
+	transferInit = "transfer_init"
+)
 
 func (j *Job) isAnswered(id, val string) bool {
 	for _, ans := range j.SuppliedAnswers {
@@ -80,6 +109,7 @@ type Server struct {
 	UserTokens map[string]string        // map of tokens to user ID
 	Jobs       map[string]Job           // map of jobs indexed by ID
 	Accesses   map[string]AccessDetails // map of access details indexed by provider ID
+	Transfers  map[string]TransferOrder // map of transfer orders indexed by ID
 }
 
 func New() *Server {
@@ -90,6 +120,7 @@ func New() *Server {
 		UserTokens: make(map[string]string),
 		Jobs:       make(map[string]Job),
 		Accesses:   make(map[string]AccessDetails),
+		Transfers:  make(map[string]TransferOrder),
 	}
 	s.Svr = httptest.NewTLSServer(&s)
 
@@ -105,6 +136,8 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
 	s.mux.HandleFunc("/v1/transactions", s.handleTransactions)
 	s.mux.HandleFunc("/v1/repeated_transactions", s.handleRepeatedTransactions)
+	s.mux.HandleFunc("/v1/transfers", s.handleTransfers)
+	s.mux.HandleFunc("/v1/transfers/", s.handleTransfer)
 
 	return &s
 }
@@ -451,18 +484,163 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	return bosgo.Access{}, false
 }
 
-// AddAccess adds configuration for an access with its transactions so it can be added to a user via the server API
-func (s *Server) AddAccess(access *bosgo.Access, txs []bosgo.Transaction, rtxs []bosgo.RepeatedTransaction, challengeMap map[string]string) {
+func (s *Server) newTransfer(userID string, providerID string, trp *transferParams) TransferOrder {
+	tr := TransferOrder{
+		Transfer: bosgo.Transfer{
+			ID: s.nextIDStr(),
+		},
+		UserID: userID,
+		Type:   trp.Type,
+	}
+
+	s.mu.Lock()
+	ad, exists := s.Accesses[providerID]
+	s.mu.Unlock()
+	if !exists {
+		tr.Transfer.State = bosgo.TransferStateFailed
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "resource_not_found"})
+		s.setTransfer(tr)
+		return tr
+	}
+
+	tr.AccessDetails = ad
+	tr.Transfer.State = bosgo.TransferStateOngoing
+	tr.Transfer.Step = bosgo.TransferStep{
+		Intent: transferInit,
+	}
+	s.progressTransfer(&tr, false, trp.ChallengeAnswers)
+	s.setTransfer(tr)
+	return tr
+
+}
+
+func (s *Server) setTransfer(tr TransferOrder) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	ad := AccessDetails{
-		Access:               *access,
-		Transactions:         txs,
-		RepeatedTransactions: rtxs,
-		ChallengeMap:         challengeMap,
+	s.Transfers[tr.Transfer.ID] = tr
+}
+
+func (s *Server) getTransfer(id string) (TransferOrder, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tr, exists := s.Transfers[id]
+	return tr, exists
+}
+
+func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (TransferOrder, bool) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return TransferOrder{}, false
 	}
-	// TODO: support multiple possible accesses for each provider id
-	s.Accesses[access.ProviderID] = ad
+	if !strings.HasPrefix(req.URL.Path, "/v1/transfers/") {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return TransferOrder{}, false
+	}
+	id := req.URL.Path[14:]
+
+	tr, exists := s.getTransfer(id)
+	if !exists {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return TransferOrder{}, false
+	}
+	if tr.UserID != user.ID {
+		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
+		return TransferOrder{}, false
+	}
+
+	return tr, true
+}
+
+func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bosgo.ChallengeAnswer) {
+	switch tr.Transfer.Step.Intent {
+	case transferInit:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+		if len(answers) == 0 {
+			break
+		}
+		fallthrough
+
+	case bosgo.TransferIntentProvidePIN:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		for _, ans := range answers {
+			if ans.ID == "pin" && ans.Value == tr.AccessDetails.ChallengeMap["pin"] {
+				tr.Transfer.Step = bosgo.TransferStep{
+					Intent: bosgo.TransferIntentSelectAuthMethod,
+					Data: &bosgo.TransferStepData{
+						TANType:     bosgo.TANTypeMobile,
+						AuthMethods: []bosgo.AuthMethod{},
+					},
+				}
+
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					tr.Transfer.Step.Data.AuthMethods = append(tr.Transfer.Step.Data.AuthMethods, bosgo.AuthMethod{ID: ta.Method})
+				}
+
+				return
+			}
+		}
+
+		// No pin supplied or it didn't match
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_invalid_loginname_pin"})
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+
+	case bosgo.TransferIntentSelectAuthMethod:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		for _, ans := range answers {
+			if ans.ID == "auth_method" {
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					if ans.Value == ta.Method {
+						tr.Transfer.Step = bosgo.TransferStep{
+							Intent: bosgo.TransferIntentProvideChallengeAnswer,
+							Data: &bosgo.TransferStepData{
+								ChallengeMessage: ta.Message,
+							},
+						}
+						return
+					}
+				}
+			}
+		}
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_account_blocked"})
+		tr.Transfer.State = bosgo.TransferStateFailed
+		tr.Transfer.Step = bosgo.TransferStep{}
+
+	case bosgo.TransferIntentProvideChallengeAnswer:
+		for _, ans := range answers {
+			if ans.ID == "tan" {
+				for _, ta := range tr.AccessDetails.TransferAuths {
+					if ans.Value == ta.Answer {
+						tr.Transfer.State = bosgo.TransferStateSucceeded
+						tr.Transfer.Step = bosgo.TransferStep{}
+						now := time.Now()
+						tr.Transfer.EntryDate = now
+						tr.Transfer.SettlementDate = now
+						return
+					}
+				}
+			}
+		}
+
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_account_blocked"})
+		tr.Transfer.Step = bosgo.TransferStep{}
+	case bosgo.TransferIntentConfirmSimilarTransfer:
+		tr.Transfer.State = bosgo.TransferStateOngoing
+		tr.Transfer.Step = bosgo.TransferStep{
+			Intent: bosgo.TransferIntentProvidePIN,
+		}
+	}
+}
+
+// AddAccess adds configuration for an access with its transactions so it can be added to a user via the server API
+func (s *Server) AddAccess(ad AccessDetails) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Accesses[ad.Access.ProviderID] = ad
 }
 
 // AssignAccess assigns a known access to a user
@@ -888,4 +1066,191 @@ func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Req
 	}
 
 	s.sendJSON(w, http.StatusOK, txs)
+}
+
+type transferParams struct {
+	From             int64                     `json:"from,omitempty"`
+	To               bosgo.TransferAddress     `json:"to,omitempty"`
+	Amount           bosgo.MoneyAmount         `json:"amount,omitempty"`
+	Schedule         *bosgo.RecurrenceRule     `json:"schedule,omitempty"`
+	EntryDate        string                    `json:"entry_date,omitempty"`
+	Usage            string                    `json:"usage,omitempty"`
+	Type             bosgo.TransferType        `json:"type,omitempty"`
+	ChallengeAnswers bosgo.ChallengeAnswerList `json:"challenge_answers,omitempty"`
+}
+
+func (s *Server) handleTransfers(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	var data transferParams
+
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+
+	var providerID string
+accessloop:
+	for _, acc := range user.Accesses {
+		for _, ac := range acc.Accounts {
+			if ac.ID == data.From {
+				providerID = acc.ProviderID
+				break accessloop
+			}
+		}
+	}
+	if providerID == "" {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return
+	}
+
+	tr := s.newTransfer(user.ID, providerID, &data)
+
+	s.sendJSON(w, http.StatusCreated, &tr.Transfer)
+}
+
+func (s *Server) handleTransfer(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		s.handleTransferProcess(w, req)
+		return
+	case http.MethodPut:
+		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		return
+	case http.MethodDelete:
+		s.handleTransferDelete(w, req)
+		return
+	}
+
+	http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+	return
+}
+
+type transferProcessParams struct {
+	Intent           bosgo.TransferIntent      `json:"intent"`
+	Version          int                       `json:"version,omitempty"`
+	Type             bosgo.TransferType        `json:"type"`
+	Confirm          bool                      `json:"confirm,omitempty"`
+	ChallengeAnswers bosgo.ChallengeAnswerList `json:"challenge_answers,omitempty"`
+}
+
+func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request) {
+	tr, found := s.requireTransfer(w, req)
+	if !found {
+		return
+	}
+
+	var data transferProcessParams
+
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+
+	if data.Version != tr.Transfer.Version {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "versions_mismatch"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	if data.Intent != tr.Transfer.Step.Intent {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "intents_mismatch"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	if tr.Transfer.State != bosgo.TransferStateOngoing {
+		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "state_" + string(tr.Transfer.State) + "_unprocessable"})
+		s.sendJSON(w, http.StatusOK, &tr.Transfer)
+		return
+	}
+
+	s.progressTransfer(&tr, data.Confirm, data.ChallengeAnswers)
+	s.setTransfer(tr)
+
+	s.sendJSON(w, http.StatusOK, &tr.Transfer)
+}
+
+func (s *Server) handleTransferDelete(w http.ResponseWriter, req *http.Request) {
+	tr, found := s.requireTransfer(w, req)
+	if !found {
+		return
+	}
+	_ = tr
+}
+
+// WriteState writes the current state of the server to w as a series of JSON documents.
+func (s *Server) WriteState(w io.Writer) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	if err := enc.Encode(s.Devs); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Apps); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Users); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.UserTokens); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Jobs); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Accesses); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.Transfers); err != nil {
+		return err
+	}
+
+	if _, err := buf.WriteTo(w); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadState reads a series of JSON documents from r and replaces the state of the server with the read data.
+func (s *Server) ReadState(r io.Reader) error {
+	dec := json.NewDecoder(r)
+
+	var tmp Server
+	if err := dec.Decode(&tmp.Devs); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Apps); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Users); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.UserTokens); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Jobs); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Accesses); err != nil {
+		return err
+	}
+	if err := dec.Decode(&tmp.Transfers); err != nil {
+		return err
+	}
+
+	s.Devs = tmp.Devs
+	s.Apps = tmp.Apps
+	s.Users = tmp.Users
+	s.UserTokens = tmp.UserTokens
+	s.Jobs = tmp.Jobs
+	s.Accesses = tmp.Accesses
+	s.Transfers = tmp.Transfers
+
+	return nil
 }

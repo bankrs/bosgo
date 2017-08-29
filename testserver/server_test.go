@@ -1,6 +1,7 @@
 package testserver
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
@@ -146,11 +147,11 @@ func TestAccessCreateWithLogin(t *testing.T) {
 	req := userClient.Accesses.Add(DefaultProviderID)
 
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "login",
+		ID:    ChallengeLogin,
 		Value: DefaultAccessLogin,
 	})
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "pin",
+		ID:    ChallengePIN,
 		Value: DefaultAccessPIN,
 	})
 
@@ -248,7 +249,7 @@ func TestAccessCreateMultiStep(t *testing.T) {
 
 	req := userClient.Jobs.Answer(job.URI)
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "login",
+		ID:    ChallengeLogin,
 		Value: DefaultAccessLogin,
 	})
 	if err := req.Send(); err != nil {
@@ -264,7 +265,7 @@ func TestAccessCreateMultiStep(t *testing.T) {
 
 	req = userClient.Jobs.Answer(job.URI)
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "pin",
+		ID:    ChallengePIN,
 		Value: DefaultAccessPIN,
 	})
 
@@ -284,31 +285,31 @@ func TestAccessCreateMultiStep(t *testing.T) {
 
 }
 
-func addDefaultAccess(userClient *bosgo.UserClient) (int64, error) {
+func addDefaultAccess(userClient *bosgo.UserClient) (int64, int64, error) {
 	req := userClient.Accesses.Add(DefaultProviderID)
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "login",
+		ID:    ChallengeLogin,
 		Value: DefaultAccessLogin,
 	})
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
-		ID:    "pin",
+		ID:    ChallengePIN,
 		Value: DefaultAccessPIN,
 	})
 
 	job, err := req.Send()
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	status, err := userClient.Jobs.Get(job.URI).Send()
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	if status.Access == nil {
-		return 0, fmt.Errorf("no access found")
+		return 0, 0, fmt.Errorf("no access found")
 	}
 
-	return status.Access.ID, nil
+	return status.Access.ID, status.Access.Accounts[0].ID, nil
 }
 
 func TestAccessCreateAddsAccessToList(t *testing.T) {
@@ -324,7 +325,7 @@ func TestAccessCreateAddsAccessToList(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -355,7 +356,7 @@ func TestGetAccess(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -382,7 +383,7 @@ func TestListTransactions(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -409,7 +410,7 @@ func TestListRepeatedTransactions(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -421,4 +422,162 @@ func TestListRepeatedTransactions(t *testing.T) {
 	if len(txs.Transactions) != 1 {
 		t.Errorf("got %d transactions, wanted 1", len(txs.Transactions))
 	}
+}
+
+func TestCreateTransfer(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, accountID, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	amount := bosgo.MoneyAmount{
+		Currency: "EUR",
+		Value:    "12.50",
+	}
+
+	addr := bosgo.TransferAddress{
+		Name: "Jane Doe",
+		IBAN: "DE28500105175552834822",
+	}
+
+	// Create the transfer
+	transfer, err := userClient.Transfers.Create(accountID, addr, amount).Send()
+	if err != nil {
+		t.Fatalf("failed to create transfer: %v", err)
+	}
+
+	if len(transfer.Errors) > 0 {
+		for _, pr := range transfer.Errors {
+			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+		}
+		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
+	}
+
+	if transfer.Step.Intent != bosgo.TransferIntentProvidePIN {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvidePIN)
+	}
+
+	// Send the pin
+	req := userClient.Transfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "pin",
+		Value: DefaultAccessPIN,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process pin: %v", err)
+	}
+	if transfer.Step.Intent != bosgo.TransferIntentSelectAuthMethod {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentSelectAuthMethod)
+	}
+	if transfer.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if len(transfer.Step.Data.AuthMethods) != 1 {
+		t.Fatalf("got %d auth methods, wanted 1", len(transfer.Step.Data.AuthMethods))
+	}
+	if transfer.Step.Data.AuthMethods[0].ID != DefaultAuthMethod {
+		t.Errorf("got auth method %v, wanted %v", transfer.Step.Data.AuthMethods[0].ID, DefaultAuthMethod)
+	}
+
+	// Send the auth method
+	req = userClient.Transfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "auth_method",
+		Value: DefaultAuthMethod,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth method: %v", err)
+	}
+	if transfer.Step.Intent != bosgo.TransferIntentProvideChallengeAnswer {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvideChallengeAnswer)
+	}
+	if transfer.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if transfer.Step.Data.ChallengeMessage != DefaultAuthMessage {
+		t.Errorf("got challenge message %v, wanted %v", transfer.Step.Data.ChallengeMessage, DefaultAuthMessage)
+	}
+
+	// Send the auth answer
+	req = userClient.Transfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "tan",
+		Value: DefaultAuthAnswer,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth answer: %v", err)
+	}
+	if transfer.State != bosgo.TransferStateSucceeded {
+		t.Errorf("got state %v, wanted %v", transfer.State, bosgo.TransferStateSucceeded)
+	}
+}
+
+func TestWriteReadState(t *testing.T) {
+	s := NewWithDefaults()
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, accountID, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := s.WriteState(&buf); err != nil {
+		t.Fatalf("unexpected error writing state: %v", err)
+	}
+
+	s2 := New()
+	defer s2.Close()
+	s2.ReadState(&buf)
+
+	appClient2 := bosgo.NewAppClient(s2.Client(), s2.Addr(), DefaultApplicationID)
+	userClient2, err := appClient2.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login to new server as user: %v", err)
+	}
+
+	amount := bosgo.MoneyAmount{
+		Currency: "EUR",
+		Value:    "12.50",
+	}
+
+	addr := bosgo.TransferAddress{
+		Name: "Jane Doe",
+		IBAN: "DE28500105175552834822",
+	}
+
+	// Create the transfer
+	transfer, err := userClient2.Transfers.Create(accountID, addr, amount).Send()
+	if err != nil {
+		t.Fatalf("failed to create transfer: %v", err)
+	}
+
+	if len(transfer.Errors) > 0 {
+		for _, pr := range transfer.Errors {
+			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+		}
+		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
+	}
+
 }

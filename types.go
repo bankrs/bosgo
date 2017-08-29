@@ -403,7 +403,7 @@ type RecurringTransfer struct {
 	Usage            string             `json:"usage"`
 	Version          int                `json:"version"`
 	Step             TransferStep       `json:"step"`
-	State            string             `json:"state"`
+	State            TransferState      `json:"state"`
 	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
 	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
 	Errors           []Problem          `json:"errors,omitempty"`
@@ -443,10 +443,31 @@ type AuthMethod struct {
 }
 
 type TransferStepData struct {
-	AuthMethods      []AuthMethod `json:"auth_methods,omitempty"`      // Tan Options
-	Challenge        string       `json:"challenge,omitempty"`         // Tan Challenge
-	ChallengeMessage string       `json:"challenge_message,omitempty"` // Tan Challenge Message
-	TanType          string       `json:"tan_type,omitempty"`          // Type of the Tan (optical, itan, unknown)
+	AuthMethods      []AuthMethod `json:"auth_methods,omitempty"`      // TAN Options
+	Challenge        string       `json:"challenge,omitempty"`         // TAN Challenge
+	ChallengeMessage string       `json:"challenge_message,omitempty"` // TAN Challenge Message
+	TANType          TANType      `json:"tan_type,omitempty"`          // Type of the TAN (optical, itan, unknown)
 	Confirm          bool         `json:"confirm,omitempty"`           // Confirm (similar transfer)
 	Transfers        []Transfer   `json:"transfers,omitempty"`         // Transfer list (similar transfers)
 }
+
+type TANType string
+
+const (
+	// TANTypeOptical indicates an optical TAN such as flickering barcodes
+	TANTypeOptical TANType = "optical"
+	// TANTypeITAN indicates an iTAN (aka indexed TAN) such as a list of TAN numbers with a sequence
+	TANTypeITAN TANType = "itan"
+	// TANTypeMobile indicates a mobileTAN such as an SMS with a passcode
+	TANTypeMobile TANType = "mobile"
+	// TANTypeChip indicates a chipTAN provided from a calculator device
+	TANTypeChip TANType = "chip"
+	// TANTypePush indicates a push push notification to a mobile app
+	TANTypePush TANType = "push"
+	// TANTypeOTP indicates a one-time password
+	TANTypeOTP TANType = "otp"
+	// TANTypePhoto indicates a colorised matrix barcode
+	TANTypePhoto TANType = "photo"
+
+	TANTypeUnknown TANType = "unknown"
+)

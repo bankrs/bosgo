@@ -7,6 +7,10 @@ import (
 )
 
 const (
+	ChallengeLogin = "login"
+	ChallengePIN   = "pin"
+	ChallengeTAN   = "tan"
+
 	DefaultDeveloperID   = "default-dev"
 	DefaultApplicationID = "default-app"
 	DefaultUserID        = "default-user"
@@ -15,6 +19,9 @@ const (
 	DefaultProviderID    = "def-provider-id"
 	DefaultAccessLogin   = "user"
 	DefaultAccessPIN     = "1234"
+	DefaultAuthMethod    = "901"
+	DefaultAuthMessage   = "tan challenge - (enter 4321 as tan)"
+	DefaultAuthAnswer    = "4321"
 )
 
 // NewWithDefaults creates a new test server with a default developer, application and user account
@@ -126,15 +133,23 @@ func NewWithDefaults() *Server {
 		},
 	}
 
-	s.AddAccess(
-		access,
-		txs,
-		rtxs,
-		map[string]string{
-			"login": DefaultAccessLogin,
-			"pin":   DefaultAccessPIN,
+	ad := AccessDetails{
+		Access:               *access,
+		Transactions:         txs,
+		RepeatedTransactions: rtxs,
+		ChallengeMap: map[string]string{
+			ChallengeLogin: DefaultAccessLogin,
+			ChallengePIN:   DefaultAccessPIN,
 		},
-	)
+		TransferAuths: []TransferAuth{
+			{
+				Method:  DefaultAuthMethod,
+				Message: DefaultAuthMessage,
+				Answer:  DefaultAuthAnswer,
+			},
+		},
+	}
+	s.AddAccess(ad)
 
 	return s
 }
