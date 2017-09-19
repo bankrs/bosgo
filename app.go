@@ -17,12 +17,11 @@ package bosgo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
 // AppClient is a client used for interacting with services in the context of
-// a registered application and a valid user or developer session. It is safe
+// a registered application without a valid user or developer session. It is safe
 // for concurrent use by multiple goroutines.
 type AppClient struct {
 	// never modified once they have been set
@@ -196,62 +195,6 @@ type AppUsersService struct {
 }
 
 func NewAppUsersService(c *AppClient) *AppUsersService { return &AppUsersService{client: c} }
-
-func (a *AppUsersService) List() *ListDevUsersReq {
-	return &ListDevUsersReq{
-		req: a.client.newReq(apiV1 + "/developers/users"),
-	}
-}
-
-type ListDevUsersReq struct {
-	req
-	data PageParams
-}
-
-type PageParams struct {
-	Cursor string `json:"cursor"`
-	Limit  int    `json:"limit"`
-}
-
-func (r *ListDevUsersReq) Context(ctx context.Context) *ListDevUsersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-func (r *ListDevUsersReq) Cursor(cursor string) *ListDevUsersReq {
-	r.data.Cursor = cursor
-	return r
-}
-
-func (r *ListDevUsersReq) Limit(v int) *ListDevUsersReq {
-	r.data.Limit = v
-	return r
-}
-
-func (r *ListDevUsersReq) Send() (*UserListPage, error) {
-	if r.data.Limit < 0 {
-		return nil, fmt.Errorf("limit must be non-negative")
-	}
-
-	var res *http.Response
-	var cleanup func()
-	var err error
-	if r.data.Limit == 0 {
-		res, cleanup, err = r.req.get()
-	} else {
-		res, cleanup, err = r.req.postJSON(r.data)
-	}
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var list UserListPage
-	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
-	}
-	return &list, nil
-}
 
 // Create returns a request that may be used to create a user with the given username and password.
 func (a *AppUsersService) Create(username, password string) *UserCreateReq {
