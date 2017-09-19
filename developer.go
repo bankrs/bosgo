@@ -228,7 +228,8 @@ func (r *DeveloperSetProfileReq) Send() error {
 	return nil
 }
 
-// ApplicationsService provides access to application related API services.
+// ApplicationsService provides access to application related API services that also require an authenticated
+// developer session.
 type ApplicationsService struct {
 	client *DevClient
 }
@@ -355,6 +356,64 @@ func (r *DeleteApplicationsReq) Send() error {
 	}
 
 	return nil
+}
+
+func (d *ApplicationsService) ListUsers(applicationID string) *ListDevUsersReq {
+	r := d.client.newReq(apiV1 + "/developers/users")
+	r.headers["x-application-id"] = applicationID
+	return &ListDevUsersReq{
+		req: r,
+	}
+}
+
+type ListDevUsersReq struct {
+	req
+	data PageParams
+}
+
+type PageParams struct {
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit"`
+}
+
+func (r *ListDevUsersReq) Context(ctx context.Context) *ListDevUsersReq {
+	r.req.ctx = ctx
+	return r
+}
+
+func (r *ListDevUsersReq) Cursor(cursor string) *ListDevUsersReq {
+	r.data.Cursor = cursor
+	return r
+}
+
+func (r *ListDevUsersReq) Limit(v int) *ListDevUsersReq {
+	r.data.Limit = v
+	return r
+}
+
+func (r *ListDevUsersReq) Send() (*UserListPage, error) {
+	if r.data.Limit < 0 {
+		return nil, fmt.Errorf("limit must be non-negative")
+	}
+
+	var res *http.Response
+	var cleanup func()
+	var err error
+	if r.data.Limit == 0 {
+		res, cleanup, err = r.req.get()
+	} else {
+		res, cleanup, err = r.req.postJSON(r.data)
+	}
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var list UserListPage
+	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
+		return nil, wrap(errContextInvalidServiceResponse, err)
+	}
+	return &list, nil
 }
 
 // StatsService provides access to statistic related API services.
