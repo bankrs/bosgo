@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type req struct {
@@ -226,12 +227,6 @@ type Error struct {
 	URL        string      // the request URL
 }
 
-// ErrorItem is a detailed error code & message.
-type ErrorItem struct {
-	Code    string `json:"code"`    // standard error code
-	Message string `json:"message"` // additional information about the error
-}
-
 func (e *Error) Error() string {
 	if len(e.Errors) == 1 {
 		if e.Errors[0].Message == "" {
@@ -241,6 +236,37 @@ func (e *Error) Error() string {
 	}
 	// TODO: expand on error message
 	return fmt.Sprintf("request failed with status %s [request-id: %s]", e.Status, e.RequestID)
+}
+
+// ErrorItem is a detailed error code & message.
+type ErrorItem struct {
+	Code    string              `json:"code"`    // standard error code
+	Message string              `json:"message"` // additional information about the error
+	Payload map[string][]string `json:"payload,omitempty"`
+}
+
+func (ei *ErrorItem) Description() string {
+	var buf bytes.Buffer
+	if ei.Message != "" {
+		buf.WriteString(ei.Message)
+	}
+
+	if len(ei.Payload) > 0 {
+		buf.WriteString("(")
+		doneFirst := false
+		for k, v := range ei.Payload {
+			if doneFirst {
+				buf.WriteString("; ")
+			}
+			buf.WriteString(k)
+			buf.WriteString("=")
+			buf.WriteString(strings.Join(v, ", "))
+			doneFirst = true
+		}
+		buf.WriteString(")")
+	}
+
+	return buf.String()
 }
 
 func responseError(res *http.Response) error {
