@@ -324,7 +324,10 @@ type Counterparty struct {
 }
 
 type RepeatedTransactionPage struct {
-	Transactions []RepeatedTransaction `json:"transactions"`
+	Transactions []RepeatedTransaction `json:"data"`
+	Total        int                   `json:"total"`
+	Limit        int                   `json:"limit"`
+	Offset       int                   `json:"offset"`
 }
 
 type RepeatedTransaction struct {

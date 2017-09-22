@@ -609,7 +609,7 @@ func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 	}
 
 	var page TransactionPage
-	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&page); err != nil {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
@@ -794,7 +794,7 @@ func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
 	}
 
 	var page RepeatedTransactionPage
-	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&page); err != nil {
 		return nil, wrap(errContextInvalidServiceResponse, err)
 	}
 
