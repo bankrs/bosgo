@@ -977,6 +977,8 @@ func (s *Server) handleAccessGet(w http.ResponseWriter, req *http.Request) {
 type txParams struct {
 	accessID  int64
 	accountID int64
+	limit     int64
+	offset    int64
 }
 
 func (s *Server) parseTransactionParams(w http.ResponseWriter, req *http.Request) (txParams, bool) {
@@ -1003,6 +1005,32 @@ func (s *Server) parseTransactionParams(w http.ResponseWriter, req *http.Request
 		}
 	}
 
+	limitStr := req.URL.Query().Get("limit")
+	if limitStr != "" {
+		params.limit, err = strconv.ParseInt(limitStr, 10, 64)
+		if err != nil {
+			s.Logf("failed to parse limit: %v", err)
+			s.sendError(w, http.StatusBadRequest, "general")
+			return txParams{}, false
+		}
+	}
+
+	offsetStr := req.URL.Query().Get("offset")
+	if offsetStr != "" {
+		params.offset, err = strconv.ParseInt(offsetStr, 10, 64)
+		if err != nil {
+			s.Logf("failed to parse offset: %v", err)
+			s.sendError(w, http.StatusBadRequest, "general")
+			return txParams{}, false
+		}
+	}
+
+	if params.limit == 0 {
+		params.limit = 50
+	} else if params.limit > 300 {
+		params.limit = 300
+	}
+
 	return params, true
 }
 
@@ -1022,19 +1050,31 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if params.accessID == 0 && params.accountID == 0 {
-		s.sendJSON(w, http.StatusOK, user.Transactions)
-		return
-	}
+	var page bosgo.TransactionPage
 
-	txs := make([]bosgo.Transaction, 0, len(user.Transactions))
-	for _, tx := range user.Transactions {
-		if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
-			txs = append(txs, tx)
+	if params.accessID == 0 && params.accountID == 0 {
+		page.Transactions = user.Transactions
+	} else {
+		page.Transactions = make([]bosgo.Transaction, 0, len(user.Transactions))
+		for _, tx := range user.Transactions {
+			if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
+				page.Transactions = append(page.Transactions, tx)
+				page.Total++
+			}
 		}
 	}
 
-	s.sendJSON(w, http.StatusOK, txs)
+	start := int(params.offset)
+	end := int(params.offset + params.limit)
+	if end > len(page.Transactions) {
+		end = len(page.Transactions)
+	}
+
+	if start > 0 || end < len(page.Transactions) {
+		page.Transactions = page.Transactions[start:end]
+	}
+
+	s.sendJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Request) {
@@ -1053,19 +1093,31 @@ func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if params.accessID == 0 && params.accountID == 0 {
-		s.sendJSON(w, http.StatusOK, user.RepeatedTransactions)
-		return
-	}
+	var page bosgo.RepeatedTransactionPage
 
-	txs := []bosgo.RepeatedTransaction{}
-	for _, tx := range user.RepeatedTransactions {
-		if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
-			txs = append(txs, tx)
+	if params.accessID == 0 && params.accountID == 0 {
+		page.Transactions = user.RepeatedTransactions
+	} else {
+		page.Transactions = make([]bosgo.RepeatedTransaction, 0, len(user.RepeatedTransactions))
+		for _, tx := range user.RepeatedTransactions {
+			if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
+				page.Transactions = append(page.Transactions, tx)
+				page.Total++
+			}
 		}
 	}
 
-	s.sendJSON(w, http.StatusOK, txs)
+	start := int(params.offset)
+	end := int(params.offset + params.limit)
+	if end > len(page.Transactions) {
+		end = len(page.Transactions)
+	}
+
+	if start > 0 || end < len(page.Transactions) {
+		page.Transactions = page.Transactions[start:end]
+	}
+
+	s.sendJSON(w, http.StatusOK, page)
 }
 
 type transferParams struct {

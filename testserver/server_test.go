@@ -390,11 +390,70 @@ func TestListTransactions(t *testing.T) {
 
 	txs, err := userClient.Transactions.List().Send()
 	if err != nil {
-		t.Fatalf("failed to retrieve accesses: %v", err)
+		t.Fatalf("failed to retrieve transactions: %v", err)
 	}
 	if len(txs.Transactions) != 3 {
 		t.Errorf("got %d transactions, wanted 3", len(txs.Transactions))
 	}
+}
+
+func TestListTransactionsLimit(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, _, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	txs, err := userClient.Transactions.List().Limit(2).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve transactions: %v", err)
+	}
+	if len(txs.Transactions) != 2 {
+		t.Errorf("got %d transactions, wanted 3", len(txs.Transactions))
+	}
+}
+
+func TestListTransactionsOffset(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, _, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	txs, err := userClient.Transactions.List().Offset(2).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve transactions: %v", err)
+	}
+	if len(txs.Transactions) != 1 {
+		t.Fatalf("got %d transactions, wanted 3", len(txs.Transactions))
+	}
+
+	if txs.Transactions[0].Amount.Value != "60.00" {
+		t.Errorf("got value %s, wanted %s", txs.Transactions[0].Amount.Value, "60.00")
+	}
+
 }
 
 func TestListRepeatedTransactions(t *testing.T) {
