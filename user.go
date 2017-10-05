@@ -786,6 +786,16 @@ func (r *ListRepeatedTransactionsReq) AccessID(id int64) *ListRepeatedTransactio
 	return r
 }
 
+func (r *ListRepeatedTransactionsReq) Limit(limit int) *ListRepeatedTransactionsReq {
+	r.req.par["limit"] = []string{fmt.Sprintf("%d", limit)}
+	return r
+}
+
+func (r *ListRepeatedTransactionsReq) Offset(offset int) *ListRepeatedTransactionsReq {
+	r.req.par["offset"] = []string{fmt.Sprintf("%d", offset)}
+	return r
+}
+
 func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
