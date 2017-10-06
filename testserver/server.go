@@ -1050,7 +1050,10 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var page bosgo.TransactionPage
+	page := bosgo.TransactionPage{
+		Offset: int(params.offset),
+		Limit:  int(params.limit),
+	}
 
 	if params.accessID == 0 && params.accountID == 0 {
 		page.Transactions = user.Transactions
@@ -1059,10 +1062,10 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 		for _, tx := range user.Transactions {
 			if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
 				page.Transactions = append(page.Transactions, tx)
-				page.Total++
 			}
 		}
 	}
+	page.Total = len(page.Transactions)
 
 	start := int(params.offset)
 	end := int(params.offset + params.limit)
@@ -1093,7 +1096,10 @@ func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	var page bosgo.RepeatedTransactionPage
+	page := bosgo.RepeatedTransactionPage{
+		Offset: int(params.offset),
+		Limit:  int(params.limit),
+	}
 
 	if params.accessID == 0 && params.accountID == 0 {
 		page.Transactions = user.RepeatedTransactions
@@ -1102,10 +1108,10 @@ func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Req
 		for _, tx := range user.RepeatedTransactions {
 			if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
 				page.Transactions = append(page.Transactions, tx)
-				page.Total++
 			}
 		}
 	}
+	page.Total = len(page.Transactions)
 
 	start := int(params.offset)
 	end := int(params.offset + params.limit)
