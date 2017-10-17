@@ -106,7 +106,7 @@ func (r *CategoriesReq) Send() (*CategoryList, error) {
 
 	var list CategoryList
 	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &list, nil
@@ -149,7 +149,7 @@ func (r *ProvidersSearchReq) Send() (*ProviderSearchResults, error) {
 
 	var srch ProviderSearchResults
 	if err := json.NewDecoder(res.Body).Decode(&srch); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &srch, nil
@@ -183,7 +183,7 @@ func (r *ProvidersGetReq) Send() (*Provider, error) {
 
 	var p Provider
 	if err := json.NewDecoder(res.Body).Decode(&p); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &p, nil
@@ -233,7 +233,7 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 
 	var t UserToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
@@ -277,7 +277,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 
 	var t UserToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)

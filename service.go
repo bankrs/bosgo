@@ -37,10 +37,6 @@ const (
 	ProductionAddr = "api.bankrs.com"
 )
 
-const (
-	errContextInvalidServiceResponse = "invalid service response"
-)
-
 // Client is the base client used for interacting with services that do not
 // require authentication. Use Login to initiate a developer session.  It is
 // safe for concurrent use by multiple goroutines.
@@ -134,7 +130,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 
 	var t sessionToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
@@ -180,7 +176,7 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 
 	var t sessionToken
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)

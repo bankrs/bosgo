@@ -315,6 +315,23 @@ func responseError(res *http.Response) error {
 	return rerr
 }
 
-func wrap(prefix string, err error) error {
-	return fmt.Errorf("%s: %v", prefix, err)
+func decodeError(err error, res *http.Response) error {
+	rerr := &Error{
+		Errors: []ErrorItem{
+			{
+				Code:    "unable_to_unmarshal_json_response",
+				Message: err.Error(),
+			},
+		},
+	}
+
+	if res != nil {
+		rerr.StatusCode = res.StatusCode
+		rerr.Status = res.Status
+		rerr.Header = res.Header
+		rerr.RequestID = res.Header.Get("X-Request-Id")
+		rerr.URL = res.Request.URL.String()
+	}
+
+	return rerr
 }
