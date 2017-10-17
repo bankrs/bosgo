@@ -176,7 +176,7 @@ func (r *ListAccessesReq) Send() (*AccessPage, error) {
 
 	var page AccessPage
 	if err := json.NewDecoder(res.Body).Decode(&page.Accesses); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -224,7 +224,7 @@ func (r *AddAccessReq) Send() (*Job, error) {
 
 	var job Job
 	if err := json.NewDecoder(res.Body).Decode(&job); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &job, nil
@@ -257,7 +257,7 @@ func (r *DeleteAccessReq) Send() (string, error) {
 		ID string `json:"deleted_access_id"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&deleted); err != nil {
-		return "", wrap(errContextInvalidServiceResponse, err)
+		return "", decodeError(err, res)
 	}
 
 	return deleted.ID, nil
@@ -288,7 +288,7 @@ func (r *GetAccessReq) Send() (*Access, error) {
 
 	var ba Access
 	if err := json.NewDecoder(res.Body).Decode(&ba); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &ba, nil
@@ -332,7 +332,7 @@ func (r *UpdateAccessReq) Send() (*Access, error) {
 
 	var ba Access
 	if err := json.NewDecoder(res.Body).Decode(&ba); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &ba, nil
@@ -362,7 +362,7 @@ func (r *RefreshAccessesReq) Send() ([]Job, error) {
 
 	var jobs []Job
 	if err := json.NewDecoder(res.Body).Decode(&jobs); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return jobs, nil
@@ -403,7 +403,7 @@ func (r *JobGetReq) Send() (*JobStatus, error) {
 
 	var status JobStatus
 	if err := json.NewDecoder(res.Body).Decode(&status); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &status, nil
@@ -512,7 +512,7 @@ func (r *ListAccountsReq) Send() (*AccountPage, error) {
 
 	var page AccountPage
 	if err := json.NewDecoder(res.Body).Decode(&page.Accounts); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -546,7 +546,7 @@ func (r *GetAccountReq) Send() (*Account, error) {
 
 	var account Account
 	if err := json.NewDecoder(res.Body).Decode(&account); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &account, nil
@@ -610,7 +610,7 @@ func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 
 	var page TransactionPage
 	if err := json.NewDecoder(res.Body).Decode(&page); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -640,7 +640,7 @@ func (r *GetTransactionReq) Send() (*Transaction, error) {
 
 	var tx Transaction
 	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tx, nil
@@ -716,7 +716,7 @@ func (r *ListScheduledTransactionsReq) Send() (*TransactionPage, error) {
 
 	var page TransactionPage
 	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -746,7 +746,7 @@ func (r *GetScheduledTransactionReq) Send() (*Transaction, error) {
 
 	var tx Transaction
 	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tx, nil
@@ -805,7 +805,7 @@ func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
 
 	var page RepeatedTransactionPage
 	if err := json.NewDecoder(res.Body).Decode(&page); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -835,7 +835,7 @@ func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
 
 	var tx RepeatedTransaction
 	if err := json.NewDecoder(res.Body).Decode(&tx); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tx, nil
@@ -885,7 +885,7 @@ func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 
 	var tr RecurringTransfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -945,7 +945,7 @@ func (r *UpdateRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 
 	var tr RecurringTransfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1036,7 +1036,7 @@ func (r *CreateTransferReq) Send() (*Transfer, error) {
 
 	var tr Transfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1088,7 +1088,7 @@ func (r *ProcessTransferReq) Send() (*Transfer, error) {
 
 	var tr Transfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1132,7 +1132,7 @@ func (r *CancelTransferReq) Send() (*Transfer, error) {
 
 	var tr Transfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1205,7 +1205,7 @@ func (r *CreateRecurringTransferReq) Send() (*RecurringTransfer, error) {
 
 	var tr RecurringTransfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1257,7 +1257,7 @@ func (r *ProcessRecurringTransferReq) Send() (*RecurringTransfer, error) {
 
 	var tr RecurringTransfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil
@@ -1301,7 +1301,7 @@ func (r *CancelRecurringTransferReq) Send() (*RecurringTransfer, error) {
 
 	var tr RecurringTransfer
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &tr, nil

@@ -194,7 +194,7 @@ func (r *DeveloperProfileReq) Send() (*DeveloperProfile, error) {
 	}
 	var profile DeveloperProfile
 	if err := json.NewDecoder(res.Body).Decode(&profile); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &profile, nil
@@ -260,7 +260,7 @@ func (r *ListApplicationsReq) Send() (*ApplicationPage, error) {
 
 	var page ApplicationPage
 	if err := json.NewDecoder(res.Body).Decode(&page.Applications); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
@@ -294,7 +294,7 @@ func (r *CreateApplicationsReq) Send() (string, error) {
 
 	var car CreateApplicationsResponse
 	if err := json.NewDecoder(res.Body).Decode(&car); err != nil {
-		return "", wrap(errContextInvalidServiceResponse, err)
+		return "", decodeError(err, res)
 	}
 
 	return car.ApplicationID, nil
@@ -411,7 +411,7 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 
 	var list UserListPage
 	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 	return &list, nil
 }
@@ -460,7 +460,7 @@ func (r *StatsMerchantsReq) Send() (*MerchantsStats, error) {
 
 	var stats MerchantsStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &stats, nil
@@ -503,7 +503,7 @@ func (r *StatsProvidersReq) Send() (*ProvidersStats, error) {
 
 	var stats ProvidersStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &stats, nil
@@ -546,7 +546,7 @@ func (r *StatsTransfersReq) Send() (interface{}, error) {
 
 	var stats interface{}
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	fmt.Printf("%+v\n", stats)
@@ -591,7 +591,7 @@ func (r *StatsUsersReq) Send() (*UsersStats, error) {
 
 	var stats UsersStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &stats, nil
@@ -634,7 +634,7 @@ func (r *StatsRequestsReq) Send() (*RequestsStats, error) {
 
 	var stats RequestsStats
 	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, wrap(errContextInvalidServiceResponse, err)
+		return nil, decodeError(err, res)
 	}
 
 	return &stats, nil
