@@ -979,6 +979,7 @@ type txParams struct {
 	accountID int64
 	limit     int64
 	offset    int64
+	since     time.Time
 }
 
 func (s *Server) parseTransactionParams(w http.ResponseWriter, req *http.Request) (txParams, bool) {
@@ -1025,6 +1026,16 @@ func (s *Server) parseTransactionParams(w http.ResponseWriter, req *http.Request
 		}
 	}
 
+	sinceStr := req.URL.Query().Get("since")
+	if sinceStr != "" {
+		params.since, err = time.Parse(time.RFC3339, sinceStr)
+		if err != nil {
+			s.Logf("failed to parse since: %v", err)
+			s.sendError(w, http.StatusBadRequest, "general")
+			return txParams{}, false
+		}
+	}
+
 	if params.limit == 0 {
 		params.limit = 50
 	} else if params.limit > 300 {
@@ -1055,12 +1066,14 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 		Limit:  int(params.limit),
 	}
 
-	if params.accessID == 0 && params.accountID == 0 {
+	if params.accessID == 0 && params.accountID == 0 && params.since.IsZero() {
 		page.Transactions = user.Transactions
 	} else {
 		page.Transactions = make([]bosgo.Transaction, 0, len(user.Transactions))
 		for _, tx := range user.Transactions {
-			if (params.accessID == 0 || tx.AccessID == params.accessID) && (params.accountID == 0 || tx.UserAccountID == params.accountID) {
+			if (params.accessID == 0 || tx.AccessID == params.accessID) &&
+				(params.accountID == 0 || tx.UserAccountID == params.accountID) &&
+				(params.since.IsZero() || params.since.Before(tx.EntryDate)) {
 				page.Transactions = append(page.Transactions, tx)
 			}
 		}
