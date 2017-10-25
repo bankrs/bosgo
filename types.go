@@ -221,7 +221,7 @@ type JobStatus struct {
 	Stage     JobStage   `json:"stage"`
 	Challenge *Challenge `json:"challenge,omitempty"`
 	URI       string     `json:"uri,omitempty"`
-	Errors    []APIError `json:"errors,omitempty"`
+	Errors    []Problem  `json:"errors,omitempty"`
 	Access    *JobAccess `json:"access,omitempty"`
 }
 
@@ -234,11 +234,6 @@ const (
 	JobStageImporting      JobStage = "importing"
 	JobStageFinished       JobStage = "finished"
 )
-
-type APIError struct {
-	Code    string                 `json:"code"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
-}
 
 type Challenge struct {
 	CanContinue    bool             `json:"can_continue"`
@@ -263,10 +258,9 @@ type ChallengeField struct {
 }
 
 type Problem struct {
-	Domain  string            `json:"domain"`
-	Code    string            `json:"code"`
-	Message string            `json:"message"`
-	Info    map[string]string `json:"info"`
+	Domain string                 `json:"domain"`
+	Code   string                 `json:"code"`
+	Info   map[string]interface{} `json:"info"`
 }
 
 type JobAccess struct {

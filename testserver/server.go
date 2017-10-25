@@ -907,7 +907,7 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 	}
 
 	if job.Error != "" {
-		status.Errors = []bosgo.APIError{{Code: job.Error}}
+		status.Errors = []bosgo.Problem{{Code: job.Error}}
 	}
 
 	if job.Succeeded {

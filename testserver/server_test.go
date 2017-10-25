@@ -552,7 +552,7 @@ func TestCreateTransfer(t *testing.T) {
 
 	if len(transfer.Errors) > 0 {
 		for _, pr := range transfer.Errors {
-			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+			t.Logf("got unexpected error: %s", pr.Code)
 		}
 		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
 	}
@@ -667,7 +667,7 @@ func TestWriteReadState(t *testing.T) {
 
 	if len(transfer.Errors) > 0 {
 		for _, pr := range transfer.Errors {
-			t.Logf("got unexpected error: %s %s", pr.Code, pr.Message)
+			t.Logf("got unexpected error: %s", pr.Code)
 		}
 		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
 	}
