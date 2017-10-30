@@ -304,9 +304,16 @@ func responseError(res *http.Response) error {
 	var serr Error
 	err = json.Unmarshal(body, &serr)
 	if err != nil {
+
+		n := bytes.IndexByte(body, 0x0)
+		if n == -1 {
+			n = len(body)
+		}
+		msg := strings.Replace(strings.Replace(string(body[:n]), "\r", " ", -1), "\n", " ", -1)
+
 		rerr.Errors = append(rerr.Errors, ErrorItem{
 			Code:    "unable_to_unmarshal_error_response",
-			Message: fmt.Sprintf("received %s", strings.Replace(strings.Replace(string(body[:256]), "\r", " ", -1), "\n", " ", -1)),
+			Message: fmt.Sprintf("received %s", msg),
 		})
 		return rerr
 	}
