@@ -87,8 +87,17 @@ type DeveloperLogoutReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeveloperLogoutReq) Context(ctx context.Context) *DeveloperLogoutReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperLogoutReq) ClientID(id string) *DeveloperLogoutReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -116,8 +125,17 @@ type DeveloperDeleteReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeveloperDeleteReq) Context(ctx context.Context) *DeveloperDeleteReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperDeleteReq) ClientID(id string) *DeveloperDeleteReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -154,8 +172,17 @@ type DeveloperChangePasswordReq struct {
 	data developerChangePasswordData
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeveloperChangePasswordReq) Context(ctx context.Context) *DeveloperChangePasswordReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperChangePasswordReq) ClientID(id string) *DeveloperChangePasswordReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -180,8 +207,17 @@ type DeveloperProfileReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeveloperProfileReq) Context(ctx context.Context) *DeveloperProfileReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperProfileReq) ClientID(id string) *DeveloperProfileReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -213,8 +249,17 @@ type DeveloperSetProfileReq struct {
 	data DeveloperProfile
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeveloperSetProfileReq) Context(ctx context.Context) *DeveloperSetProfileReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperSetProfileReq) ClientID(id string) *DeveloperSetProfileReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -246,8 +291,17 @@ type ListApplicationsReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *ListApplicationsReq) Context(ctx context.Context) *ListApplicationsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListApplicationsReq) ClientID(id string) *ListApplicationsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -280,8 +334,17 @@ type CreateApplicationsReq struct {
 	data ApplicationMetadata
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *CreateApplicationsReq) Context(ctx context.Context) *CreateApplicationsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CreateApplicationsReq) ClientID(id string) *CreateApplicationsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -318,8 +381,17 @@ type UpdateApplicationReq struct {
 	data ApplicationMetadata
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *UpdateApplicationReq) Context(ctx context.Context) *UpdateApplicationReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *UpdateApplicationReq) ClientID(id string) *UpdateApplicationReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -343,8 +415,17 @@ type DeleteApplicationsReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeleteApplicationsReq) Context(ctx context.Context) *DeleteApplicationsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeleteApplicationsReq) ClientID(id string) *DeleteApplicationsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -376,8 +457,17 @@ type PageParams struct {
 	Limit  int    `json:"limit"`
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *ListDevUsersReq) Context(ctx context.Context) *ListDevUsersReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListDevUsersReq) ClientID(id string) *ListDevUsersReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -433,8 +523,17 @@ type StatsMerchantsReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *StatsMerchantsReq) Context(ctx context.Context) *StatsMerchantsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *StatsMerchantsReq) ClientID(id string) *StatsMerchantsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -476,8 +575,17 @@ type StatsProvidersReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *StatsProvidersReq) Context(ctx context.Context) *StatsProvidersReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *StatsProvidersReq) ClientID(id string) *StatsProvidersReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -519,8 +627,17 @@ type StatsTransfersReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *StatsTransfersReq) Context(ctx context.Context) *StatsTransfersReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *StatsTransfersReq) ClientID(id string) *StatsTransfersReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -564,8 +681,17 @@ type StatsUsersReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *StatsUsersReq) Context(ctx context.Context) *StatsUsersReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *StatsUsersReq) ClientID(id string) *StatsUsersReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -607,8 +733,17 @@ type StatsRequestsReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *StatsRequestsReq) Context(ctx context.Context) *StatsRequestsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *StatsRequestsReq) ClientID(id string) *StatsRequestsReq {
+	r.req.clientID = id
 	return r
 }
 
