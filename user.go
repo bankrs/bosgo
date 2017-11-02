@@ -103,8 +103,17 @@ type UserLogoutReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *UserLogoutReq) Context(ctx context.Context) *UserLogoutReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *UserLogoutReq) ClientID(id string) *UserLogoutReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -130,6 +139,8 @@ type UserDeleteReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *UserDeleteReq) Context(ctx context.Context) *UserDeleteReq {
 	r.req.ctx = ctx
 	return r
@@ -162,8 +173,17 @@ type ListAccessesReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *ListAccessesReq) Context(ctx context.Context) *ListAccessesReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListAccessesReq) ClientID(id string) *ListAccessesReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -196,8 +216,17 @@ type AddAccessReq struct {
 	answers    ChallengeAnswerList
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *AddAccessReq) Context(ctx context.Context) *AddAccessReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *AddAccessReq) ClientID(id string) *AddAccessReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -240,8 +269,17 @@ type DeleteAccessReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *DeleteAccessReq) Context(ctx context.Context) *DeleteAccessReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeleteAccessReq) ClientID(id string) *DeleteAccessReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -273,8 +311,17 @@ type GetAccessReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *GetAccessReq) Context(ctx context.Context) *GetAccessReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetAccessReq) ClientID(id string) *GetAccessReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -306,8 +353,17 @@ type UpdateAccessReq struct {
 	answers ChallengeAnswerList
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *UpdateAccessReq) Context(ctx context.Context) *UpdateAccessReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *UpdateAccessReq) ClientID(id string) *UpdateAccessReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -348,8 +404,17 @@ type RefreshAccessesReq struct {
 	req
 }
 
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
 func (r *RefreshAccessesReq) Context(ctx context.Context) *RefreshAccessesReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *RefreshAccessesReq) ClientID(id string) *RefreshAccessesReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -393,6 +458,13 @@ func (r *JobGetReq) Context(ctx context.Context) *JobGetReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *JobGetReq) ClientID(id string) *JobGetReq {
+	r.req.clientID = id
+	return r
+}
+
 // Send sends the request to get details of a job.
 func (r *JobGetReq) Send() (*JobStatus, error) {
 	res, cleanup, err := r.req.get()
@@ -426,6 +498,13 @@ type JobAnswerReq struct {
 // the request will use context.Background.
 func (r *JobAnswerReq) Context(ctx context.Context) *JobAnswerReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *JobAnswerReq) ClientID(id string) *JobAnswerReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -470,6 +549,13 @@ func (r *JobCancelReq) Context(ctx context.Context) *JobCancelReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *JobCancelReq) ClientID(id string) *JobCancelReq {
+	r.req.clientID = id
+	return r
+}
+
 // Send sends the request to cancel a job.
 func (r *JobCancelReq) Send() error {
 	_, cleanup, err := r.req.delete()
@@ -500,6 +586,13 @@ type ListAccountsReq struct {
 
 func (r *ListAccountsReq) Context(ctx context.Context) *ListAccountsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListAccountsReq) ClientID(id string) *ListAccountsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -534,6 +627,13 @@ type GetAccountReq struct {
 
 func (r *GetAccountReq) Context(ctx context.Context) *GetAccountReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetAccountReq) ClientID(id string) *GetAccountReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -573,6 +673,13 @@ type ListTransactionsReq struct {
 
 func (r *ListTransactionsReq) Context(ctx context.Context) *ListTransactionsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListTransactionsReq) ClientID(id string) *ListTransactionsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -631,6 +738,13 @@ func (r *GetTransactionReq) Context(ctx context.Context) *GetTransactionReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetTransactionReq) ClientID(id string) *GetTransactionReq {
+	r.req.clientID = id
+	return r
+}
+
 func (r *GetTransactionReq) Send() (*Transaction, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
@@ -665,6 +779,13 @@ type CategoriseTransactionsReq struct {
 
 func (r *CategoriseTransactionsReq) Context(ctx context.Context) *CategoriseTransactionsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CategoriseTransactionsReq) ClientID(id string) *CategoriseTransactionsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -707,6 +828,13 @@ func (r *ListScheduledTransactionsReq) Context(ctx context.Context) *ListSchedul
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListScheduledTransactionsReq) ClientID(id string) *ListScheduledTransactionsReq {
+	r.req.clientID = id
+	return r
+}
+
 func (r *ListScheduledTransactionsReq) Send() (*TransactionPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
@@ -734,6 +862,13 @@ type GetScheduledTransactionReq struct {
 
 func (r *GetScheduledTransactionReq) Context(ctx context.Context) *GetScheduledTransactionReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetScheduledTransactionReq) ClientID(id string) *GetScheduledTransactionReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -773,6 +908,13 @@ type ListRepeatedTransactionsReq struct {
 
 func (r *ListRepeatedTransactionsReq) Context(ctx context.Context) *ListRepeatedTransactionsReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListRepeatedTransactionsReq) ClientID(id string) *ListRepeatedTransactionsReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -826,6 +968,13 @@ func (r *GetRepeatedTransactionReq) Context(ctx context.Context) *GetRepeatedTra
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetRepeatedTransactionReq) ClientID(id string) *GetRepeatedTransactionReq {
+	r.req.clientID = id
+	return r
+}
+
 func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
@@ -858,6 +1007,13 @@ type DeleteRepeatedTransactionReq struct {
 // the request will use context.Background.
 func (r *DeleteRepeatedTransactionReq) Context(ctx context.Context) *DeleteRepeatedTransactionReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeleteRepeatedTransactionReq) ClientID(id string) *DeleteRepeatedTransactionReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -912,6 +1068,13 @@ type UpdateRepeatedTransactionReq struct {
 // the request will use context.Background.
 func (r *UpdateRepeatedTransactionReq) Context(ctx context.Context) *UpdateRepeatedTransactionReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *UpdateRepeatedTransactionReq) ClientID(id string) *UpdateRepeatedTransactionReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -1008,6 +1171,13 @@ func (r *CreateTransferReq) Context(ctx context.Context) *CreateTransferReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CreateTransferReq) ClientID(id string) *CreateTransferReq {
+	r.req.clientID = id
+	return r
+}
+
 // EntryDate sets the desired date for the transfer to be placed. It cannot be a date in the past.
 func (r *CreateTransferReq) EntryDate(date time.Time) *CreateTransferReq {
 	r.data.EntryDate = date.Format("2006-01-02")
@@ -1066,6 +1236,13 @@ func (r *ProcessTransferReq) Context(ctx context.Context) *ProcessTransferReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ProcessTransferReq) ClientID(id string) *ProcessTransferReq {
+	r.req.clientID = id
+	return r
+}
+
 // Confirm sets whether the user has confirmed a transfer that appears to be similar to another that was recently sent.
 func (r *ProcessTransferReq) Confirm(confirm bool) *ProcessTransferReq {
 	r.data.Confirm = confirm
@@ -1111,6 +1288,13 @@ type CancelTransferReq struct {
 // the request will use context.Background.
 func (r *CancelTransferReq) Context(ctx context.Context) *CancelTransferReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CancelTransferReq) ClientID(id string) *CancelTransferReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -1177,6 +1361,13 @@ func (r *CreateRecurringTransferReq) Context(ctx context.Context) *CreateRecurri
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CreateRecurringTransferReq) ClientID(id string) *CreateRecurringTransferReq {
+	r.req.clientID = id
+	return r
+}
+
 // EntryDate sets the desired date for the transfer to be placed. It cannot be a date in the past.
 func (r *CreateRecurringTransferReq) EntryDate(date time.Time) *CreateRecurringTransferReq {
 	r.data.EntryDate = date.Format("2006-01-02")
@@ -1235,6 +1426,13 @@ func (r *ProcessRecurringTransferReq) Context(ctx context.Context) *ProcessRecur
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ProcessRecurringTransferReq) ClientID(id string) *ProcessRecurringTransferReq {
+	r.req.clientID = id
+	return r
+}
+
 // Confirm sets whether the user has confirmed a transfer that appears to be similar to another that was recently sent.
 func (r *ProcessRecurringTransferReq) Confirm(confirm bool) *ProcessRecurringTransferReq {
 	r.data.Confirm = confirm
@@ -1280,6 +1478,13 @@ type CancelRecurringTransferReq struct {
 // the request will use context.Background.
 func (r *CancelRecurringTransferReq) Context(ctx context.Context) *CancelRecurringTransferReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *CancelRecurringTransferReq) ClientID(id string) *CancelRecurringTransferReq {
+	r.req.clientID = id
 	return r
 }
 

@@ -119,6 +119,13 @@ func (r *DeveloperLoginReq) Context(ctx context.Context) *DeveloperLoginReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperLoginReq) ClientID(id string) *DeveloperLoginReq {
+	r.req.clientID = id
+	return r
+}
+
 // Send sends the login request and returns a client that can be used to
 // access services within the developer's session.
 func (r *DeveloperLoginReq) Send() (*DevClient, error) {
@@ -162,6 +169,13 @@ type DeveloperCreateReq struct {
 // the request will use context.Background.
 func (r *DeveloperCreateReq) Context(ctx context.Context) *DeveloperCreateReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DeveloperCreateReq) ClientID(id string) *DeveloperCreateReq {
+	r.req.clientID = id
 	return r
 }
 
@@ -211,6 +225,13 @@ func (r *LostPasswordReq) Context(ctx context.Context) *LostPasswordReq {
 	return r
 }
 
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *LostPasswordReq) ClientID(id string) *LostPasswordReq {
+	r.req.clientID = id
+	return r
+}
+
 // Send sends the lost password request.
 func (r *LostPasswordReq) Send() error {
 	_, cleanup, err := r.req.postJSON(&r.data)
@@ -247,6 +268,13 @@ type ResetPasswordReq struct {
 // the request will use context.Background.
 func (r *ResetPasswordReq) Context(ctx context.Context) *ResetPasswordReq {
 	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ResetPasswordReq) ClientID(id string) *ResetPasswordReq {
+	r.req.clientID = id
 	return r
 }
 
