@@ -47,7 +47,15 @@ type Job struct {
 	SuppliedAnswers []bosgo.ChallengeAnswer
 	AccessDetails   AccessDetails
 	Succeeded       bool
+	JobAction       JobAction
 }
+
+type JobAction int
+
+const (
+	JobActionCreate JobAction = iota
+	JobActionRefresh
+)
 
 type OrderOp int
 
@@ -369,12 +377,13 @@ func (s *Server) setUserLoggedOut(token string) {
 	delete(s.UserTokens, token)
 }
 
-func (s *Server) newJob(userID string, providerID string, answers []bosgo.ChallengeAnswer) *bosgo.Job {
+func (s *Server) newJob(userID string, providerID string, answers []bosgo.ChallengeAnswer, action JobAction) *bosgo.Job {
 	job := Job{
 		ID:         s.nextIDStr(),
 		UserID:     userID,
 		ProviderID: providerID,
 		Stage:      bosgo.JobStageAuthenticating,
+		JobAction:  action,
 	}
 
 	s.mu.Lock()
@@ -446,6 +455,10 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 
 	j.Stage = bosgo.JobStageFinished
 	j.Succeeded = true
+
+	if j.JobAction == JobActionRefresh {
+		return
+	}
 
 	user, found := s.GetUser(j.UserID)
 	if !found {
@@ -839,7 +852,7 @@ func (s *Server) handleAccessCreate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	job := s.newJob(user.ID, data.ProviderID, data.Answers)
+	job := s.newJob(user.ID, data.ProviderID, data.Answers, JobActionCreate)
 
 	s.sendJSON(w, http.StatusAccepted, &job)
 }
@@ -1006,7 +1019,7 @@ func (s *Server) handleAccessRefresh(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	job := s.newJob(user.ID, access.ProviderID, []bosgo.ChallengeAnswer{})
+	job := s.newJob(user.ID, access.ProviderID, []bosgo.ChallengeAnswer{}, JobActionRefresh)
 
 	s.sendJSON(w, http.StatusAccepted, &job)
 }
