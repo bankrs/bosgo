@@ -766,4 +766,12 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 		t.Errorf("got finished %v, wanted true", status.Finished)
 	}
 
+	ac, err := userClient.Accesses.List().Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve accesses: %v", err)
+	}
+	if len(ac.Accesses) != 1 {
+		t.Errorf("got %d accesses, wanted 1", len(ac.Accesses))
+	}
+
 }
