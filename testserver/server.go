@@ -463,12 +463,20 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	if !found {
 		return bosgo.Access{}, false
 	}
-	if !strings.HasPrefix(req.URL.Path, "/v1/accesses/") {
+
+	path := req.URL.Path
+	if !strings.HasPrefix(path, "/v1/accesses/") {
 		s.sendError(w, http.StatusBadRequest, "general")
 		return bosgo.Access{}, false
 	}
+	path = path[13:]
 
-	accessID, err := strconv.ParseInt(req.URL.Path[13:], 10, 64)
+	trailingSlash := strings.IndexByte(path, '/')
+	if trailingSlash != -1 {
+		path = path[:trailingSlash]
+	}
+
+	accessID, err := strconv.ParseInt(path, 10, 64)
 	if err != nil {
 		s.Logf("failed to parse accessID: %v", err)
 		s.sendError(w, http.StatusBadRequest, "general")
@@ -903,7 +911,15 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 		Finished: job.Stage == bosgo.JobStageFinished,
 		Stage:    job.Stage,
 		URI:      "/jobs/" + job.ID,
-		// Challenge *Challenge `json:"challenge,omitempty"`
+	}
+
+	for id, val := range job.AccessDetails.ChallengeMap {
+		if !job.isAnswered(id, val) {
+			if status.Challenge == nil {
+				status.Challenge = &bosgo.Challenge{CanContinue: false}
+			}
+			status.Challenge.NextChallenges = append(status.Challenge.NextChallenges, bosgo.ChallengeField{ID: id})
+		}
 	}
 
 	if job.Error != "" {
@@ -955,6 +971,10 @@ func (s *Server) handleAccess(w http.ResponseWriter, req *http.Request) {
 		s.handleAccessGet(w, req)
 		return
 	case http.MethodPost:
+		if strings.HasSuffix(req.URL.Path, "/refresh") {
+			s.handleAccessRefresh(w, req)
+			return
+		}
 		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
 		return
 	case http.MethodDelete:
@@ -971,7 +991,24 @@ func (s *Server) handleAccessGet(w http.ResponseWriter, req *http.Request) {
 	if !found {
 		return
 	}
+
 	s.sendJSON(w, http.StatusOK, access)
+}
+
+func (s *Server) handleAccessRefresh(w http.ResponseWriter, req *http.Request) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	access, found := s.requireAccess(w, req)
+	if !found {
+		return
+	}
+
+	job := s.newJob(user.ID, access.ProviderID, []bosgo.ChallengeAnswer{})
+
+	s.sendJSON(w, http.StatusAccepted, &job)
 }
 
 type txParams struct {

@@ -301,6 +301,8 @@ func (r *DeleteAccessReq) Send() (string, error) {
 	return deleted.ID, nil
 }
 
+// Get prepares and returns a request to fetch data about a bank access
+// associated with the user.
 func (a *AccessesService) Get(id int64) *GetAccessReq {
 	return &GetAccessReq{
 		req: a.client.newReq(apiV1 + "/accesses/" + strconv.FormatInt(id, 10)),
@@ -341,9 +343,11 @@ func (r *GetAccessReq) Send() (*Access, error) {
 	return &ba, nil
 }
 
-func (a *AccessesService) Update(id string) *UpdateAccessReq {
+// Update prepares and returns a request to update the stored answers for a
+// bank access associated with the user.
+func (a *AccessesService) Update(id int64) *UpdateAccessReq {
 	return &UpdateAccessReq{
-		req:     a.client.newReq(apiV1 + "/accesses/" + id),
+		req:     a.client.newReq(apiV1 + "/accesses/" + strconv.FormatInt(id, 10)),
 		answers: ChallengeAnswerList{},
 	}
 }
@@ -394,31 +398,75 @@ func (r *UpdateAccessReq) Send() (*Access, error) {
 	return &ba, nil
 }
 
-func (a *AccessesService) Refresh() *RefreshAccessesReq {
-	return &RefreshAccessesReq{
-		req: a.client.newReq(apiV1 + "/accesses/refresh"),
+// Refresh prepares and returns a request to refresh the data for a
+// bank access associated with the user. The request returns a job which
+// may be used to track the progress of the refresh.
+func (a *AccessesService) Refresh(id int64) *RefreshAccessReq {
+	return &RefreshAccessReq{
+		req: a.client.newReq(apiV1 + "/accesses/" + strconv.FormatInt(id, 10) + "/refresh"),
 	}
 }
 
-type RefreshAccessesReq struct {
+type RefreshAccessReq struct {
 	req
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
 // the request will use context.Background.
-func (r *RefreshAccessesReq) Context(ctx context.Context) *RefreshAccessesReq {
+func (r *RefreshAccessReq) Context(ctx context.Context) *RefreshAccessReq {
 	r.req.ctx = ctx
 	return r
 }
 
 // ClientID sets a client identifier that will be passed to the Bankrs API in
 // the X-Client-Id header.
-func (r *RefreshAccessesReq) ClientID(id string) *RefreshAccessesReq {
+func (r *RefreshAccessReq) ClientID(id string) *RefreshAccessReq {
 	r.req.clientID = id
 	return r
 }
 
-func (r *RefreshAccessesReq) Send() ([]Job, error) {
+func (r *RefreshAccessReq) Send() (*Job, error) {
+	res, cleanup, err := r.req.postJSON(nil)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var job Job
+	if err := json.NewDecoder(res.Body).Decode(&job); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &job, nil
+}
+
+// RefreshAll prepares and returns a request to refresh all data for all
+// accesses associated with the user. The request returns one job per access.
+func (a *AccessesService) RefreshAll() *RefreshAllAccessesReq {
+	return &RefreshAllAccessesReq{
+		req: a.client.newReq(apiV1 + "/accesses/refresh"),
+	}
+}
+
+type RefreshAllAccessesReq struct {
+	req
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *RefreshAllAccessesReq) Context(ctx context.Context) *RefreshAllAccessesReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *RefreshAllAccessesReq) ClientID(id string) *RefreshAllAccessesReq {
+	r.req.clientID = id
+	return r
+}
+
+func (r *RefreshAllAccessesReq) Send() ([]Job, error) {
 	res, cleanup, err := r.req.postJSON(nil)
 	defer cleanup()
 	if err != nil {

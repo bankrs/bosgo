@@ -673,3 +673,97 @@ func TestWriteReadState(t *testing.T) {
 	}
 
 }
+
+func TestAccessRefreshMultiStep(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	accessID, _, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	job, err := userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageAuthenticating {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	}
+
+	if status.Challenge == nil {
+		t.Fatalf("expecting job to have unanswered challenges")
+	}
+
+	// Nothing is stored so we need to answer 2 challenges
+	if len(status.Challenge.NextChallenges) != 2 {
+		for _, ch := range status.Challenge.NextChallenges {
+			t.Logf("got challenge id %s", ch.ID)
+		}
+		t.Errorf("got %d challenges, wanted %d", len(status.Challenge.NextChallenges), 2)
+	}
+
+	req := userClient.Jobs.Answer(job.URI)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengeLogin,
+		Value: DefaultAccessLogin,
+	})
+	if err := req.Send(); err != nil {
+		t.Fatalf("failed to answer first challenge: %v", err)
+	}
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageAuthenticating {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	}
+
+	if status.Challenge == nil {
+		t.Fatalf("expecting job to have unanswered challenges")
+	}
+
+	if len(status.Challenge.NextChallenges) != 1 {
+		for _, ch := range status.Challenge.NextChallenges {
+			t.Logf("got challenge id %s", ch.ID)
+		}
+		t.Errorf("got %d challenges, wanted %d", len(status.Challenge.NextChallenges), 1)
+	}
+
+	req = userClient.Jobs.Answer(job.URI)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengePIN,
+		Value: DefaultAccessPIN,
+	})
+
+	if err := req.Send(); err != nil {
+		t.Fatalf("failed to answer second challenge: %v", err)
+	}
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageFinished {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	}
+	if status.Finished != true {
+		t.Errorf("got finished %v, wanted true", status.Finished)
+	}
+
+}
