@@ -47,7 +47,9 @@ type Job struct {
 	SuppliedAnswers []bosgo.ChallengeAnswer
 	AccessDetails   AccessDetails
 	Succeeded       bool
+	NeedsAnswers    bool
 	JobAction       JobAction
+	Problems        []bosgo.Problem
 }
 
 type JobAction int
@@ -391,7 +393,7 @@ func (s *Server) newJob(userID string, providerID string, answers []bosgo.Challe
 	s.mu.Unlock()
 	if !exists {
 		job.Stage = bosgo.JobStageFinished
-		job.Error = "unknown_provider"
+		job.Problems = append(job.Problems, bosgo.Problem{Code: "unknown_provider"})
 	} else {
 		job.AccessDetails = ad
 		s.progressJob(&job, answers)
@@ -449,6 +451,24 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 
 	for id, val := range j.AccessDetails.ChallengeMap {
 		if !j.isAnswered(id, val) {
+			if id == ChallengePIN {
+				j.Problems = append(j.Problems, bosgo.Problem{
+					Code: "user_wrong_pin",
+				})
+				j.Problems = append(j.Problems, bosgo.Problem{
+					Code: "connector_field_reset",
+					Info: map[string]interface{}{
+						"field_key": ChallengePIN,
+					},
+				})
+
+				for i := range j.SuppliedAnswers {
+					if j.SuppliedAnswers[i].ID == ChallengePIN {
+						j.SuppliedAnswers[i].Value = ""
+					}
+				}
+			}
+			j.NeedsAnswers = true
 			return
 		}
 	}
@@ -926,17 +946,31 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 		URI:      "/jobs/" + job.ID,
 	}
 
-	for id, val := range job.AccessDetails.ChallengeMap {
-		if !job.isAnswered(id, val) {
-			if status.Challenge == nil {
-				status.Challenge = &bosgo.Challenge{CanContinue: false}
-			}
-			status.Challenge.NextChallenges = append(status.Challenge.NextChallenges, bosgo.ChallengeField{ID: id})
+	if job.NeedsAnswers {
+		status.Challenge = &bosgo.Challenge{
+			CanContinue: true,
+			MaxSteps:    4,
 		}
+
+		for id := range job.AccessDetails.ChallengeMap {
+			previous := ""
+			for _, ans := range job.SuppliedAnswers {
+				if ans.ID == id {
+					previous = ans.Value
+					break
+				}
+			}
+
+			status.Challenge.NextChallenges = append(status.Challenge.NextChallenges, bosgo.ChallengeField{
+				ID:       id,
+				Previous: previous,
+			})
+		}
+
 	}
 
-	if job.Error != "" {
-		status.Errors = []bosgo.Problem{{Code: job.Error}}
+	for _, p := range job.Problems {
+		status.Errors = append(status.Errors, p)
 	}
 
 	if job.Succeeded {

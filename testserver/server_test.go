@@ -739,11 +739,11 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 		t.Fatalf("expecting job to have unanswered challenges")
 	}
 
-	if len(status.Challenge.NextChallenges) != 1 {
+	if len(status.Challenge.NextChallenges) != 2 {
 		for _, ch := range status.Challenge.NextChallenges {
 			t.Logf("got challenge id %s", ch.ID)
 		}
-		t.Errorf("got %d challenges, wanted %d", len(status.Challenge.NextChallenges), 1)
+		t.Fatalf("got %d challenges, wanted %d", len(status.Challenge.NextChallenges), 2)
 	}
 
 	req = userClient.Jobs.Answer(job.URI)
@@ -772,6 +772,112 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 	}
 	if len(ac.Accesses) != 1 {
 		t.Errorf("got %d accesses, wanted 1", len(ac.Accesses))
+	}
+
+}
+
+func TestAccessRefreshWrongPin(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	accessID, _, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	job, err := userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageAuthenticating {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	}
+
+	if status.Challenge == nil {
+		t.Fatalf("expecting job to have unanswered challenges")
+	}
+
+	if len(status.Challenge.NextChallenges) != 2 {
+		for _, ch := range status.Challenge.NextChallenges {
+			t.Logf("got challenge id %s", ch.ID)
+		}
+		t.Fatalf("got %d challenges, wanted %d", len(status.Challenge.NextChallenges), 2)
+	}
+
+	req := userClient.Jobs.Answer(job.URI)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengeLogin,
+		Value: DefaultAccessLogin,
+	})
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengePIN,
+		Value: "wrongpin",
+	})
+	if err := req.Send(); err != nil {
+		t.Fatalf("failed to answer first challenge: %v", err)
+	}
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageAuthenticating {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	}
+
+	if status.Challenge == nil {
+		t.Fatalf("expecting job to have unanswered challenges")
+	}
+
+	if len(status.Errors) == 0 {
+		t.Fatalf("got 0 errors, wanted at least one")
+	}
+
+	gotWrongPinProblem := false
+	for _, p := range status.Errors {
+		if p.Code == "user_wrong_pin" {
+			gotWrongPinProblem = true
+			break
+		}
+	}
+
+	if !gotWrongPinProblem {
+		t.Errorf("did not get problem 'user_wrong_pin'")
+	}
+
+	req = userClient.Jobs.Answer(job.URI)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengePIN,
+		Value: DefaultAccessPIN,
+	})
+
+	if err := req.Send(); err != nil {
+		t.Fatalf("failed to answer second challenge: %v", err)
+	}
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageFinished {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	}
+	if status.Finished != true {
+		t.Errorf("got finished %v, wanted true", status.Finished)
 	}
 
 }
