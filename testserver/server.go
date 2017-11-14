@@ -448,6 +448,8 @@ func (s *Server) requireJob(w http.ResponseWriter, req *http.Request) (Job, bool
 
 func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	j.SuppliedAnswers = append(j.SuppliedAnswers, answers...)
+	j.Problems = make([]bosgo.Problem, 0)
+	j.NeedsAnswers = false
 
 	for id, val := range j.AccessDetails.ChallengeMap {
 		if !j.isAnswered(id, val) {
