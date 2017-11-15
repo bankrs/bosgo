@@ -228,11 +228,12 @@ type JobStatus struct {
 type JobStage string
 
 const (
-	JobStageConnecting     JobStage = "connecting"
-	JobStageAuthenticating JobStage = "authenticating"
-	JobStageMFA            JobStage = "mfa"
-	JobStageImporting      JobStage = "importing"
-	JobStageFinished       JobStage = "finished"
+	JobStageUnauthenticated JobStage = "unauthenticated"
+	JobStageAuthenticated   JobStage = "authenticated"
+	JobStageChallenge       JobStage = "challenge"
+	JobStageImported        JobStage = "imported"
+	JobStageCancelled       JobStage = "cancelled"
+	JobStageProblem         JobStage = "problem"
 )
 
 type Challenge struct {

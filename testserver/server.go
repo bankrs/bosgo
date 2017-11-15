@@ -46,7 +46,7 @@ type Job struct {
 	Error           string
 	SuppliedAnswers []bosgo.ChallengeAnswer
 	AccessDetails   AccessDetails
-	Succeeded       bool
+	Finished        bool
 	NeedsAnswers    bool
 	JobAction       JobAction
 	Problems        []bosgo.Problem
@@ -384,7 +384,7 @@ func (s *Server) newJob(userID string, providerID string, answers []bosgo.Challe
 		ID:         s.nextIDStr(),
 		UserID:     userID,
 		ProviderID: providerID,
-		Stage:      bosgo.JobStageAuthenticating,
+		Stage:      bosgo.JobStageUnauthenticated,
 		JobAction:  action,
 	}
 
@@ -392,8 +392,9 @@ func (s *Server) newJob(userID string, providerID string, answers []bosgo.Challe
 	ad, exists := s.Accesses[providerID]
 	s.mu.Unlock()
 	if !exists {
-		job.Stage = bosgo.JobStageFinished
+		job.Stage = bosgo.JobStageProblem
 		job.Problems = append(job.Problems, bosgo.Problem{Code: "unknown_provider"})
+		job.Finished = true
 	} else {
 		job.AccessDetails = ad
 		s.progressJob(&job, answers)
@@ -447,10 +448,17 @@ func (s *Server) requireJob(w http.ResponseWriter, req *http.Request) (Job, bool
 }
 
 func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
+	// Once finished jobs are immutable
+	if j.Finished {
+		return
+	}
 	j.SuppliedAnswers = append(j.SuppliedAnswers, answers...)
+	j.NeedsAnswers = false
+	j.Problems = make([]bosgo.Problem, 0)
 
 	for id, val := range j.AccessDetails.ChallengeMap {
 		if !j.isAnswered(id, val) {
+			j.NeedsAnswers = true
 			if id == ChallengePIN {
 				j.Problems = append(j.Problems, bosgo.Problem{
 					Code: "user_wrong_pin",
@@ -468,13 +476,15 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 					}
 				}
 			}
-			j.NeedsAnswers = true
-			return
 		}
 	}
 
-	j.Stage = bosgo.JobStageFinished
-	j.Succeeded = true
+	if j.NeedsAnswers {
+		j.Stage = bosgo.JobStageChallenge
+	} else {
+		j.Stage = bosgo.JobStageImported
+		j.Finished = true
+	}
 
 	if j.JobAction == JobActionRefresh {
 		return
@@ -941,7 +951,7 @@ func (s *Server) handleJobDelete(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 	status := bosgo.JobStatus{
-		Finished: job.Stage == bosgo.JobStageFinished,
+		Finished: job.Finished,
 		Stage:    job.Stage,
 		URI:      "/jobs/" + job.ID,
 	}
@@ -973,7 +983,7 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 		status.Errors = append(status.Errors, p)
 	}
 
-	if job.Succeeded {
+	if job.Stage == bosgo.JobStageImported {
 		status.Access = &bosgo.JobAccess{
 			ID:         job.AccessDetails.Access.ID,
 			ProviderID: job.AccessDetails.Access.ProviderID,

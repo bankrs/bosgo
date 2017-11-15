@@ -126,8 +126,8 @@ func TestAccessCreateNoLogin(t *testing.T) {
 		t.Errorf("got finished %v, wanted false", status.Finished)
 	}
 
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 }
 
@@ -170,8 +170,8 @@ func TestAccessCreateWithLogin(t *testing.T) {
 	if status.Finished != true {
 		t.Errorf("got finished %v, wanted true", status.Finished)
 	}
-	if status.Stage != bosgo.JobStageFinished {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
 	}
 	if status.Access == nil {
 		t.Fatalf("got nil access, wanted non-nil")
@@ -207,12 +207,12 @@ func TestAccessCreateUnknownProvider(t *testing.T) {
 		t.Fatalf("failed to get job status: %v", err)
 	}
 
-	if status.Finished != true {
+	if !status.Finished {
 		t.Errorf("got finished %v, wanted true", status.Finished)
 	}
 
-	if status.Stage != bosgo.JobStageFinished {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	if status.Stage != bosgo.JobStageProblem {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageProblem)
 	}
 
 	if len(status.Errors) == 0 {
@@ -244,8 +244,8 @@ func TestAccessCreateMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	req := userClient.Jobs.Answer(job.URI)
@@ -260,8 +260,8 @@ func TestAccessCreateMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	req = userClient.Jobs.Answer(job.URI)
@@ -277,8 +277,8 @@ func TestAccessCreateMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageFinished {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
 	}
 	if status.Finished != true {
 		t.Errorf("got finished %v, wanted true", status.Finished)
@@ -703,8 +703,8 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	if status.Challenge == nil {
@@ -731,8 +731,8 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	if status.Challenge == nil {
@@ -759,8 +759,8 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageFinished {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
 	}
 	if status.Finished != true {
 		t.Errorf("got finished %v, wanted true", status.Finished)
@@ -805,8 +805,8 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	if status.Challenge == nil {
@@ -836,8 +836,8 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageAuthenticating {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageAuthenticating)
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
 	}
 
 	if status.Challenge == nil {
@@ -873,10 +873,10 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get job status: %v", err)
 	}
-	if status.Stage != bosgo.JobStageFinished {
-		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageFinished)
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
 	}
-	if status.Finished != true {
+	if !status.Finished {
 		t.Errorf("got finished %v, wanted true", status.Finished)
 	}
 
