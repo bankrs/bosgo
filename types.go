@@ -308,6 +308,7 @@ type AccountRef struct {
 	IBAN       string `json:"iban,omitempty"`
 	Label      string `json:"label,omitempty"`
 	Number     string `json:"id,omitempty"`
+	Type       string `json:"type,omitempty"`
 }
 
 type Merchant struct {
