@@ -81,6 +81,7 @@ type AccessDetails struct {
 	RepeatedTransactions []bosgo.RepeatedTransaction
 	ChallengeMap         map[string]string
 	TransferAuths        []TransferAuth
+	StageProblems        map[bosgo.JobStage][]bosgo.Problem
 }
 
 type TransferAuth struct {
@@ -918,6 +919,11 @@ func (s *Server) handleJobStatus(w http.ResponseWriter, req *http.Request) {
 	if !found {
 		return
 	}
+
+	if problems := job.AccessDetails.StageProblems[job.Stage]; len(problems) > 0 {
+		job.Problems = problems
+	}
+
 	s.sendJSON(w, http.StatusOK, s.jobStatus(&job))
 }
 
