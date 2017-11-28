@@ -881,3 +881,106 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 	}
 
 }
+
+func TestAccessRefreshCustomProblems(t *testing.T) {
+	s := NewWithDefaults()
+
+	access := s.MakeAccess(DefaultProviderID+"_problems", "access with problems")
+	ad := AccessDetails{
+		Access:               *access,
+		Transactions:         []bosgo.Transaction{},
+		RepeatedTransactions: []bosgo.RepeatedTransaction{},
+		ChallengeMap: map[string]string{
+			ChallengeLogin: DefaultAccessLogin + "_problems",
+			ChallengePIN:   DefaultAccessPIN,
+		},
+		TransferAuths: []TransferAuth{
+			{
+				Method:  DefaultAuthMethod,
+				Message: DefaultAuthMessage,
+				Answer:  DefaultAuthAnswer,
+			},
+		},
+		StageProblems: map[bosgo.JobStage][]bosgo.Problem{
+			bosgo.JobStageChallenge: {
+				{
+					Code: "fi_accountnumber_10_digits_pin_between_5_to_10",
+				},
+			},
+		},
+	}
+	s.AddAccess(ad)
+
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	accessID, _, err := addAccess(userClient, DefaultProviderID+"_problems", DefaultAccessLogin+"_problems", DefaultAccessPIN)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	job, err := userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
+	}
+
+	if len(status.Errors) == 0 {
+		t.Fatal("missing status errors")
+	}
+
+	if status.Errors[0].Code != "fi_accountnumber_10_digits_pin_between_5_to_10" {
+		t.Fatalf("got bad error code %s, wanted %s", status.Errors[0].Code, "fi_accountnumber_10_digits_pin_between_5_to_10")
+	}
+
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
+	}
+	if status.Finished {
+		t.Errorf("got finished %v, wanted false", status.Finished)
+	}
+}
+
+func addAccess(userClient *bosgo.UserClient, provider, login, pin string) (int64, int64, error) {
+	req := userClient.Accesses.Add(provider)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengeLogin,
+		Value: login,
+	})
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengePIN,
+		Value: pin,
+	})
+
+	job, err := req.Send()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		return 0, 0, err
+	}
+	if status.Access == nil {
+		return 0, 0, fmt.Errorf("no access found")
+	}
+
+	return status.Access.ID, status.Access.Accounts[0].ID, nil
+}
