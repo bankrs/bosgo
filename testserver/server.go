@@ -111,27 +111,29 @@ type Server struct {
 	Svr *httptest.Server
 	mux *http.ServeMux
 
-	mu         sync.Mutex // guards following fields
-	id         int64
-	logger     Logger
-	Devs       map[string]Dev           // map of developers indexed by ID
-	Apps       map[string]App           // map of applications indexed by ID
-	Users      map[string]User          // map of users indexed by ID
-	UserTokens map[string]string        // map of tokens to user ID
-	Jobs       map[string]Job           // map of jobs indexed by ID
-	Accesses   map[string]AccessDetails // map of access details indexed by provider ID
-	Transfers  map[string]TransferOrder // map of transfer orders indexed by ID
+	mu                 sync.Mutex // guards following fields
+	id                 int64
+	logger             Logger
+	Devs               map[string]Dev           // map of developers indexed by ID
+	Apps               map[string]App           // map of applications indexed by ID
+	Users              map[string]User          // map of users indexed by ID
+	UserTokens         map[string]string        // map of tokens to user ID
+	Jobs               map[string]Job           // map of jobs indexed by ID
+	Accesses           map[string]AccessDetails // map of access details indexed by provider ID
+	Transfers          map[string]TransferOrder // map of transfer orders indexed by ID
+	RecurringTransfers map[string]TransferOrder // map of recurrings transfers orders indexed by ID
 }
 
 func New() *Server {
 	s := Server{
-		Devs:       make(map[string]Dev),
-		Apps:       make(map[string]App),
-		Users:      make(map[string]User),
-		UserTokens: make(map[string]string),
-		Jobs:       make(map[string]Job),
-		Accesses:   make(map[string]AccessDetails),
-		Transfers:  make(map[string]TransferOrder),
+		Devs:               make(map[string]Dev),
+		Apps:               make(map[string]App),
+		Users:              make(map[string]User),
+		UserTokens:         make(map[string]string),
+		Jobs:               make(map[string]Job),
+		Accesses:           make(map[string]AccessDetails),
+		Transfers:          make(map[string]TransferOrder),
+		RecurringTransfers: make(map[string]TransferOrder),
 	}
 	s.Svr = httptest.NewTLSServer(&s)
 
@@ -569,17 +571,32 @@ func (s *Server) newTransfer(userID string, providerID string, trp *transferPara
 func (s *Server) setTransfer(tr TransferOrder) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.Transfers[tr.Transfer.ID] = tr
+	switch tr.Type {
+	case bosgo.TransferTypeRegular:
+		s.Transfers[tr.Transfer.ID] = tr
+	case bosgo.TransferTypeRecurring:
+		s.RecurringTransfers[tr.Transfer.ID] = tr
+	}
 }
 
-func (s *Server) getTransfer(id string) (TransferOrder, bool) {
+func (s *Server) getTransfer(id string, typ bosgo.TransferType) (TransferOrder, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	tr, exists := s.Transfers[id]
+
+	var tr TransferOrder
+	var exists bool
+
+	switch typ {
+	case bosgo.TransferTypeRegular:
+		tr, exists = s.Transfers[id]
+	case bosgo.TransferTypeRecurring:
+		tr, exists = s.RecurringTransfers[id]
+	}
+
 	return tr, exists
 }
 
-func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (TransferOrder, bool) {
+func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request, transferType bosgo.TransferType) (TransferOrder, bool) {
 	user, _, found := s.requireUser(w, req)
 	if !found {
 		return TransferOrder{}, false
@@ -590,7 +607,7 @@ func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request) (Tran
 	}
 	id := req.URL.Path[14:]
 
-	tr, exists := s.getTransfer(id)
+	tr, exists := s.getTransfer(id, transferType)
 	if !exists {
 		s.sendError(w, http.StatusNotFound, "resource_not_found")
 		return TransferOrder{}, false
@@ -1281,6 +1298,9 @@ accessloop:
 		s.sendError(w, http.StatusNotFound, "resource_not_found")
 		return
 	}
+	if data.Type != bosgo.TransferTypeRegular && data.Type != bosgo.TransferTypeRecurring {
+		s.sendError(w, http.StatusBadRequest, "validation_bad_parameters")
+	}
 
 	tr := s.newTransfer(user.ID, providerID, &data)
 
@@ -1313,15 +1333,19 @@ type transferProcessParams struct {
 }
 
 func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request) {
-	tr, found := s.requireTransfer(w, req)
-	if !found {
-		return
-	}
-
 	var data transferProcessParams
 
 	if !s.readJSON(w, req, &data) {
 		return
+	}
+
+	tr, found := s.requireTransfer(w, req, data.Type)
+	if !found {
+		return
+	}
+
+	if data.Type != bosgo.TransferTypeRegular && data.Type != bosgo.TransferTypeRecurring {
+		s.sendError(w, http.StatusBadRequest, "validation_bad_parameters")
 	}
 
 	if data.Version != tr.Transfer.Version {
@@ -1349,7 +1373,13 @@ func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request)
 }
 
 func (s *Server) handleTransferDelete(w http.ResponseWriter, req *http.Request) {
-	tr, found := s.requireTransfer(w, req)
+	var data transferParams
+
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+
+	tr, found := s.requireTransfer(w, req, data.Type)
 	if !found {
 		return
 	}
@@ -1379,6 +1409,9 @@ func (s *Server) WriteState(w io.Writer) error {
 		return err
 	}
 	if err := enc.Encode(s.Transfers); err != nil {
+		return err
+	}
+	if err := enc.Encode(s.RecurringTransfers); err != nil {
 		return err
 	}
 
@@ -1414,6 +1447,9 @@ func (s *Server) ReadState(r io.Reader) error {
 	if err := dec.Decode(&tmp.Transfers); err != nil {
 		return err
 	}
+	if err := dec.Decode(&tmp.RecurringTransfers); err != nil {
+		return err
+	}
 
 	s.Devs = tmp.Devs
 	s.Apps = tmp.Apps
@@ -1422,6 +1458,7 @@ func (s *Server) ReadState(r io.Reader) error {
 	s.Jobs = tmp.Jobs
 	s.Accesses = tmp.Accesses
 	s.Transfers = tmp.Transfers
+	s.RecurringTransfers = tmp.RecurringTransfers
 
 	return nil
 }

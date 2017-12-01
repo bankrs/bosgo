@@ -619,6 +619,114 @@ func TestCreateTransfer(t *testing.T) {
 	}
 }
 
+func TestCreateRecurringTransfer(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, accountID, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	amount := bosgo.MoneyAmount{
+		Currency: "EUR",
+		Value:    "12.50",
+	}
+
+	addr := bosgo.TransferAddress{
+		Name: "Jane Doe",
+		IBAN: "DE28500105175552834822",
+	}
+
+	rule := bosgo.RecurrenceRule{
+		Start:     time.Now(),
+		Frequency: bosgo.FrequencyMonthly,
+		Interval:  2,
+	}
+	// Create the transfer
+	transfer, err := userClient.RecurringTransfers.Create(accountID, addr, amount, rule).Send()
+	if err != nil {
+		t.Fatalf("failed to create transfer: %v", err)
+	}
+
+	if len(transfer.Errors) > 0 {
+		for _, pr := range transfer.Errors {
+			t.Logf("got unexpected error: %s", pr.Code)
+		}
+		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
+	}
+
+	if transfer.Step.Intent != bosgo.TransferIntentProvidePIN {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvidePIN)
+	}
+
+	// Send the pin
+	req := userClient.RecurringTransfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "pin",
+		Value: DefaultAccessPIN,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process pin: %v", err)
+	}
+	if transfer.Step.Intent != bosgo.TransferIntentSelectAuthMethod {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentSelectAuthMethod)
+	}
+	if transfer.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if len(transfer.Step.Data.AuthMethods) != 1 {
+		t.Fatalf("got %d auth methods, wanted 1", len(transfer.Step.Data.AuthMethods))
+	}
+	if transfer.Step.Data.AuthMethods[0].ID != DefaultAuthMethod {
+		t.Errorf("got auth method %v, wanted %v", transfer.Step.Data.AuthMethods[0].ID, DefaultAuthMethod)
+	}
+
+	// Send the auth method
+	req = userClient.RecurringTransfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "auth_method",
+		Value: DefaultAuthMethod,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth method: %v", err)
+	}
+	if transfer.Step.Intent != bosgo.TransferIntentProvideChallengeAnswer {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvideChallengeAnswer)
+	}
+	if transfer.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if transfer.Step.Data.ChallengeMessage != DefaultAuthMessage {
+		t.Errorf("got challenge message %v, wanted %v", transfer.Step.Data.ChallengeMessage, DefaultAuthMessage)
+	}
+
+	// Send the auth answer
+	req = userClient.RecurringTransfers.Process(transfer.ID, transfer.Step.Intent, transfer.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "tan",
+		Value: DefaultAuthAnswer,
+	})
+	transfer, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth answer: %v", err)
+	}
+	if transfer.State != bosgo.TransferStateSucceeded {
+		t.Errorf("got state %v, wanted %v", transfer.State, bosgo.TransferStateSucceeded)
+	}
+}
+
 func TestWriteReadState(t *testing.T) {
 	s := NewWithDefaults()
 	defer s.Close()
