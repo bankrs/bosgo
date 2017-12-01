@@ -68,11 +68,12 @@ const (
 )
 
 type TransferOrder struct {
-	UserID        string
-	Operation     OrderOp
-	Type          bosgo.TransferType
-	Transfer      bosgo.Transfer
-	AccessDetails AccessDetails
+	UserID         string
+	Operation      OrderOp
+	Type           bosgo.TransferType
+	Transfer       bosgo.Transfer
+	AccessDetails  AccessDetails
+	ConfirmSimilar bool
 }
 
 type AccessDetails struct {
@@ -122,6 +123,7 @@ type Server struct {
 	Accesses           map[string]AccessDetails // map of access details indexed by provider ID
 	Transfers          map[string]TransferOrder // map of transfer orders indexed by ID
 	RecurringTransfers map[string]TransferOrder // map of recurrings transfers orders indexed by ID
+	confirmSimilar     bool
 }
 
 func New() *Server {
@@ -538,13 +540,19 @@ func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.
 	return bosgo.Access{}, false
 }
 
+// SetConfirmSimilar sets the server to respond with the confirm_similar state for subsequent transfers
+func (s *Server) SetConfirmSimilar(v bool) {
+	s.confirmSimilar = v
+}
+
 func (s *Server) newTransfer(userID string, providerID string, trp *transferParams) TransferOrder {
 	tr := TransferOrder{
 		Transfer: bosgo.Transfer{
 			ID: s.nextIDStr(),
 		},
-		UserID: userID,
-		Type:   trp.Type,
+		UserID:         userID,
+		Type:           trp.Type,
+		ConfirmSimilar: s.confirmSimilar,
 	}
 
 	s.mu.Lock()
@@ -624,6 +632,13 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 	switch tr.Transfer.Step.Intent {
 	case transferInit:
 		tr.Transfer.State = bosgo.TransferStateOngoing
+		if tr.ConfirmSimilar {
+			tr.Transfer.Step = bosgo.TransferStep{
+				Intent: bosgo.TransferIntentConfirmSimilarTransfer,
+			}
+			break
+		}
+
 		tr.Transfer.Step = bosgo.TransferStep{
 			Intent: bosgo.TransferIntentProvidePIN,
 		}
