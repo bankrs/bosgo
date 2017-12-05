@@ -883,19 +883,29 @@ func (r *ListScheduledTransactionsReq) ClientID(id string) *ListScheduledTransac
 	return r
 }
 
-func (r *ListScheduledTransactionsReq) Send() (*TransactionPage, error) {
+func (r *ListScheduledTransactionsReq) AccountID(id int64) *ListScheduledTransactionsReq {
+	r.req.par["account_id"] = []string{strconv.FormatInt(id, 10)}
+	return r
+}
+
+func (r *ListScheduledTransactionsReq) AccessID(id int64) *ListScheduledTransactionsReq {
+	r.req.par["access_id"] = []string{strconv.FormatInt(id, 10)}
+	return r
+}
+
+func (r *ListScheduledTransactionsReq) Send() ([]Transaction, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
 	if err != nil {
 		return nil, err
 	}
 
-	var page TransactionPage
-	if err := json.NewDecoder(res.Body).Decode(&page.Transactions); err != nil {
+	var txs []Transaction
+	if err := json.NewDecoder(res.Body).Decode(&txs); err != nil {
 		return nil, decodeError(err, res)
 	}
 
-	return &page, nil
+	return txs, nil
 }
 
 func (a *ScheduledTransactionsService) Get(id string) *GetScheduledTransactionReq {

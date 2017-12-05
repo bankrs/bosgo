@@ -106,6 +106,52 @@ func NewWithDefaults() *Server {
 		},
 	}
 
+	stxs := []bosgo.Transaction{
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[0].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       access.Accounts[0].IBAN,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "-943.34",
+			},
+			EntryDate:      time.Now().AddDate(0, 0, 1),
+			SettlementDate: time.Now().AddDate(0, 0, 1),
+			Usage:          "Goods bought in future",
+			Counterparty: bosgo.Counterparty{
+				Name: "PayPal Europe Sarl",
+				Account: bosgo.AccountRef{
+					ProviderID: "DE-BIN-75290000",
+					IBAN:       "DE84200700245353762745",
+				},
+				Merchant: &bosgo.Merchant{
+					Name: "PayPal",
+				},
+			},
+		},
+		{
+			ID:            s.nextID(),
+			AccessID:      access.ID,
+			UserAccountID: access.Accounts[0].ID,
+			UserAccount: bosgo.AccountRef{
+				ProviderID: DefaultProviderID,
+				IBAN:       access.Accounts[0].IBAN,
+			},
+			Amount: &bosgo.MoneyAmount{
+				Currency: "EUR",
+				Value:    "0.34",
+			},
+			EntryDate:      time.Now().AddDate(0, 0, 1),
+			SettlementDate: time.Now().AddDate(0, 0, 1),
+			Usage:          "Interesting payment",
+			Counterparty:   bosgo.Counterparty{},
+		},
+	}
+
 	rtxs := []bosgo.RepeatedTransaction{
 		{
 			ID:            s.nextID(),
@@ -134,9 +180,10 @@ func NewWithDefaults() *Server {
 	}
 
 	ad := AccessDetails{
-		Access:               *access,
-		Transactions:         txs,
-		RepeatedTransactions: rtxs,
+		Access:                *access,
+		Transactions:          txs,
+		RepeatedTransactions:  rtxs,
+		ScheduledTransactions: stxs,
 		ChallengeMap: map[string]string{
 			ChallengeLogin: DefaultAccessLogin,
 			ChallengePIN:   DefaultAccessPIN,
