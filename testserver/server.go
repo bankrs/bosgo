@@ -29,13 +29,14 @@ type App struct {
 }
 
 type User struct {
-	ID                   string
-	Username             string
-	Password             string
-	ApplicationID        string
-	Accesses             []bosgo.Access
-	Transactions         []bosgo.Transaction
-	RepeatedTransactions []bosgo.RepeatedTransaction
+	ID                    string
+	Username              string
+	Password              string
+	ApplicationID         string
+	Accesses              []bosgo.Access
+	Transactions          []bosgo.Transaction
+	ScheduledTransactions []bosgo.Transaction
+	RepeatedTransactions  []bosgo.RepeatedTransaction
 }
 
 type Job struct {
@@ -77,12 +78,13 @@ type TransferOrder struct {
 }
 
 type AccessDetails struct {
-	Access               bosgo.Access
-	Transactions         []bosgo.Transaction
-	RepeatedTransactions []bosgo.RepeatedTransaction
-	ChallengeMap         map[string]string
-	TransferAuths        []TransferAuth
-	StageProblems        map[bosgo.JobStage][]bosgo.Problem
+	Access                bosgo.Access
+	Transactions          []bosgo.Transaction
+	ScheduledTransactions []bosgo.Transaction
+	RepeatedTransactions  []bosgo.RepeatedTransaction
+	ChallengeMap          map[string]string
+	TransferAuths         []TransferAuth
+	StageProblems         map[bosgo.JobStage][]bosgo.Problem
 }
 
 type TransferAuth struct {
@@ -150,6 +152,7 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/accounts", s.handleAccounts)
 	s.mux.HandleFunc("/v1/jobs/", s.handleJobs)
 	s.mux.HandleFunc("/v1/transactions", s.handleTransactions)
+	s.mux.HandleFunc("/v1/scheduled_transactions", s.handleScheduledTransactions)
 	s.mux.HandleFunc("/v1/repeated_transactions", s.handleRepeatedTransactions)
 	s.mux.HandleFunc("/v1/transfers", s.handleTransfers)
 	s.mux.HandleFunc("/v1/transfers/", s.handleTransfer)
@@ -502,6 +505,7 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	user.Accesses = append(user.Accesses, j.AccessDetails.Access)
 	user.Transactions = append(user.Transactions, j.AccessDetails.Transactions...)
 	user.RepeatedTransactions = append(user.RepeatedTransactions, j.AccessDetails.RepeatedTransactions...)
+	user.ScheduledTransactions = append(user.ScheduledTransactions, j.AccessDetails.ScheduledTransactions...)
 
 	s.setUser(user)
 }
@@ -761,6 +765,19 @@ func (s *Server) AssignRepeatedTransactions(username string, txs []bosgo.Repeate
 	}
 
 	user.RepeatedTransactions = txs
+	s.setUser(user)
+
+	return nil
+}
+
+// AssignScheduledTransactions assigns a set of scheduled transactions to a user, overwriting any existing transactions
+func (s *Server) AssignScheduledTransactions(username string, txs []bosgo.Transaction) error {
+	user, found := s.GetUserByName(username)
+	if !found {
+		return fmt.Errorf("unknown user: %s", username)
+	}
+
+	user.ScheduledTransactions = txs
 	s.setUser(user)
 
 	return nil
@@ -1223,6 +1240,20 @@ func (s *Server) handleTransactions(w http.ResponseWriter, req *http.Request) {
 	}
 
 	s.sendJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) handleScheduledTransactions(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, user.ScheduledTransactions)
 }
 
 func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Request) {
