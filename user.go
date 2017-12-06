@@ -1051,7 +1051,7 @@ func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
 // Delete returns a request that may be used to delete a repeated transaction.
 func (r *RepeatedTransactionsService) Delete(id string) *DeleteRepeatedTransactionReq {
 	return &DeleteRepeatedTransactionReq{
-		req:     r.client.newReq(apiV1 + "/repeated_transaction/" + id),
+		req:     r.client.newReq(apiV1 + "/repeated_transactions/" + id),
 		answers: ChallengeAnswerList{},
 	}
 }
@@ -1108,7 +1108,7 @@ func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 // Update returns a request that may be used to update a repeated transaction.
 func (r *RepeatedTransactionsService) Update(id string, to TransferAddress, amount MoneyAmount) *UpdateRepeatedTransactionReq {
 	return &UpdateRepeatedTransactionReq{
-		req: r.client.newReq(apiV1 + "/repeated_transaction/" + id),
+		req: r.client.newReq(apiV1 + "/repeated_transactions/" + id),
 		data: transferParams{
 			To:     to,
 			Amount: amount,
