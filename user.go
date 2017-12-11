@@ -1106,13 +1106,14 @@ func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 }
 
 // Update returns a request that may be used to update a repeated transaction.
-func (r *RepeatedTransactionsService) Update(id string, to TransferAddress, amount MoneyAmount) *UpdateRepeatedTransactionReq {
+func (r *RepeatedTransactionsService) Update(id string, to TransferAddress, amount MoneyAmount, usage string) *UpdateRepeatedTransactionReq {
 	return &UpdateRepeatedTransactionReq{
 		req: r.client.newReq(apiV1 + "/repeated_transactions/" + id),
 		data: transferParams{
 			To:     to,
 			Amount: amount,
 			Type:   TransferTypeRecurring,
+			Usage:  usage,
 		},
 	}
 }
@@ -1394,7 +1395,7 @@ func NewRecurringTransfersService(u *UserClient) *RecurringTransfersService {
 }
 
 // Create returns a request that may be used to create a money transfer. from is an account id belonging to the user.
-func (t *RecurringTransfersService) Create(from int64, to TransferAddress, amount MoneyAmount, rule RecurrenceRule) *CreateRecurringTransferReq {
+func (t *RecurringTransfersService) Create(from int64, to TransferAddress, amount MoneyAmount, rule RecurrenceRule, usage string) *CreateRecurringTransferReq {
 	return &CreateRecurringTransferReq{
 		req: t.client.newReq(apiV1 + "/transfers"),
 		data: transferParams{
@@ -1403,6 +1404,7 @@ func (t *RecurringTransfersService) Create(from int64, to TransferAddress, amoun
 			Amount:   amount,
 			Type:     TransferTypeRecurring,
 			Schedule: &rule,
+			Usage:    usage,
 		},
 	}
 }
