@@ -3,6 +3,7 @@ package testserver
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -680,7 +681,7 @@ func TestCreateRecurringTransfer(t *testing.T) {
 		Interval:  2,
 	}
 	// Create the transfer
-	transfer, err := userClient.RecurringTransfers.Create(accountID, addr, amount, rule).Send()
+	transfer, err := userClient.RecurringTransfers.Create(accountID, addr, amount, rule, "description/usage").Send()
 	if err != nil {
 		t.Fatalf("failed to create transfer: %v", err)
 	}
@@ -751,6 +752,232 @@ func TestCreateRecurringTransfer(t *testing.T) {
 	}
 	if transfer.State != bosgo.TransferStateSucceeded {
 		t.Errorf("got state %v, wanted %v", transfer.State, bosgo.TransferStateSucceeded)
+	}
+}
+
+func TestDeleteRecurringTransfer(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, _, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	repeatedTxs, err := userClient.RepeatedTransactions.List().Send()
+	if err != nil {
+		t.Fatalf("failed to get repeated txs: %v", err)
+	}
+
+	if len(repeatedTxs.Transactions) == 0 {
+		t.Fatalf("missing repeated txs on default access")
+	}
+
+	// Delete the repeated tx with unknown ID
+	recTrf, err := userClient.RepeatedTransactions.Delete("9999").Send()
+	if err == nil {
+		t.Fatalf("didn't fail to delete an unknown repeated transaction: %v", err)
+	}
+
+	// Delete the repeated tx with correct ID should
+	rtxID := strconv.Itoa(int(repeatedTxs.Transactions[0].ID))
+	recTrf, err = userClient.RepeatedTransactions.Delete(rtxID).Send()
+	if err != nil {
+		t.Fatalf("failed to delete recTrf: %v", err)
+	}
+
+	if len(recTrf.Errors) > 0 {
+		for _, pr := range recTrf.Errors {
+			t.Logf("got unexpected error: %s", pr.Code)
+		}
+		t.Fatalf("got %d errors, wanted none", len(recTrf.Errors))
+	}
+
+	if recTrf.Step.Intent != bosgo.TransferIntentProvidePIN {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvidePIN)
+	}
+
+	// Send the pin
+	req := userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "pin",
+		Value: DefaultAccessPIN,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process pin: %v", err)
+	}
+	if recTrf.Step.Intent != bosgo.TransferIntentSelectAuthMethod {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentSelectAuthMethod)
+	}
+	if recTrf.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if len(recTrf.Step.Data.AuthMethods) != 1 {
+		t.Fatalf("got %d auth methods, wanted 1", len(recTrf.Step.Data.AuthMethods))
+	}
+	if recTrf.Step.Data.AuthMethods[0].ID != DefaultAuthMethod {
+		t.Errorf("got auth method %v, wanted %v", recTrf.Step.Data.AuthMethods[0].ID, DefaultAuthMethod)
+	}
+
+	// Send the auth method
+	req = userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "auth_method",
+		Value: DefaultAuthMethod,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth method: %v", err)
+	}
+	if recTrf.Step.Intent != bosgo.TransferIntentProvideChallengeAnswer {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvideChallengeAnswer)
+	}
+	if recTrf.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if recTrf.Step.Data.ChallengeMessage != DefaultAuthMessage {
+		t.Errorf("got challenge message %v, wanted %v", recTrf.Step.Data.ChallengeMessage, DefaultAuthMessage)
+	}
+
+	// Send the auth answer
+	req = userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "tan",
+		Value: DefaultAuthAnswer,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth answer: %v", err)
+	}
+	if recTrf.State != bosgo.TransferStateSucceeded {
+		t.Errorf("got state %v, wanted %v", recTrf.State, bosgo.TransferStateSucceeded)
+	}
+}
+
+func TestUpdateRecurringTransfer(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, _, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	repeatedTxs, err := userClient.RepeatedTransactions.List().Send()
+	if err != nil {
+		t.Fatalf("failed to get repeated txs: %v", err)
+	}
+
+	if len(repeatedTxs.Transactions) == 0 {
+		t.Fatalf("missing repeated txs on default access")
+	}
+
+	// update the repeated tx with unknown ID should fail
+	recTrf, err := userClient.RepeatedTransactions.Delete("9999").Send()
+	if err == nil {
+		t.Fatalf("didn't fail to delete an unknown repeated transaction: %v", err)
+	}
+
+	rtx := repeatedTxs.Transactions[0]
+	rtx.Amount.Value = "99.32"
+
+	addr := bosgo.TransferAddress{
+		Name: "Jane Doe",
+		IBAN: "DE28500105175552834822",
+	}
+
+	// Update the repeated tx with correct ID
+	rtxID := strconv.Itoa(int(repeatedTxs.Transactions[0].ID))
+	recTrf, err = userClient.RepeatedTransactions.Update(rtxID, addr, *rtx.Amount, "this is the updated usage").Send()
+	if err != nil {
+		t.Fatalf("failed to delete recTrf: %v", err)
+	}
+
+	if len(recTrf.Errors) > 0 {
+		for _, pr := range recTrf.Errors {
+			t.Logf("got unexpected error: %s", pr.Code)
+		}
+		t.Fatalf("got %d errors, wanted none", len(recTrf.Errors))
+	}
+
+	if recTrf.Step.Intent != bosgo.TransferIntentProvidePIN {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvidePIN)
+	}
+
+	// Send the pin
+	req := userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "pin",
+		Value: DefaultAccessPIN,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process pin: %v", err)
+	}
+	if recTrf.Step.Intent != bosgo.TransferIntentSelectAuthMethod {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentSelectAuthMethod)
+	}
+	if recTrf.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if len(recTrf.Step.Data.AuthMethods) != 1 {
+		t.Fatalf("got %d auth methods, wanted 1", len(recTrf.Step.Data.AuthMethods))
+	}
+	if recTrf.Step.Data.AuthMethods[0].ID != DefaultAuthMethod {
+		t.Errorf("got auth method %v, wanted %v", recTrf.Step.Data.AuthMethods[0].ID, DefaultAuthMethod)
+	}
+
+	// Send the auth method
+	req = userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "auth_method",
+		Value: DefaultAuthMethod,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth method: %v", err)
+	}
+	if recTrf.Step.Intent != bosgo.TransferIntentProvideChallengeAnswer {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvideChallengeAnswer)
+	}
+	if recTrf.Step.Data == nil {
+		t.Fatalf("got nil step data, wanted non-nil")
+	}
+	if recTrf.Step.Data.ChallengeMessage != DefaultAuthMessage {
+		t.Errorf("got challenge message %v, wanted %v", recTrf.Step.Data.ChallengeMessage, DefaultAuthMessage)
+	}
+
+	// Send the auth answer
+	req = userClient.RecurringTransfers.Process(recTrf.ID, recTrf.Step.Intent, recTrf.Version)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    "tan",
+		Value: DefaultAuthAnswer,
+	})
+	recTrf, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to process auth answer: %v", err)
+	}
+	if recTrf.State != bosgo.TransferStateSucceeded {
+		t.Errorf("got state %v, wanted %v", recTrf.State, bosgo.TransferStateSucceeded)
 	}
 }
 

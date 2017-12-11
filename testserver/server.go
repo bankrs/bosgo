@@ -154,6 +154,7 @@ func New() *Server {
 	s.mux.HandleFunc("/v1/transactions", s.handleTransactions)
 	s.mux.HandleFunc("/v1/scheduled_transactions", s.handleScheduledTransactions)
 	s.mux.HandleFunc("/v1/repeated_transactions", s.handleRepeatedTransactions)
+	s.mux.HandleFunc("/v1/repeated_transactions/", s.handleRepeatedTransactions)
 	s.mux.HandleFunc("/v1/transfers", s.handleTransfers)
 	s.mux.HandleFunc("/v1/transfers/", s.handleTransfer)
 
@@ -1257,16 +1258,138 @@ func (s *Server) handleScheduledTransactions(w http.ResponseWriter, req *http.Re
 }
 
 func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	user, _, found := s.requireUser(w, req)
 	if !found {
 		return
 	}
 
+	switch req.Method {
+	case http.MethodGet:
+		s.listRepeatedTransactions(w, req, user)
+		return
+	case http.MethodDelete:
+		s.deleteRepeatedTransaction(w, req, user)
+		return
+	case http.MethodPut:
+		s.updateRepeatedTransaction(w, req, user)
+		return
+	default:
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func (s *Server) deleteRepeatedTransaction(w http.ResponseWriter, req *http.Request, user User) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	if !strings.HasPrefix(req.URL.Path, "/v1/repeated_transactions/") {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return
+	}
+
+	id := req.URL.Path[26:]
+	rtxID, err := strconv.Atoi(id)
+	if err != nil {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return
+	}
+
+	rtx, found := s.requireRepeatedTransactions(user, int64(rtxID))
+	if !found {
+		return
+	}
+
+	// reading effectively only challenge answers
+	var data transferParams
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+	data.Type = bosgo.TransferTypeRecurring
+
+	var providerID string
+accessloop:
+	for _, acc := range user.Accesses {
+		for _, ac := range acc.Accounts {
+			if ac.ID == rtx.UserAccountID {
+				providerID = acc.ProviderID
+				break accessloop
+			}
+		}
+	}
+	if providerID == "" {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return
+	}
+
+	tr := s.newTransfer(user.ID, providerID, &data)
+	s.sendJSON(w, http.StatusCreated, &tr.Transfer)
+}
+
+func (s *Server) updateRepeatedTransaction(w http.ResponseWriter, req *http.Request, user User) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	if !strings.HasPrefix(req.URL.Path, "/v1/repeated_transactions/") {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return
+	}
+
+	id := req.URL.Path[26:]
+	rtxID, err := strconv.Atoi(id)
+	if err != nil {
+		s.sendError(w, http.StatusBadRequest, "general")
+		return
+	}
+
+	rtx, found := s.requireRepeatedTransactions(user, int64(rtxID))
+	if !found {
+		return
+	}
+
+	var data transferParams
+	if !s.readJSON(w, req, &data) {
+		return
+	}
+	// TODO: check which params are immutable and set them from rtx
+
+	var providerID string
+accessloop:
+	for _, acc := range user.Accesses {
+		for _, ac := range acc.Accounts {
+			if ac.ID == rtx.UserAccountID {
+				providerID = acc.ProviderID
+				break accessloop
+			}
+		}
+	}
+	if providerID == "" {
+		s.sendError(w, http.StatusNotFound, "resource_not_found")
+		return
+	}
+
+	tr := s.newTransfer(user.ID, providerID, &data)
+	s.sendJSON(w, http.StatusCreated, &tr.Transfer)
+}
+
+func (s *Server) requireRepeatedTransactions(user User, id int64) (bosgo.RepeatedTransaction, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, rtx := range user.RepeatedTransactions {
+		if rtx.ID == id {
+			return rtx, true
+		}
+	}
+	return bosgo.RepeatedTransaction{}, false
+
+}
+
+func (s *Server) listRepeatedTransactions(w http.ResponseWriter, req *http.Request, user User) {
 	params, ok := s.parseTransactionParams(w, req)
 	if !ok {
 		return
