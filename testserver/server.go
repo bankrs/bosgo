@@ -1083,14 +1083,14 @@ func (s *Server) handleAccess(w http.ResponseWriter, req *http.Request) {
 	case http.MethodGet:
 		s.handleAccessGet(w, req)
 		return
+	case http.MethodDelete:
+		s.handleAccessDelete(w, req)
+		return
 	case http.MethodPost:
 		if strings.HasSuffix(req.URL.Path, "/refresh") {
 			s.handleAccessRefresh(w, req)
 			return
 		}
-		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
-		return
-	case http.MethodDelete:
 		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
 		return
 	}
@@ -1106,6 +1106,31 @@ func (s *Server) handleAccessGet(w http.ResponseWriter, req *http.Request) {
 	}
 
 	s.sendJSON(w, http.StatusOK, access)
+}
+
+func (s *Server) handleAccessDelete(w http.ResponseWriter, req *http.Request) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+	access, found := s.requireAccess(w, req)
+	if !found {
+		return
+	}
+
+	updatedUser, _ := deleteAccess(user, access)
+
+	s.mu.Lock()
+	s.Users[user.ID] = updatedUser
+	s.mu.Unlock()
+
+	deleted := struct {
+		AccessID int64 `json:"deleted_access_id"`
+	}{
+		AccessID: access.ID,
+	}
+
+	s.sendJSON(w, http.StatusOK, deleted)
 }
 
 func (s *Server) handleAccessRefresh(w http.ResponseWriter, req *http.Request) {
@@ -1553,6 +1578,47 @@ func (s *Server) handleTransferDelete(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 	_ = tr
+}
+
+func deleteAccess(user User, access bosgo.Access) (User, bosgo.Access) {
+	// delete transactions
+	txs := []bosgo.Transaction{}
+	stxs := []bosgo.Transaction{}
+	rtxs := []bosgo.RepeatedTransaction{}
+
+	for _, v := range user.Transactions {
+		if v.AccessID == access.ID {
+			continue
+		}
+		txs = append(txs, v)
+	}
+	for _, v := range user.ScheduledTransactions {
+		if v.AccessID == access.ID {
+			continue
+		}
+		stxs = append(stxs, v)
+	}
+	for _, v := range user.RepeatedTransactions {
+		if v.AccessID == access.ID {
+			continue
+		}
+		rtxs = append(rtxs, v)
+	}
+
+	user.Transactions = txs
+	user.RepeatedTransactions = rtxs
+	user.ScheduledTransactions = stxs
+
+	// delete the access
+	var deleteIdx int
+	for i, a := range user.Accesses {
+		if access.ID == a.ID {
+			deleteIdx = int(i)
+		}
+	}
+	user.Accesses = append(user.Accesses[:deleteIdx], user.Accesses[deleteIdx+1:]...)
+
+	return user, access
 }
 
 // WriteState writes the current state of the server to w as a series of JSON documents.
