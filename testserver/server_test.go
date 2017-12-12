@@ -372,6 +372,42 @@ func TestGetAccess(t *testing.T) {
 	}
 }
 
+func TestDeleteAccess(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	accessID, _, err := addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	delAccessID, err := userClient.Accesses.Delete(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve accesses: %v", err)
+	}
+	if delAccessID == 0 {
+		t.Fatal("got 0 deleted Access ID")
+	}
+	access, _ := userClient.Accesses.Get(accessID).Send()
+	if access != nil {
+		t.Fatal("got some access, while it should have been deleted")
+	}
+
+	txsResp, _ := userClient.Transactions.List().Send()
+	if len(txsResp.Transactions) != 0 {
+		t.Fatal("got some txs, while they should have been deleted with the access")
+	}
+}
+
 func TestListScheduledTransactions(t *testing.T) {
 	s := NewWithDefaults()
 	if testing.Verbose() {

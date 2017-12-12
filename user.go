@@ -284,21 +284,21 @@ func (r *DeleteAccessReq) ClientID(id string) *DeleteAccessReq {
 }
 
 // Send sends the request to get details of a bank access.
-func (r *DeleteAccessReq) Send() (string, error) {
+func (r *DeleteAccessReq) Send() (int64, error) {
 	res, cleanup, err := r.req.delete()
 	defer cleanup()
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	var deleted struct {
-		ID string `json:"deleted_access_id"`
+		AccessID int64 `json:"deleted_access_id"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&deleted); err != nil {
-		return "", decodeError(err, res)
+		return 0, decodeError(err, res)
 	}
 
-	return deleted.ID, nil
+	return deleted.AccessID, nil
 }
 
 // Get prepares and returns a request to fetch data about a bank access
