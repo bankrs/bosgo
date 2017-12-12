@@ -399,6 +399,47 @@ func TestListScheduledTransactions(t *testing.T) {
 	}
 }
 
+func TestListScheduledTransactionsComputedFilter(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	_, _, err = addDefaultAccess(userClient)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	txs, err := userClient.ScheduledTransactions.List().Computed(true).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve scheduled  transactions: %v", err)
+	}
+	if len(txs) != 2 {
+		t.Errorf("got %d transactions, wanted 2", len(txs))
+	}
+
+	txs, err = userClient.ScheduledTransactions.List().Computed(false).Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve scheduled  transactions: %v", err)
+	}
+	if len(txs) != 1 {
+		t.Errorf("got %d transactions, wanted 1", len(txs))
+	}
+	if txs[0].Computed {
+		t.Error("got a scheduled transaction with computed true, when asked for only NOT computed txs")
+	}
+	if txs[0].Usage != "Interesting payment which was NOT computed" {
+		t.Errorf("got incorrect tx %s", txs[0].Usage)
+	}
+}
+
 func TestListTransactions(t *testing.T) {
 	s := NewWithDefaults()
 	if testing.Verbose() {

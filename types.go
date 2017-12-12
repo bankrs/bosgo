@@ -301,6 +301,7 @@ type Transaction struct {
 	Amount                *MoneyAmount `json:"amount,omitempty"`
 	Usage                 string       `json:"usage,omitempty"`
 	TransactionType       string       `json:"transaction_type,omitempty"`
+	Computed              bool         `json:"computed,omitempty"`
 }
 
 type AccountRef struct {
