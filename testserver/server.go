@@ -37,6 +37,7 @@ type User struct {
 	Transactions          []bosgo.Transaction
 	ScheduledTransactions []bosgo.Transaction
 	RepeatedTransactions  []bosgo.RepeatedTransaction
+	StoredAnswers         map[string][]bosgo.ChallengeAnswer // map of challenge answers indexed by provider ID
 }
 
 type Job struct {
@@ -397,6 +398,15 @@ func (s *Server) newJob(userID string, providerID string, answers []bosgo.Challe
 		JobAction:  action,
 	}
 
+	if action == JobActionRefresh {
+		if user, found := s.GetUser(userID); found {
+			storedAnswers := user.StoredAnswers[providerID]
+			if len(storedAnswers) > 0 {
+				job.SuppliedAnswers = append(job.SuppliedAnswers, storedAnswers...)
+			}
+		}
+	}
+
 	s.mu.Lock()
 	ad, exists := s.Accesses[providerID]
 	s.mu.Unlock()
@@ -461,6 +471,8 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	if j.Finished {
 		return
 	}
+	s.updateStoredAnswers(j.UserID, j.ProviderID, answers)
+
 	j.SuppliedAnswers = append(j.SuppliedAnswers, answers...)
 	j.NeedsAnswers = false
 	j.Problems = make([]bosgo.Problem, 0)
@@ -507,6 +519,31 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	user.Transactions = append(user.Transactions, j.AccessDetails.Transactions...)
 	user.RepeatedTransactions = append(user.RepeatedTransactions, j.AccessDetails.RepeatedTransactions...)
 	user.ScheduledTransactions = append(user.ScheduledTransactions, j.AccessDetails.ScheduledTransactions...)
+
+	s.setUser(user)
+}
+
+func (s *Server) updateStoredAnswers(userID string, providerID string, answers []bosgo.ChallengeAnswer) {
+	user, found := s.GetUser(userID)
+	if !found {
+		return
+	}
+
+	stored := map[string]bosgo.ChallengeAnswer{}
+	for _, a := range user.StoredAnswers[providerID] {
+		stored[a.ID] = a
+	}
+
+	for _, a := range answers {
+		if a.Store {
+			stored[a.ID] = a
+		}
+	}
+
+	user.StoredAnswers[providerID] = []bosgo.ChallengeAnswer{}
+	for _, a := range stored {
+		user.StoredAnswers[providerID] = append(user.StoredAnswers[providerID], a)
+	}
 
 	s.setUser(user)
 }
@@ -835,6 +872,7 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 		Username:      creds.Username,
 		Password:      creds.Password,
 		ApplicationID: app.ID,
+		StoredAnswers: map[string][]bosgo.ChallengeAnswer{},
 	}
 
 	s.setUser(user)
@@ -1128,7 +1166,7 @@ func (s *Server) handleAccess(w http.ResponseWriter, req *http.Request) {
 			s.handleAccessRefresh(w, req)
 			return
 		}
-		s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+		s.handleAccessUpdate(w, req)
 		return
 	}
 
@@ -1184,6 +1222,29 @@ func (s *Server) handleAccessRefresh(w http.ResponseWriter, req *http.Request) {
 	job := s.newJob(user.ID, access.ProviderID, []bosgo.ChallengeAnswer{}, JobActionRefresh)
 
 	s.sendJSON(w, http.StatusAccepted, &job)
+}
+
+func (s *Server) handleAccessUpdate(w http.ResponseWriter, req *http.Request) {
+	user, _, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	access, found := s.requireAccess(w, req)
+	if !found {
+		return
+	}
+
+	var answers struct {
+		Answers []bosgo.ChallengeAnswer `json:"challenge_answers"`
+	}
+	if !s.readJSON(w, req, &answers) {
+		return
+	}
+
+	s.updateStoredAnswers(user.ID, access.ProviderID, answers.Answers)
+
+	s.sendJSON(w, http.StatusOK, &access)
 }
 
 type txParams struct {

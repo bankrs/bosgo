@@ -421,15 +421,17 @@ func TestAccessCreateMultiStep(t *testing.T) {
 
 }
 
-func addDefaultAccess(userClient *bosgo.UserClient) (int64, int64, error) {
+func addDefaultAccess(userClient *bosgo.UserClient, store bool) (int64, int64, error) {
 	req := userClient.Accesses.Add(DefaultProviderID)
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
 		ID:    ChallengeLogin,
 		Value: DefaultAccessLogin,
+		Store: store,
 	})
 	req.ChallengeAnswer(bosgo.ChallengeAnswer{
 		ID:    ChallengePIN,
 		Value: DefaultAccessPIN,
+		Store: store,
 	})
 
 	job, err := req.Send()
@@ -461,7 +463,7 @@ func TestAccessCreateAddsAccessToList(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, _, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -492,7 +494,7 @@ func TestGetAccess(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, _, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -504,6 +506,94 @@ func TestGetAccess(t *testing.T) {
 	if acc.Name != "default access" {
 		t.Errorf("got access %s, wanted %s", acc.Name, "default access")
 	}
+}
+
+func TestUpdateAccess(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	// Store details
+	accessID, _, err := addDefaultAccess(userClient, true)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	// Confirm refresh works
+	job, err := userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
+	}
+	if status.Finished != true {
+		t.Errorf("got finished %v, wanted true", status.Finished)
+	}
+
+	// Change the access details
+	s.mu.Lock()
+	s.Accesses[DefaultProviderID].ChallengeMap[ChallengePIN] = "4567"
+	s.mu.Unlock()
+
+	// Confirm refresh is challenged
+	job, err = userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageChallenge {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageChallenge)
+	}
+
+	// Update stored answers
+	req := userClient.Accesses.Update(accessID)
+	req.ChallengeAnswer(bosgo.ChallengeAnswer{
+		ID:    ChallengePIN,
+		Value: "4567",
+		Store: true,
+	})
+
+	_, err = req.Send()
+	if err != nil {
+		t.Fatalf("failed to update access: %v", err)
+	}
+
+	// Confirm refresh is not challenged
+	job, err = userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	status, err = userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
+	}
+
 }
 
 func TestDeleteAccess(t *testing.T) {
@@ -519,7 +609,7 @@ func TestDeleteAccess(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, _, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -555,7 +645,7 @@ func TestListScheduledTransactions(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -582,7 +672,7 @@ func TestListTransactions(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -609,7 +699,7 @@ func TestListTransactionsLimit(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -636,7 +726,7 @@ func TestListTransactionsOffset(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -668,7 +758,7 @@ func TestListTransactionsSince(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -700,7 +790,7 @@ func TestListRepeatedTransactions(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -727,7 +817,7 @@ func TestCreateTransfer(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, accountID, err := addDefaultAccess(userClient)
+	_, accountID, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -830,7 +920,7 @@ func TestCreateRecurringTransfer(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, accountID, err := addDefaultAccess(userClient)
+	_, accountID, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -938,7 +1028,7 @@ func TestDeleteRecurringTransfer(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -1047,7 +1137,7 @@ func TestUpdateRecurringTransfer(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, _, err = addDefaultAccess(userClient)
+	_, _, err = addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -1161,7 +1251,7 @@ func TestWriteReadState(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	_, accountID, err := addDefaultAccess(userClient)
+	_, accountID, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -1220,7 +1310,7 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, _, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -1322,7 +1412,7 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 		t.Fatalf("failed to login as user: %v", err)
 	}
 
-	accessID, _, err := addDefaultAccess(userClient)
+	accessID, _, err := addDefaultAccess(userClient, false)
 	if err != nil {
 		t.Fatalf("failed to add access: %v", err)
 	}
@@ -1488,6 +1578,54 @@ func TestAccessRefreshCustomProblems(t *testing.T) {
 	if status.Finished {
 		t.Errorf("got finished %v, wanted false", status.Finished)
 	}
+}
+
+func TestAccessRefreshStored(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
+
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
+	}
+
+	accessID, _, err := addDefaultAccess(userClient, true)
+	if err != nil {
+		t.Fatalf("failed to add access: %v", err)
+	}
+
+	job, err := userClient.Accesses.Refresh(accessID).Send()
+	if err != nil {
+		t.Fatalf("failed to refresh access: %v", err)
+	}
+	t.Logf("job URI: %s", job.URI)
+
+	// Expect to go straight to imported since challenges are stored
+	status, err := userClient.Jobs.Get(job.URI).Send()
+	if err != nil {
+		t.Fatalf("failed to get job status: %v", err)
+	}
+
+	if status.Stage != bosgo.JobStageImported {
+		t.Errorf("got stage %v, wanted %v", status.Stage, bosgo.JobStageImported)
+	}
+	if status.Finished != true {
+		t.Errorf("got finished %v, wanted true", status.Finished)
+	}
+
+	ac, err := userClient.Accesses.List().Send()
+	if err != nil {
+		t.Fatalf("failed to retrieve accesses: %v", err)
+	}
+	if len(ac.Accesses) != 1 {
+		t.Errorf("got %d accesses, wanted 1", len(ac.Accesses))
+	}
+
 }
 
 func addAccess(userClient *bosgo.UserClient, provider, login, pin string) (int64, int64, error) {
