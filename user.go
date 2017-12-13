@@ -907,6 +907,11 @@ func (r *ListScheduledTransactionsReq) AccessID(id int64) *ListScheduledTransact
 	return r
 }
 
+func (r *ListScheduledTransactionsReq) Computed(includeComputed bool) *ListScheduledTransactionsReq {
+	r.req.par["computed"] = []string{strconv.FormatBool(includeComputed)}
+	return r
+}
+
 func (r *ListScheduledTransactionsReq) Send() ([]Transaction, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()

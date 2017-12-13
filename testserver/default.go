@@ -122,7 +122,7 @@ func NewWithDefaults() *Server {
 			},
 			EntryDate:      time.Now().AddDate(0, 0, 1),
 			SettlementDate: time.Now().AddDate(0, 0, 1),
-			Usage:          "Goods bought in future",
+			Usage:          "Goods bought in future which was computed",
 			Counterparty: bosgo.Counterparty{
 				Name: "PayPal Europe Sarl",
 				Account: bosgo.AccountRef{
@@ -133,6 +133,7 @@ func NewWithDefaults() *Server {
 					Name: "PayPal",
 				},
 			},
+			Computed: true,
 		},
 		{
 			ID:            s.nextID(),
@@ -148,8 +149,9 @@ func NewWithDefaults() *Server {
 			},
 			EntryDate:      time.Now().AddDate(0, 0, 1),
 			SettlementDate: time.Now().AddDate(0, 0, 1),
-			Usage:          "Interesting payment",
+			Usage:          "Interesting payment which was NOT computed",
 			Counterparty:   bosgo.Counterparty{},
+			Computed:       false,
 		},
 	}
 

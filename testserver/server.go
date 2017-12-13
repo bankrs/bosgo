@@ -1377,7 +1377,23 @@ func (s *Server) handleScheduledTransactions(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	s.sendJSON(w, http.StatusOK, user.ScheduledTransactions)
+	includeComputed := req.URL.Query().Get("computed")
+	if includeComputed == "" {
+		s.sendJSON(w, http.StatusOK, user.ScheduledTransactions)
+	}
+
+	includeComputedBool, err := strconv.ParseBool(includeComputed)
+	if err != nil {
+		s.sendError(w, http.StatusBadRequest, err.Error())
+	}
+
+	txs := []bosgo.Transaction{}
+	for _, tx := range user.ScheduledTransactions {
+		if includeComputedBool || !tx.Computed {
+			txs = append(txs, tx)
+		}
+	}
+	s.sendJSON(w, http.StatusOK, txs)
 }
 
 func (s *Server) handleRepeatedTransactions(w http.ResponseWriter, req *http.Request) {
