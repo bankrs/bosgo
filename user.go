@@ -129,14 +129,16 @@ func (r *UserLogoutReq) Send() error {
 // Delete returns a request that may be used to delete a user account and its
 // associated data. Once this request has been sent the user client is no
 // longer valid and should not be used.
-func (u *UserClient) Delete() *UserDeleteReq {
+func (u *UserClient) Delete(password string) *UserDeleteReq {
 	return &UserDeleteReq{
-		req: u.newReq(apiV1 + "/users"),
+		req:      u.newReq(apiV1 + "/users"),
+		password: password,
 	}
 }
 
 type UserDeleteReq struct {
 	req
+	password string
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -147,13 +149,25 @@ func (r *UserDeleteReq) Context(ctx context.Context) *UserDeleteReq {
 }
 
 // Send sends the request to delete a user.
-func (r *UserDeleteReq) Send() error {
-	_, cleanup, err := r.req.delete()
+func (r *UserDeleteReq) Send() (*DeletedUser, error) {
+	data := struct {
+		Password string `json:"password"`
+	}{
+		Password: r.password,
+	}
+
+	res, cleanup, err := r.req.delete(&data)
 	defer cleanup()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	var du DeletedUser
+	if err := json.NewDecoder(res.Body).Decode(&du); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &du, nil
 }
 
 // AccessesService provides access to bank access related API services.
@@ -285,7 +299,7 @@ func (r *DeleteAccessReq) ClientID(id string) *DeleteAccessReq {
 
 // Send sends the request to get details of a bank access.
 func (r *DeleteAccessReq) Send() (int64, error) {
-	res, cleanup, err := r.req.delete()
+	res, cleanup, err := r.req.delete(nil)
 	defer cleanup()
 	if err != nil {
 		return 0, err
@@ -606,7 +620,7 @@ func (r *JobCancelReq) ClientID(id string) *JobCancelReq {
 
 // Send sends the request to cancel a job.
 func (r *JobCancelReq) Send() error {
-	_, cleanup, err := r.req.delete()
+	_, cleanup, err := r.req.delete(nil)
 	defer cleanup()
 	if err != nil {
 		return err

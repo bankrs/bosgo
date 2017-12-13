@@ -142,7 +142,7 @@ func (r *DeveloperDeleteReq) ClientID(id string) *DeveloperDeleteReq {
 // Send sends the request to delete developer. Once this request has been sent
 // the developer client should not be used again.
 func (r *DeveloperDeleteReq) Send() error {
-	_, cleanup, err := r.req.delete()
+	_, cleanup, err := r.req.delete(nil)
 	defer cleanup()
 	if err != nil {
 		return err
@@ -430,7 +430,7 @@ func (r *DeleteApplicationsReq) ClientID(id string) *DeleteApplicationsReq {
 }
 
 func (r *DeleteApplicationsReq) Send() error {
-	_, cleanup, err := r.req.delete()
+	_, cleanup, err := r.req.delete(nil)
 	defer cleanup()
 	if err != nil {
 		return err

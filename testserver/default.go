@@ -39,6 +39,7 @@ func NewWithDefaults() *Server {
 		Username:      DefaultUsername,
 		Password:      DefaultPassword,
 		ApplicationID: DefaultApplicationID,
+		StoredAnswers: map[string][]bosgo.ChallengeAnswer{},
 	}
 	s.setUser(user)
 
