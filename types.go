@@ -472,3 +472,7 @@ const (
 
 	TANTypeUnknown TANType = "unknown"
 )
+
+type DeletedUser struct {
+	DeletedUserID string `json:"deleted_user_id"`
+}

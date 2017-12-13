@@ -3,6 +3,7 @@ package testserver
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -83,7 +84,7 @@ func TestUserCreate(t *testing.T) {
 	defer s.Close()
 
 	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
-	userClient, err := appClient.Users.Create("scooby", "sandwich").Send()
+	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
 	}
@@ -95,6 +96,139 @@ func TestUserCreate(t *testing.T) {
 	}
 	if len(ac.Accesses) != 0 {
 		t.Errorf("got %d accesses, wanted 0", len(ac.Accesses))
+	}
+
+}
+
+func TestUserCreateEmptyUsername(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	_, err := appClient.Users.Create("", "sandwich").Send()
+	if err == nil {
+		t.Fatalf("no error received")
+	}
+
+	if code := errCode(err); code != "authentication_email_invalid" {
+		t.Errorf("got error code %s, wanted authentication_email_invalid", code)
+	}
+
+	// Confirm user cannot login
+	_, err = appClient.Users.Login("", "sandwich").Send()
+	if err == nil {
+		t.Fatalf("no error received, user was able to login")
+	}
+}
+
+func TestUserCreateEmptyPassword(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	_, err := appClient.Users.Create("scooby@example.com", "").Send()
+	if err == nil {
+		t.Fatalf("no error received")
+	}
+
+	if code := errCode(err); code != "authentication_secret_blank" {
+		t.Errorf("got error code %s, wanted authentication_secret_blank", code)
+	}
+
+	// Confirm user cannot login
+	_, err = appClient.Users.Login("scooby@example.com", "").Send()
+	if err == nil {
+		t.Fatalf("no error received, user was able to login")
+	}
+}
+
+func TestUserCreateDuplicateUsername(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	_, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
+	if err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	_, err = appClient.Users.Create("scooby@example.com", "milkshake").Send()
+	if err == nil {
+		t.Fatalf("no error received")
+	}
+
+	if code := errCode(err); code != "authentication_email_not_unique" {
+		t.Errorf("got error code %s, wanted authentication_email_not_unique", code)
+	}
+
+	// Confirm user cannot login
+	_, err = appClient.Users.Login("scooby@example.com", "milkshake").Send()
+	if err == nil {
+		t.Fatalf("no error received, user was able to login")
+	}
+}
+
+func TestUserDelete(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
+	if err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	_, err = userClient.Delete("sandwich").Send()
+	if err != nil {
+		t.Fatalf("failed to delete user: %v", err)
+	}
+
+	// Confirm user cannot login
+	_, err = appClient.Users.Login("scooby@example.com", "sandwich").Send()
+	if err == nil {
+		t.Fatalf("no error received, user was able to login")
+	}
+
+}
+
+func TestUserDeleteWrongPassword(t *testing.T) {
+	s := NewWithDefaults()
+	if testing.Verbose() {
+		s.SetLogger(t)
+	}
+	defer s.Close()
+
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
+	if err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	_, err = userClient.Delete("milkshake").Send()
+	if err == nil {
+		t.Fatalf("no error received")
+	}
+
+	if status := errStatusCode(err); status != http.StatusUnauthorized {
+		t.Errorf("got http status %d, wanted %d", status, http.StatusUnauthorized)
+	}
+
+	// Confirm user can still login
+	_, err = appClient.Users.Login("scooby@example.com", "sandwich").Send()
+	if err != nil {
+		t.Fatalf("failed to login as user: %v", err)
 	}
 
 }
@@ -1381,4 +1515,26 @@ func addAccess(userClient *bosgo.UserClient, provider, login, pin string) (int64
 	}
 
 	return status.Access.ID, status.Access.Accounts[0].ID, nil
+}
+
+func errCode(err error) string {
+	berr, ok := err.(*bosgo.Error)
+	if !ok {
+		return "<error not a bosgo.Error>"
+	}
+
+	if len(berr.Errors) == 0 {
+		return "<no errors found>"
+	}
+
+	return berr.Errors[0].Code
+}
+
+func errStatusCode(err error) int {
+	berr, ok := err.(*bosgo.Error)
+	if !ok {
+		return 0
+	}
+
+	return berr.StatusCode
 }

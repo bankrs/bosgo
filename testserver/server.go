@@ -120,7 +120,7 @@ type Server struct {
 	Devs               map[string]Dev           // map of developers indexed by ID
 	Apps               map[string]App           // map of applications indexed by ID
 	Users              map[string]User          // map of users indexed by ID
-	UserTokens         map[string]string        // map of tokens to user ID
+	UserTokens         map[string]string        // map of user IDs indexed by token
 	Jobs               map[string]Job           // map of jobs indexed by ID
 	Accesses           map[string]AccessDetails // map of access details indexed by provider ID
 	Transfers          map[string]TransferOrder // map of transfer orders indexed by ID
@@ -810,11 +810,21 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if creds.Username == "" {
+		s.sendError(w, http.StatusBadRequest, "authentication_email_invalid")
+		return
+	}
+
+	if creds.Password == "" {
+		s.sendError(w, http.StatusBadRequest, "authentication_secret_blank")
+		return
+	}
+
 	s.mu.Lock()
 	for _, u := range s.Users {
 		if u.Username == creds.Username {
 			s.mu.Unlock()
-			s.sendError(w, http.StatusInternalServerError, "server_side")
+			s.sendError(w, http.StatusBadRequest, "authentication_email_not_unique")
 			return
 		}
 	}
@@ -822,6 +832,7 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 
 	user := User{
 		ID:            s.nextIDStr(),
+		Username:      creds.Username,
 		Password:      creds.Password,
 		ApplicationID: app.ID,
 	}
@@ -837,7 +848,33 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) handleUserDelete(w http.ResponseWriter, req *http.Request) {
-	s.sendError(w, http.StatusInternalServerError, "not_implemented_by_test_server")
+	user, token, found := s.requireUser(w, req)
+	if !found {
+		return
+	}
+
+	var pwd struct {
+		Password string `json:"password"`
+	}
+	if !s.readJSON(w, req, &pwd) {
+		return
+	}
+
+	if user.Password != pwd.Password {
+		s.sendError(w, http.StatusUnauthorized, "authentication_failed")
+		return
+	}
+
+	s.mu.Lock()
+	delete(s.Users, user.ID)
+	delete(s.UserTokens, token)
+	s.mu.Unlock()
+
+	resp := bosgo.DeletedUser{
+		DeletedUserID: user.ID,
+	}
+
+	s.sendJSON(w, http.StatusOK, &resp)
 }
 
 func (s *Server) handleUsersLogin(w http.ResponseWriter, req *http.Request) {

@@ -143,8 +143,17 @@ func (r *req) putJSON(data interface{}) (*http.Response, func(), error) {
 	return res, cleanup(res), nil
 }
 
-func (r *req) delete() (*http.Response, func(), error) {
-	req, err := http.NewRequest("DELETE", r.url().String(), nil)
+func (r *req) delete(data interface{}) (*http.Response, func(), error) {
+	var body io.Reader
+	if data != nil {
+		var encoded bytes.Buffer
+		err := json.NewEncoder(&encoded).Encode(data)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		body = &encoded
+	}
+	req, err := http.NewRequest("DELETE", r.url().String(), body)
 	if err != nil {
 		return nil, func() {}, err
 	}
