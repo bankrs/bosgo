@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 )
 
 // AppClient is a client used for interacting with services in the context of
@@ -33,6 +34,7 @@ type AppClient struct {
 	Categories *CategoriesService
 	Providers  *ProvidersService
 	Users      *AppUsersService
+	IBAN       *IBANService
 }
 
 // NewAppClient creates a new client that may be used to interact with
@@ -47,6 +49,7 @@ func NewAppClient(client *http.Client, addr string, applicationID string) *AppCl
 	ac.Categories = NewCategoriesService(ac)
 	ac.Providers = NewProvidersService(ac)
 	ac.Users = NewAppUsersService(ac)
+	ac.IBAN = NewIBANService(ac)
 	return ac
 }
 
@@ -172,7 +175,7 @@ func (r *ProvidersSearchReq) Send() (*ProviderSearchResults, error) {
 // Get returns a request that may be used to get the details of a single financial provider.
 func (c *ProvidersService) Get(id string) *ProvidersGetReq {
 	return &ProvidersGetReq{
-		req: c.client.newReq(apiV1 + "/providers/" + id),
+		req: c.client.newReq(apiV1 + "/providers/" + url.PathEscape(id)),
 	}
 }
 
@@ -358,4 +361,55 @@ func (r *ResetUserPasswordReq) Send() error {
 		return err
 	}
 	return nil
+}
+
+// IBANService provides access to IBAN related API services.
+type IBANService struct {
+	client *AppClient
+}
+
+func NewIBANService(c *AppClient) *IBANService { return &IBANService{client: c} }
+
+// Validate returns a request that may be used to validate an IBAN.
+func (a *IBANService) Validate(iban string) *ValidateIBANReq {
+	return &ValidateIBANReq{
+		req:    a.client.newReq(apiV1 + "/iban/" + url.PathEscape(iban)),
+		client: a.client,
+	}
+}
+
+// ValidateIBANReq is a request that may be used to validate an IBAN.
+type ValidateIBANReq struct {
+	req
+	client *AppClient
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *ValidateIBANReq) Context(ctx context.Context) *ValidateIBANReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ValidateIBANReq) ClientID(id string) *ValidateIBANReq {
+	r.req.clientID = id
+	return r
+}
+
+// Send sends the request to validate the IBAN and returns details about the IBAN.
+func (r *ValidateIBANReq) Send() (*IBANDetails, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var id IBANDetails
+	if err := json.NewDecoder(res.Body).Decode(&id); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &id, nil
 }

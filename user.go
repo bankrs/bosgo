@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -679,7 +680,7 @@ type AccountPage struct {
 
 func (a *AccountsService) Get(id string) *GetAccountReq {
 	return &GetAccountReq{
-		req: a.client.newReq(apiV1 + "/accounts/" + id),
+		req: a.client.newReq(apiV1 + "/accounts/" + url.PathEscape(id)),
 	}
 }
 
@@ -787,7 +788,7 @@ func (r *ListTransactionsReq) Send() (*TransactionPage, error) {
 
 func (a *TransactionsService) Get(id string) *GetTransactionReq {
 	return &GetTransactionReq{
-		req: a.client.newReq(apiV1 + "/transactions/" + id),
+		req: a.client.newReq(apiV1 + "/transactions/" + url.PathEscape(id)),
 	}
 }
 
@@ -924,7 +925,7 @@ func (r *ListScheduledTransactionsReq) Send() ([]Transaction, error) {
 
 func (a *ScheduledTransactionsService) Get(id string) *GetScheduledTransactionReq {
 	return &GetScheduledTransactionReq{
-		req: a.client.newReq(apiV1 + "/scheduled_transactions/" + id),
+		req: a.client.newReq(apiV1 + "/scheduled_transactions/" + url.PathEscape(id)),
 	}
 }
 
@@ -1027,7 +1028,7 @@ func (r *ListRepeatedTransactionsReq) Send() (*RepeatedTransactionPage, error) {
 
 func (r *RepeatedTransactionsService) Get(id string) *GetRepeatedTransactionReq {
 	return &GetRepeatedTransactionReq{
-		req: r.client.newReq(apiV1 + "/repeated_transactions/" + id),
+		req: r.client.newReq(apiV1 + "/repeated_transactions/" + url.PathEscape(id)),
 	}
 }
 
@@ -1065,7 +1066,7 @@ func (r *GetRepeatedTransactionReq) Send() (*RepeatedTransaction, error) {
 // Delete returns a request that may be used to delete a repeated transaction.
 func (r *RepeatedTransactionsService) Delete(id string) *DeleteRepeatedTransactionReq {
 	return &DeleteRepeatedTransactionReq{
-		req:     r.client.newReq(apiV1 + "/repeated_transactions/" + id),
+		req:     r.client.newReq(apiV1 + "/repeated_transactions/" + url.PathEscape(id)),
 		answers: ChallengeAnswerList{},
 	}
 }
@@ -1122,7 +1123,7 @@ func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 // Update returns a request that may be used to update a repeated transaction.
 func (r *RepeatedTransactionsService) Update(id string, to TransferAddress, amount MoneyAmount, usage string) *UpdateRepeatedTransactionReq {
 	return &UpdateRepeatedTransactionReq{
-		req: r.client.newReq(apiV1 + "/repeated_transactions/" + id),
+		req: r.client.newReq(apiV1 + "/repeated_transactions/" + url.PathEscape(id)),
 		data: transferParams{
 			To:     to,
 			Amount: amount,
@@ -1288,7 +1289,7 @@ func (r *CreateTransferReq) Send() (*Transfer, error) {
 // Process returns a request that may be used to update information and answer challenges for a transfer.
 func (t *TransfersService) Process(id string, intent TransferIntent, version int) *ProcessTransferReq {
 	return &ProcessTransferReq{
-		req: t.client.newReq(apiV1 + "/transfers/" + id),
+		req: t.client.newReq(apiV1 + "/transfers/" + url.PathEscape(id)),
 		data: transferProcessParams{
 			Intent:  intent,
 			Version: version,
@@ -1347,7 +1348,7 @@ func (r *ProcessTransferReq) Send() (*Transfer, error) {
 // Cancel returns a request that may be used to cancel an ongoing money transfer.
 func (t *TransfersService) Cancel(id string, version int) *CancelTransferReq {
 	return &CancelTransferReq{
-		req:     t.client.newReq(apiV1 + "/transfers/" + id + "/cancel"),
+		req:     t.client.newReq(apiV1 + "/transfers/" + url.PathEscape(id) + "/cancel"),
 		version: version,
 	}
 }
@@ -1479,7 +1480,7 @@ func (r *CreateRecurringTransferReq) Send() (*RecurringTransfer, error) {
 // Process returns a request that may be used to update information and answer challenges for a transfer.
 func (t *RecurringTransfersService) Process(id string, intent TransferIntent, version int) *ProcessRecurringTransferReq {
 	return &ProcessRecurringTransferReq{
-		req: t.client.newReq(apiV1 + "/transfers/" + id),
+		req: t.client.newReq(apiV1 + "/transfers/" + url.PathEscape(id)),
 		data: transferProcessParams{
 			Intent:  intent,
 			Version: version,
@@ -1538,7 +1539,7 @@ func (r *ProcessRecurringTransferReq) Send() (*RecurringTransfer, error) {
 // Cancel returns a request that may be used to cancel an ongoing money transfer.
 func (t *RecurringTransfersService) Cancel(id string, version int) *CancelRecurringTransferReq {
 	return &CancelRecurringTransferReq{
-		req:     t.client.newReq(apiV1 + "/transfers/" + id + "/cancel"),
+		req:     t.client.newReq(apiV1 + "/transfers/" + url.PathEscape(id) + "/cancel"),
 		version: version,
 	}
 }
