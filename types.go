@@ -476,3 +476,21 @@ const (
 type DeletedUser struct {
 	DeletedUserID string `json:"deleted_user_id"`
 }
+
+type IBANDetails struct {
+	Account IBANAccount `json:"acc_ref"`
+	Banks   []IBANBank  `json:"fis"`
+}
+
+type IBANBank struct {
+	ID             string `json:"id"`              // the bank identity assigned by the identity provider
+	Label          string `json:"label"`           // the bank name
+	Country        string `json:"country"`         // the country (e.g. DE)
+	Provider       string `json:"provider"`        //  the identity provider (e.g. BIC)
+	ServiceContext string `json:"service_context"` // the service context, (e.g. SEPA)
+}
+
+type IBANAccount struct {
+	IBAN     string `json:"IBAN"`     // the validated IBAN
+	Provider string `json:"provider"` // the authoritative provider, IBO for IBANs
+}
