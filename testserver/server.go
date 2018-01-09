@@ -341,7 +341,7 @@ func (s *Server) GetUserByName(name string) (User, bool) {
 	return User{}, false
 }
 
-func (s *Server) setUser(user User) {
+func (s *Server) SetUser(user User) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if user.Accesses == nil {
@@ -520,7 +520,7 @@ func (s *Server) progressJob(j *Job, answers []bosgo.ChallengeAnswer) {
 	user.RepeatedTransactions = append(user.RepeatedTransactions, j.AccessDetails.RepeatedTransactions...)
 	user.ScheduledTransactions = append(user.ScheduledTransactions, j.AccessDetails.ScheduledTransactions...)
 
-	s.setUser(user)
+	s.SetUser(user)
 }
 
 func (s *Server) updateStoredAnswers(userID string, providerID string, answers []bosgo.ChallengeAnswer) {
@@ -545,7 +545,7 @@ func (s *Server) updateStoredAnswers(userID string, providerID string, answers [
 		user.StoredAnswers[providerID] = append(user.StoredAnswers[providerID], a)
 	}
 
-	s.setUser(user)
+	s.SetUser(user)
 }
 
 func (s *Server) requireAccess(w http.ResponseWriter, req *http.Request) (bosgo.Access, bool) {
@@ -671,6 +671,9 @@ func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request, trans
 }
 
 func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bosgo.ChallengeAnswer) {
+	combinedAnswers := append([]bosgo.ChallengeAnswer{}, answers...)
+	u, _ := s.GetUser(tr.UserID)
+	combinedAnswers = append(combinedAnswers, u.StoredAnswers[tr.AccessDetails.Access.ProviderID]...)
 	switch tr.Transfer.Step.Intent {
 	case transferInit:
 		tr.Transfer.State = bosgo.TransferStateOngoing
@@ -684,14 +687,14 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 		tr.Transfer.Step = bosgo.TransferStep{
 			Intent: bosgo.TransferIntentProvidePIN,
 		}
-		if len(answers) == 0 {
+		if len(combinedAnswers) == 0 {
 			break
 		}
 		fallthrough
 
 	case bosgo.TransferIntentProvidePIN:
 		tr.Transfer.State = bosgo.TransferStateOngoing
-		for _, ans := range answers {
+		for _, ans := range combinedAnswers {
 			if ans.ID == "pin" && ans.Value == tr.AccessDetails.ChallengeMap["pin"] {
 				tr.Transfer.Step = bosgo.TransferStep{
 					Intent: bosgo.TransferIntentSelectAuthMethod,
@@ -717,7 +720,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 
 	case bosgo.TransferIntentSelectAuthMethod:
 		tr.Transfer.State = bosgo.TransferStateOngoing
-		for _, ans := range answers {
+		for _, ans := range combinedAnswers {
 			if ans.ID == "auth_method" {
 				for _, ta := range tr.AccessDetails.TransferAuths {
 					if ans.Value == ta.Method {
@@ -737,7 +740,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 		tr.Transfer.Step = bosgo.TransferStep{}
 
 	case bosgo.TransferIntentProvideChallengeAnswer:
-		for _, ans := range answers {
+		for _, ans := range combinedAnswers {
 			if ans.ID == "tan" {
 				for _, ta := range tr.AccessDetails.TransferAuths {
 					if ans.Value == ta.Answer {
@@ -777,7 +780,7 @@ func (s *Server) AssignAccess(username string, access *bosgo.Access) error {
 	}
 
 	user.Accesses = append(user.Accesses, *access)
-	s.setUser(user)
+	s.SetUser(user)
 
 	return nil
 }
@@ -790,7 +793,7 @@ func (s *Server) AssignTransactions(username string, txs []bosgo.Transaction) er
 	}
 
 	user.Transactions = txs
-	s.setUser(user)
+	s.SetUser(user)
 
 	return nil
 }
@@ -803,7 +806,7 @@ func (s *Server) AssignRepeatedTransactions(username string, txs []bosgo.Repeate
 	}
 
 	user.RepeatedTransactions = txs
-	s.setUser(user)
+	s.SetUser(user)
 
 	return nil
 }
@@ -816,7 +819,7 @@ func (s *Server) AssignScheduledTransactions(username string, txs []bosgo.Transa
 	}
 
 	user.ScheduledTransactions = txs
-	s.setUser(user)
+	s.SetUser(user)
 
 	return nil
 }
@@ -875,7 +878,7 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, req *http.Request) {
 		StoredAnswers: map[string][]bosgo.ChallengeAnswer{},
 	}
 
-	s.setUser(user)
+	s.SetUser(user)
 	token := s.setUserLoggedIn(user.ID)
 
 	ut := bosgo.UserToken{
