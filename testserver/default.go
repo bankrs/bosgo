@@ -41,7 +41,7 @@ func NewWithDefaults() *Server {
 		ApplicationID: DefaultApplicationID,
 		StoredAnswers: map[string][]bosgo.ChallengeAnswer{},
 	}
-	s.setUser(user)
+	s.SetUser(user)
 
 	access := s.MakeAccess(DefaultProviderID, "default access")
 	txs := []bosgo.Transaction{
