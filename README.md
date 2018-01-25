@@ -30,7 +30,7 @@ There are four types of client that represent the three levels of authorisation 
 Construct a new client and login as a developer to the Bankrs OS sandbox to obtain recent user statistics:
 
 ```go
-client := bosgo.NewClient(http.DefaultClient, bosgo.SandboxAddr)
+client := bosgo.New(http.DefaultClient, bosgo.SandboxAddr)
 devClient, err := client.Login("email", "password").Send()
 if err != nil {
     log.Fatalf("failed to login: %v", err)
@@ -57,7 +57,7 @@ log.Printf("Total users in past week: %d", stats.UsersTotal.value)
 ### Create a new developer account and application
 
 ```go
-client := bosgo.NewClient(http.DefaultClient, bosgo.SandboxAddr)
+client := bosgo.New(http.DefaultClient, bosgo.SandboxAddr)
 devClient, err := client.CreateDeveloper("email", "password").Send()
 if err != nil {
     log.Fatalf("failed to create developer: %v", err)
