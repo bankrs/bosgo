@@ -494,3 +494,12 @@ type IBANAccount struct {
 	IBAN     string `json:"IBAN"`     // the validated IBAN
 	Provider string `json:"provider"` // the authoritative provider, IBO for IBANs
 }
+
+type ResetUsersResponse struct {
+	Users []ResetUserOutcome `json:"users"`
+}
+
+type ResetUserOutcome struct {
+	Username string    `json:"username"`
+	Problems []Problem `json:"problems"`
+}
