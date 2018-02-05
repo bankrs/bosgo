@@ -363,55 +363,6 @@ func (r *ResetUserPasswordReq) Send() error {
 	return nil
 }
 
-// Reset prepares and returns a request to reset user data.
-func (a *AppUsersService) Reset(usernames []string) *ResetUsersReq {
-	return &ResetUsersReq{
-		req:       a.client.newReq(apiV1 + "/users/reset"),
-		usernames: usernames,
-	}
-}
-
-type ResetUsersReq struct {
-	req
-	usernames []string
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *ResetUsersReq) Context(ctx context.Context) *ResetUsersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *ResetUsersReq) ClientID(id string) *ResetUsersReq {
-	r.req.clientID = id
-	return r
-}
-
-// Send sends the request to reset user data.
-func (r *ResetUsersReq) Send() (*ResetUsersResponse, error) {
-	data := struct {
-		Usernames []string `json:"usernames"`
-	}{
-		Usernames: r.usernames,
-	}
-
-	res, cleanup, err := r.req.postJSON(data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var users ResetUsersResponse
-	if err := json.NewDecoder(res.Body).Decode(&users); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &users, nil
-}
-
 // IBANService provides access to IBAN related API services.
 type IBANService struct {
 	client *AppClient
