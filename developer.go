@@ -507,6 +507,57 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 	return &list, nil
 }
 
+// ResetUsers prepares and returns a request to reset user data.
+func (d *ApplicationsService) ResetUsers(applicationID string, usernames []string) *ResetDevUsersReq {
+	r := d.client.newReq(apiV1 + "/developers/users/reset")
+	r.headers["x-application-id"] = applicationID
+	return &ResetDevUsersReq{
+		req:       r,
+		usernames: usernames,
+	}
+}
+
+type ResetDevUsersReq struct {
+	req
+	usernames []string
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *ResetDevUsersReq) Context(ctx context.Context) *ResetDevUsersReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ResetDevUsersReq) ClientID(id string) *ResetDevUsersReq {
+	r.req.clientID = id
+	return r
+}
+
+// Send sends the request to reset user data.
+func (r *ResetDevUsersReq) Send() (*ResetUsersResponse, error) {
+	data := struct {
+		Usernames []string `json:"usernames"`
+	}{
+		Usernames: r.usernames,
+	}
+
+	res, cleanup, err := r.req.postJSON(data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var users ResetUsersResponse
+	if err := json.NewDecoder(res.Body).Decode(&users); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &users, nil
+}
+
 // StatsService provides access to statistic related API services.
 type StatsService struct {
 	client *DevClient
