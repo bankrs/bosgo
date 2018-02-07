@@ -509,7 +509,7 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 
 // UserInfo prepares and returns a request to lookup information about a user.
 func (d *ApplicationsService) UserInfo(applicationID, id string) *DevUserInfoReq {
-	r := d.client.newReq(apiV1 + "/developers/users/" + url.PathEscape(id))
+	r := d.client.newReq(apiV1 + "/developers/user/" + url.PathEscape(id))
 	r.headers["x-application-id"] = applicationID
 	return &DevUserInfoReq{
 		req: r,
