@@ -507,6 +507,48 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 	return &list, nil
 }
 
+// UserInfo prepares and returns a request to lookup information about a user.
+func (d *ApplicationsService) UserInfo(applicationID, id string) *DevUserInfoReq {
+	r := d.client.newReq(apiV1 + "/developers/users/" + url.PathEscape(id))
+	r.headers["x-application-id"] = applicationID
+	return &DevUserInfoReq{
+		req: r,
+	}
+}
+
+type DevUserInfoReq struct {
+	req
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *DevUserInfoReq) Context(ctx context.Context) *DevUserInfoReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *DevUserInfoReq) ClientID(id string) *DevUserInfoReq {
+	r.req.clientID = id
+	return r
+}
+
+func (r *DevUserInfoReq) Send() (*DevUserInfo, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var info DevUserInfo
+	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
+		return nil, decodeError(err, res)
+	}
+	return &info, nil
+}
+
 // ResetUsers prepares and returns a request to reset user data.
 func (d *ApplicationsService) ResetUsers(applicationID string, usernames []string) *ResetDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users/reset")

@@ -503,3 +503,7 @@ type ResetUserOutcome struct {
 	Username string    `json:"username"`
 	Problems []Problem `json:"problems"`
 }
+
+type DevUserInfo struct {
+	Username string `json:"username"`
+}
