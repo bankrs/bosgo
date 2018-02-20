@@ -274,11 +274,12 @@ type JobAccess struct {
 }
 
 type JobAccount struct {
-	ID        int64  `json:"id,omitempty"`
-	Name      string `json:"name"`
-	Supported bool   `json:"supported"`
-	Number    string `json:"number"`
-	IBAN      string `json:"iban"`
+	ID        int64     `json:"id,omitempty"`
+	Name      string    `json:"name"`
+	Supported bool      `json:"supported"`
+	Number    string    `json:"number"`
+	IBAN      string    `json:"iban"`
+	Errors    []Problem `json:"errors"`
 }
 
 type TransactionPage struct {
