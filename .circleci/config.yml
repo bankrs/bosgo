@@ -36,7 +36,7 @@ buildsteps: &buildsteps
 jobs:
   go-latest:
     <<: *defaults
-    environment:
+    environment: &job-environment
       GOPATH: /home/circleci
       TEST_RESULTS: /tmp/test-results
       VERSION: latest
@@ -44,11 +44,19 @@ jobs:
       - image: golang:latest
     <<: *buildsteps
 
+  go-1.9:
+    <<: *defaults
+    environment:
+      <<: *job-environment
+      VERSION: 1.9
+    docker:
+      - image: golang:1.9
+    <<: *buildsteps
+
   go-1.8:
     <<: *defaults
     environment:
-      GOPATH: /home/circleci
-      TEST_RESULTS: /tmp/test-results
+      <<: *job-environment
       VERSION: 1.8
     docker:
       - image: golang:1.8
@@ -59,4 +67,5 @@ workflows:
   build_and_test:
     jobs:
       - go-latest
+      - go-1.9
       - go-1.8
