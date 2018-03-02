@@ -226,7 +226,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				Enabled:          true,
 				Currency:         "EUR",
 				IBAN:             "DE84200700245353762745",
-				Supported:        true,
 				Capabilities: bosgo.AccountCapabilities{
 					AccountStatement:  []string{"read"},
 					Transfer:          []string{"read"},
@@ -247,7 +246,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				Enabled:          true,
 				Currency:         "EUR",
 				IBAN:             "DE56200800950445688921",
-				Supported:        true,
 				Capabilities: bosgo.AccountCapabilities{
 					AccountStatement:  []string{"read"},
 					Transfer:          []string{"read"},
