@@ -1125,11 +1125,10 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 		}
 		for _, ac := range job.AccessDetails.Access.Accounts {
 			status.Access.Accounts = append(status.Access.Accounts, bosgo.JobAccount{
-				ID:        ac.ID,
-				Name:      ac.Name,
-				Number:    ac.Number,
-				IBAN:      ac.IBAN,
-				Supported: ac.Supported,
+				ID:     ac.ID,
+				Name:   ac.Name,
+				Number: ac.Number,
+				IBAN:   ac.IBAN,
 			})
 		}
 

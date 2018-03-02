@@ -194,7 +194,6 @@ type Account struct {
 	Enabled          bool                `json:"enabled"`
 	Currency         string              `json:"currency"`
 	IBAN             string              `json:"iban"`
-	Supported        bool                `json:"supported"`
 	Alias            string              `json:"alias"`
 	Capabilities     AccountCapabilities `json:"capabilities" `
 	Bin              string              `json:"bin"`
@@ -274,12 +273,11 @@ type JobAccess struct {
 }
 
 type JobAccount struct {
-	ID        int64     `json:"id,omitempty"`
-	Name      string    `json:"name"`
-	Supported bool      `json:"supported"`
-	Number    string    `json:"number"`
-	IBAN      string    `json:"iban"`
-	Errors    []Problem `json:"errors"`
+	ID     int64     `json:"id,omitempty"`
+	Name   string    `json:"name"`
+	Number string    `json:"number"`
+	IBAN   string    `json:"iban"`
+	Errors []Problem `json:"errors"`
 }
 
 type TransactionPage struct {
