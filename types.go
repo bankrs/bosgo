@@ -506,3 +506,36 @@ type ResetUserOutcome struct {
 type DevUserInfo struct {
 	Username string `json:"username"`
 }
+
+type Webhook struct {
+	ID         string    `json:"id"`
+	URL        string    `json:"url"`
+	Events     []string  `json:"events"`
+	APIVersion int       `json:"api_version"`
+	Enabled    bool      `json:"enabled"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type WebhookPage struct {
+	Webhooks []Webhook `json:"webhooks,omitempty"`
+}
+
+type WebhookTestResult struct {
+	Payload  EventPayload  `json:"payload"`
+	Response EventResponse `json:"response"`
+}
+
+type EventPayload struct {
+	ID         string                 `json:"id"`
+	Type       string                 `json:"type"`
+	URL        string                 `json:"url"`
+	APIVersion int                    `json:"api_version"`
+	CreatedAt  time.Time              `json:"created_at"`
+	Data       map[string]interface{} `json:"data"`
+}
+
+type EventResponse struct {
+	ID     string `json:"id"`
+	Code   int    `json:"code"`
+	Status string `json:"status"`
+}
