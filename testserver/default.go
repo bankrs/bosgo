@@ -223,7 +223,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				AvailableBalance: "1471.20",
 				CreditLine:       "500",
 				BalanceDate:      time.Date(2017, 7, 13, 22, 0, 0, 0, time.UTC),
-				Enabled:          true,
 				Currency:         "EUR",
 				IBAN:             "DE84200700245353762745",
 				Capabilities: bosgo.AccountCapabilities{
@@ -243,7 +242,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				BalanceDate:      time.Date(2017, 7, 13, 22, 0, 0, 0, time.UTC),
 				AvailableBalance: "45.00",
 				CreditLine:       "",
-				Enabled:          true,
 				Currency:         "EUR",
 				IBAN:             "DE56200800950445688921",
 				Capabilities: bosgo.AccountCapabilities{
