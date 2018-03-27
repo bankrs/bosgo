@@ -507,12 +507,13 @@ type DevUserInfo struct {
 }
 
 type Webhook struct {
-	ID         string    `json:"id"`
-	URL        string    `json:"url"`
-	Events     []string  `json:"events"`
-	APIVersion int       `json:"api_version"`
-	Enabled    bool      `json:"enabled"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	URL         string    `json:"url"`
+	Events      []string  `json:"events"`
+	APIVersion  int       `json:"api_version"`
+	Enabled     bool      `json:"enabled"`
+	Environment string    `json:"environment"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type WebhookPage struct {
@@ -525,12 +526,17 @@ type WebhookTestResult struct {
 }
 
 type EventPayload struct {
-	ID         string                 `json:"id"`
-	Type       string                 `json:"type"`
-	URL        string                 `json:"url"`
-	APIVersion int                    `json:"api_version"`
-	CreatedAt  time.Time              `json:"created_at"`
-	Data       map[string]interface{} `json:"data"`
+	Event Event                  `json:"event"`
+	Data  map[string]interface{} `json:"data"`
+}
+
+type Event struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	URL         string    `json:"url"`
+	APIVersion  int       `json:"api_version"`
+	Environment string    `json:"environment"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type EventResponse struct {
