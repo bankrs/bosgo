@@ -602,6 +602,100 @@ func (r *ResetDevUsersReq) Send() (*ResetUsersResponse, error) {
 	return &users, nil
 }
 
+// Settings prepares and returns a request to retrieve an application's configuration settings.
+func (d *ApplicationsService) Settings(applicationID string) *GetApplicationSettingsReq {
+	return &GetApplicationSettingsReq{
+		req: d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/settings"),
+	}
+}
+
+type GetApplicationSettingsReq struct {
+	req
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *GetApplicationSettingsReq) Context(ctx context.Context) *GetApplicationSettingsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *GetApplicationSettingsReq) ClientID(id string) *GetApplicationSettingsReq {
+	r.req.clientID = id
+	return r
+}
+
+// Send sends the request to retrieve the developer's profile.
+func (r *GetApplicationSettingsReq) Send() (*ApplicationSettings, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var settings ApplicationSettings
+	if err := json.NewDecoder(res.Body).Decode(&settings); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &settings, nil
+}
+
+// UpateSettings prepares and returns a request to update an application's configuration settings.
+func (d *ApplicationsService) UpateSettings(applicationID string) *UpdateApplicationSettingsReq {
+	return &UpdateApplicationSettingsReq{
+		req:  d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/settings"),
+		data: applicationSettingsParams{},
+	}
+}
+
+type UpdateApplicationSettingsReq struct {
+	req
+	data applicationSettingsParams
+}
+
+type applicationSettingsParams struct {
+	BackgroundRefresh *bool `json:"background_refresh,omitempty"`
+}
+
+// BackgroundRefresh sets the value of the background_refresh configuration setting.
+func (r *UpdateApplicationSettingsReq) BackgroundRefresh(value bool) *UpdateApplicationSettingsReq {
+	r.data.BackgroundRefresh = &value
+	return r
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *UpdateApplicationSettingsReq) Context(ctx context.Context) *UpdateApplicationSettingsReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *UpdateApplicationSettingsReq) ClientID(id string) *UpdateApplicationSettingsReq {
+	r.req.clientID = id
+	return r
+}
+
+// Send sends the request to retrieve the developer's profile.
+func (r *UpdateApplicationSettingsReq) Send() (*ApplicationSettings, error) {
+	res, cleanup, err := r.req.putJSON(r.data)
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var settings ApplicationSettings
+	if err := json.NewDecoder(res.Body).Decode(&settings); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &settings, nil
+}
+
 // StatsService provides access to statistic related API services.
 type StatsService struct {
 	client *DevClient
