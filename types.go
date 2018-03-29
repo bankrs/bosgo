@@ -544,3 +544,7 @@ type EventResponse struct {
 	Code   int    `json:"code"`
 	Status string `json:"status"`
 }
+
+type ApplicationSettings struct {
+	BackgroundRefresh bool `json:"background_refresh"`
+}
