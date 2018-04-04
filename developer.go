@@ -643,8 +643,8 @@ func (r *GetApplicationSettingsReq) Send() (*ApplicationSettings, error) {
 	return &settings, nil
 }
 
-// UpateSettings prepares and returns a request to update an application's configuration settings.
-func (d *ApplicationsService) UpateSettings(applicationID string) *UpdateApplicationSettingsReq {
+// UpdateSettings prepares and returns a request to update an application's configuration settings.
+func (d *ApplicationsService) UpdateSettings(applicationID string) *UpdateApplicationSettingsReq {
 	return &UpdateApplicationSettingsReq{
 		req:  d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/settings"),
 		data: applicationSettingsParams{},
