@@ -27,10 +27,11 @@ import (
 // valid developer session. It is safe for concurrent use by multiple goroutines.
 type DevClient struct {
 	// never modified once they have been set
-	hc    *http.Client
-	addr  string
-	token string // session token
-	ua    string
+	hc          *http.Client
+	addr        string
+	token       string // session token
+	ua          string
+	environment string
 
 	Applications *ApplicationsService
 	Stats        *StatsService
@@ -73,7 +74,8 @@ func (d *DevClient) newReq(path string) req {
 			"User-Agent": d.userAgent(),
 			"x-token":    d.token,
 		},
-		par: params{},
+		par:         params{},
+		environment: d.environment,
 	}
 }
 

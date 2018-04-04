@@ -42,9 +42,10 @@ const (
 // safe for concurrent use by multiple goroutines.
 type Client struct {
 	// never modified once they have been set
-	hc   *http.Client
-	addr string
-	ua   string
+	hc          *http.Client
+	addr        string
+	ua          string
+	environment string
 }
 
 type ClientOption func(*Client)
@@ -70,7 +71,8 @@ func (c *Client) newReq(path string) req {
 		headers: headers{
 			"User-Agent": c.userAgent(),
 		},
-		par: params{},
+		par:         params{},
+		environment: c.environment,
 	}
 }
 
@@ -85,6 +87,7 @@ func (c *Client) userAgent() string {
 func (c *Client) WithApplicationID(applicationID string) *AppClient {
 	ac := NewAppClient(c.hc, c.addr, applicationID)
 	ac.ua = c.ua
+	ac.environment = c.environment
 	return ac
 }
 
@@ -142,6 +145,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 
 	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
 	dc.ua = r.client.ua
+	dc.environment = r.client.environment
 	return dc, nil
 }
 
@@ -195,6 +199,7 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 
 	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
 	dc.ua = r.client.ua
+	dc.environment = r.client.environment
 	return dc, nil
 
 }
@@ -293,4 +298,10 @@ func (r *ResetPasswordReq) Send() error {
 // the client.
 func UserAgent(ua string) ClientOption {
 	return func(c *Client) { c.ua = ua }
+}
+
+// Environment is a client option that may be used to set the X-Environment header used by
+// the client.
+func Environment(environment string) ClientOption {
+	return func(c *Client) { c.environment = environment }
 }

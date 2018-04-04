@@ -30,6 +30,7 @@ type AppClient struct {
 	addr          string
 	applicationID string
 	ua            string
+	environment   string
 
 	Categories *CategoriesService
 	Providers  *ProvidersService
@@ -62,7 +63,8 @@ func (a *AppClient) newReq(path string) req {
 			"User-Agent":       a.userAgent(),
 			"x-application-id": a.applicationID,
 		},
-		par: params{},
+		par:         params{},
+		environment: a.environment,
 	}
 }
 
@@ -269,6 +271,7 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
 	uc.ua = r.client.ua
+	uc.environment = r.client.environment
 	return uc, nil
 }
 
@@ -320,6 +323,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
 	uc.ua = r.client.ua
+	uc.environment = r.client.environment
 	return uc, nil
 }
 

@@ -27,13 +27,14 @@ import (
 )
 
 type req struct {
-	hc       *http.Client
-	ctx      context.Context
-	clientID string
-	addr     string
-	path     string
-	par      params
-	headers  headers
+	hc          *http.Client
+	ctx         context.Context
+	clientID    string
+	addr        string
+	path        string
+	par         params
+	headers     headers
+	environment string
 }
 
 func (r *req) url() *url.URL {
@@ -56,6 +57,9 @@ func (r *req) get() (*http.Response, func(), error) {
 	}
 	if r.clientID != "" {
 		req.Header.Set("X-Client-Id", r.clientID)
+	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
 	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
