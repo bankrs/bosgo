@@ -191,6 +191,7 @@ type Account struct {
 	BalanceDate      time.Time           `json:"balance_date"`
 	AvailableBalance string              `json:"available_balance"`
 	CreditLine       string              `json:"credit_line"`
+	Removed          bool                `json:"removed"`
 	Currency         string              `json:"currency"`
 	IBAN             string              `json:"iban"`
 	Alias            string              `json:"alias"`
