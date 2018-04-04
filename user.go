@@ -34,6 +34,7 @@ type UserClient struct {
 	token         string // session token
 	applicationID string
 	ua            string
+	environment   string
 
 	Accesses              *AccessesService
 	Jobs                  *JobsService
@@ -82,7 +83,8 @@ func (u *UserClient) newReq(path string) req {
 			"x-token":          u.token,
 			"x-application-id": u.applicationID,
 		},
-		par: params{},
+		par:         params{},
+		environment: u.environment,
 	}
 }
 

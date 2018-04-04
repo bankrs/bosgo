@@ -27,13 +27,14 @@ import (
 )
 
 type req struct {
-	hc       *http.Client
-	ctx      context.Context
-	clientID string
-	addr     string
-	path     string
-	par      params
-	headers  headers
+	hc          *http.Client
+	ctx         context.Context
+	clientID    string
+	addr        string
+	path        string
+	par         params
+	headers     headers
+	environment string
 }
 
 func (r *req) url() *url.URL {
@@ -56,6 +57,9 @@ func (r *req) get() (*http.Response, func(), error) {
 	}
 	if r.clientID != "" {
 		req.Header.Set("X-Client-Id", r.clientID)
+	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
 	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
@@ -93,6 +97,9 @@ func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
 	if r.clientID != "" {
 		req.Header.Set("X-Client-Id", r.clientID)
 	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
+	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -129,6 +136,9 @@ func (r *req) putJSON(data interface{}) (*http.Response, func(), error) {
 	if r.clientID != "" {
 		req.Header.Set("X-Client-Id", r.clientID)
 	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
+	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
 	}
@@ -159,6 +169,12 @@ func (r *req) delete(data interface{}) (*http.Response, func(), error) {
 	}
 	if r.ctx != nil {
 		req = req.WithContext(r.ctx)
+	}
+	if r.clientID != "" {
+		req.Header.Set("X-Client-Id", r.clientID)
+	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
 	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
@@ -195,6 +211,9 @@ func (r *req) deleteJSON(data interface{}) (*http.Response, func(), error) {
 	req.Header.Set("Content-Type", "application/json")
 	if r.clientID != "" {
 		req.Header.Set("X-Client-Id", r.clientID)
+	}
+	if r.environment != "" {
+		req.Header.Set("X-Environment", r.environment)
 	}
 	for k, v := range r.headers {
 		req.Header.Set(k, v)
