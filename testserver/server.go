@@ -708,6 +708,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 					tr.Transfer.Step.Data.AuthMethods = append(tr.Transfer.Step.Data.AuthMethods, bosgo.AuthMethod{ID: ta.Method})
 				}
 
+				tr.Transfer.Errors = nil
 				return
 			}
 		}
