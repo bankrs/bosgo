@@ -208,8 +208,9 @@ type AccountCapabilities struct {
 type AccountType string
 
 const (
-	AccountTypeBank       AccountType = "bank"
-	AccountTypeCreditCard AccountType = "credit_card"
+	AccountTypeCurrent    AccountType = "current"
+	AccountTypeSavings    AccountType = "savings"
+	AccountTypeCreditCard AccountType = "creditcard"
 	AccountTypeLoan       AccountType = "loan"
 )
 
