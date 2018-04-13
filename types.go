@@ -212,6 +212,7 @@ const (
 	AccountTypeSavings    AccountType = "savings"
 	AccountTypeCreditCard AccountType = "creditcard"
 	AccountTypeLoan       AccountType = "loan"
+	AccountTypeCustodial  AccountType = "custodial"
 )
 
 type Job struct {
