@@ -240,11 +240,9 @@ const (
 
 type Challenge struct {
 	CanContinue    bool             `json:"can_continue"`
-	MaxSteps       uint             `json:"max_steps"`
 	CurStep        uint             `json:"cur_step"`
 	NextChallenges []ChallengeField `json:"next_challenges"`
 	LastProblems   []Problem        `json:"last_problems"`
-	Hint           string           `json:"hint"`
 }
 
 type ChallengeField struct {

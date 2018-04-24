@@ -1094,7 +1094,6 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 	if job.NeedsAnswers {
 		status.Challenge = &bosgo.Challenge{
 			CanContinue: true,
-			MaxSteps:    4,
 		}
 
 		for id := range job.AccessDetails.ChallengeMap {
