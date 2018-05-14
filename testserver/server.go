@@ -1092,9 +1092,7 @@ func (s *Server) jobStatus(job *Job) *bosgo.JobStatus {
 	}
 
 	if job.NeedsAnswers {
-		status.Challenge = &bosgo.Challenge{
-			CanContinue: true,
-		}
+		status.Challenge = &bosgo.Challenge{}
 
 		for id := range job.AccessDetails.ChallengeMap {
 			previous := ""
