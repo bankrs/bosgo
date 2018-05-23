@@ -463,6 +463,8 @@ const (
 	TANTypePush TANType = "push"
 	// TANTypeOTP indicates a one-time password
 	TANTypeOTP TANType = "otp"
+	// TypeUSB indicate a usb based TAN
+	TANTypeUSB TANType = "usb"
 	// TANTypePhoto indicates a colorised matrix barcode
 	TANTypePhoto TANType = "photo"
 
