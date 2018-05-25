@@ -172,12 +172,13 @@ type AccessPage struct {
 }
 
 type Access struct {
-	ID         int64     `json:"id"`
-	Name       string    `json:"name"`
-	Enabled    bool      `json:"enabled"`
-	IsPinSaved bool      `json:"is_pin_saved"`
-	ProviderID string    `json:"provider_id"`
-	Accounts   []Account `json:"accounts,omitempty"`
+	ID           int64              `json:"id"`
+	Name         string             `json:"name"`
+	Enabled      bool               `json:"enabled"`
+	IsPinSaved   bool               `json:"is_pin_saved"`
+	ProviderID   string             `json:"provider_id"`
+	Accounts     []Account          `json:"accounts,omitempty"`
+	Capabilities AccessCapabilities `json:"capabilities"`
 }
 
 type Account struct {
@@ -547,4 +548,35 @@ type EventResponse struct {
 
 type ApplicationSettings struct {
 	BackgroundRefresh bool `json:"background_refresh"`
+}
+
+type AccessCapabilities struct {
+	RecurringTransfer RecurringTransferCapabilities `json:"recurring_transfer"`
+	ScheduledTransfer ScheduledTransferCapabilities `json:"scheduled_transfer"`
+	Trading           bool                          `json:"trading"`
+}
+
+type RecurringTransferCapabilities struct {
+	Periods                      []Period `json:"periods"`
+	MinimumLeadTimeCreate        int      `json:"minimum_lead_time_create"`
+	MaximumLeadTimeCreate        int      `json:"maximum_lead_time_create"`
+	MinimumLeadTimeEdit          int      `json:"minimum_lead_time_edit"`
+	MaximumLeadTimeEdit          int      `json:"maximum_lead_time_edit"`
+	MinimumLeadTimeDelete        int      `json:"minimum_lead_time_delete"`
+	MaximumLeadTimeDelete        int      `json:"maximum_lead_time_delete"`
+	LastDayOfMonthEnabled        bool     `json:"last_day_of_month_enabled"`
+	FirstScheduledDateModifiable bool     `json:"first_scheduled_date_modifiable"`
+	TimeUnitModifiable           bool     `json:"time_unit_modifiable"`
+	PeriodLengthModifiable       bool     `json:"period_length_modifiable"`
+	ScheduledDateModifiable      bool     `json:"scheduled_date_modifiable"`
+	LastScheduleDateModifiable   bool     `json:"last_schedule_date_modifiable"`
+}
+
+type ScheduledTransferCapabilities struct {
+	Supported bool `json:"supported"`
+}
+
+type Period struct {
+	Type   string `json:"type"`
+	Repeat int    `json:"repeat"`
 }
