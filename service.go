@@ -46,6 +46,7 @@ type Client struct {
 	addr        string
 	ua          string
 	environment string
+	retryPolicy RetryPolicy
 }
 
 type ClientOption func(*Client)
@@ -73,6 +74,7 @@ func (c *Client) newReq(path string) req {
 		},
 		par:         params{},
 		environment: c.environment,
+		retryPolicy: c.retryPolicy,
 	}
 }
 
@@ -88,6 +90,7 @@ func (c *Client) WithApplicationID(applicationID string) *AppClient {
 	ac := NewAppClient(c.hc, c.addr, applicationID)
 	ac.ua = c.ua
 	ac.environment = c.environment
+	ac.retryPolicy = c.retryPolicy
 	return ac
 }
 
@@ -146,6 +149,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
 	dc.ua = r.client.ua
 	dc.environment = r.client.environment
+	dc.retryPolicy = r.client.retryPolicy
 	return dc, nil
 }
 
@@ -304,4 +308,11 @@ func UserAgent(ua string) ClientOption {
 // the client.
 func Environment(environment string) ClientOption {
 	return func(c *Client) { c.environment = environment }
+}
+
+// WithRetryPolicy is a client option that may be used to set the retry policy used by the client.
+func WithRetryPolicy(policy RetryPolicy) ClientOption {
+	return func(c *Client) {
+		c.retryPolicy = policy
+	}
 }

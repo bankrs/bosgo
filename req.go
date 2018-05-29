@@ -21,20 +21,25 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type req struct {
-	hc          *http.Client
-	ctx         context.Context
-	clientID    string
-	addr        string
-	path        string
-	par         params
-	headers     headers
-	environment string
+	hc                *http.Client
+	ctx               context.Context
+	clientID          string
+	addr              string
+	path              string
+	par               params
+	headers           headers
+	environment       string
+	requestsAttempted int
+	retryPolicy       RetryPolicy
+	allowRetry        bool
 }
 
 func (r *req) url() *url.URL {
@@ -45,6 +50,27 @@ func (r *req) url() *url.URL {
 		RawQuery: r.par.Encode(),
 	}
 	return &u
+}
+
+func (r *req) policyAllowsRetry() bool {
+	return r.retryPolicy.canRetry(r.requestsAttempted + 1)
+}
+
+func (r *req) nextReq() (*req, time.Duration) {
+	r2 := &req{
+		hc:                r.hc,
+		ctx:               r.ctx,
+		clientID:          r.clientID,
+		addr:              r.addr,
+		path:              r.path,
+		par:               r.par,
+		headers:           r.headers,
+		environment:       r.environment,
+		requestsAttempted: r.requestsAttempted + 1,
+		retryPolicy:       r.retryPolicy,
+		allowRetry:        r.allowRetry,
+	}
+	return r2, r.retryPolicy.NextWait(r2.requestsAttempted)
 }
 
 func (r *req) get() (*http.Response, func(), error) {
@@ -69,7 +95,14 @@ func (r *req) get() (*http.Response, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	if err := responseError(res); err != nil {
+	if err, retry := responseError(res); err != nil {
+		// By default all GETs are deemed to be retryable
+		if retry && r.policyAllowsRetry() {
+			nextReq, wait := r.nextReq()
+			time.Sleep(wait)
+			return nextReq.get()
+		}
+
 		return nil, func() {}, err
 	}
 	return res, cleanup(res), nil
@@ -108,7 +141,12 @@ func (r *req) postJSON(data interface{}) (*http.Response, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	if err := responseError(res); err != nil {
+	if err, retry := responseError(res); err != nil {
+		if retry && r.allowRetry && r.policyAllowsRetry() {
+			nextReq, wait := r.nextReq()
+			time.Sleep(wait)
+			return nextReq.postJSON(data)
+		}
 		return nil, func() {}, err
 	}
 	return res, cleanup(res), nil
@@ -147,7 +185,12 @@ func (r *req) putJSON(data interface{}) (*http.Response, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	if err := responseError(res); err != nil {
+	if err, retry := responseError(res); err != nil {
+		if retry && r.allowRetry && r.policyAllowsRetry() {
+			nextReq, wait := r.nextReq()
+			time.Sleep(wait)
+			return nextReq.putJSON(data)
+		}
 		return nil, func() {}, err
 	}
 	return res, cleanup(res), nil
@@ -184,7 +227,12 @@ func (r *req) delete(data interface{}) (*http.Response, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	if err := responseError(res); err != nil {
+	if err, retry := responseError(res); err != nil {
+		if retry && r.allowRetry && r.policyAllowsRetry() {
+			nextReq, wait := r.nextReq()
+			time.Sleep(wait)
+			return nextReq.delete(data)
+		}
 		return nil, func() {}, err
 	}
 	return res, cleanup(res), nil
@@ -223,7 +271,12 @@ func (r *req) deleteJSON(data interface{}) (*http.Response, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	if err := responseError(res); err != nil {
+	if err, retry := responseError(res); err != nil {
+		if retry && r.allowRetry && r.policyAllowsRetry() {
+			nextReq, wait := r.nextReq()
+			time.Sleep(wait)
+			return nextReq.deleteJSON(data)
+		}
 		return nil, func() {}, err
 	}
 	return res, cleanup(res), nil
@@ -310,14 +363,14 @@ func (ei *ErrorItem) Description() string {
 	return buf.String()
 }
 
-func responseError(res *http.Response) error {
+func responseError(res *http.Response) (error, bool) {
 	if res == nil {
 		return &Error{
 			Status: "no response found",
-		}
+		}, false
 	}
 	if res.StatusCode/100 == 2 {
-		return nil
+		return nil, false
 	}
 
 	rerr := &Error{
@@ -328,8 +381,13 @@ func responseError(res *http.Response) error {
 		URL:        res.Request.URL.String(),
 	}
 
+	var retryable bool
+	if res.StatusCode/100 == 5 {
+		retryable = true
+	}
+
 	if res.Body == nil {
-		return rerr
+		return rerr, retryable
 	}
 	defer res.Body.Close()
 
@@ -339,7 +397,7 @@ func responseError(res *http.Response) error {
 			Code:    "unable_to_read_error_response",
 			Message: err.Error(),
 		})
-		return rerr
+		return rerr, retryable
 	}
 
 	var serr Error
@@ -356,11 +414,11 @@ func responseError(res *http.Response) error {
 			Code:    "unable_to_unmarshal_error_response",
 			Message: fmt.Sprintf("received %s", msg),
 		})
-		return rerr
+		return rerr, retryable
 	}
 
 	rerr.Errors = append(rerr.Errors, serr.Errors...)
-	return rerr
+	return rerr, retryable
 }
 
 func decodeError(err error, res *http.Response) error {
@@ -382,4 +440,59 @@ func decodeError(err error, res *http.Response) error {
 	}
 
 	return rerr
+}
+
+type RetryPolicy struct {
+	// MaxRetries is the maximum number of requests that will be made after the original request.
+	MaxRetries int
+
+	// Wait is the base time to wait between attempts.
+	Wait time.Duration
+
+	// MaxWait is the maximum length of time to wait between retries.
+	MaxWait time.Duration
+
+	// Multiplier is the multiplier applied to Wait on each retry after the first. Set to zero
+	// to implement a linear backoff.
+	Multiplier float64
+
+	// Jitter controls the amount of randomness applied to each wait period. A
+	// random amount of time up to +/- Jitter is added to the period.
+	Jitter time.Duration
+}
+
+func (r RetryPolicy) canRetry(requestsAttempted int) bool {
+	return requestsAttempted <= r.MaxRetries
+}
+
+func (r RetryPolicy) NextWait(requestsAttempted int) time.Duration {
+	if requestsAttempted == 0 {
+		return 0
+	}
+
+	wait := float64(r.Wait)
+	if r.Multiplier > 0 {
+		for i := 0; i < requestsAttempted-1; i++ {
+			wait *= r.Multiplier
+		}
+	}
+
+	if r.MaxWait != 0 && wait > float64(r.MaxWait) {
+		wait = float64(r.MaxWait)
+	}
+
+	if r.Jitter > 0 {
+		wait += float64(r.Jitter) * ((rand.Float64() * 2) - 1)
+	}
+
+	return time.Duration(wait)
+}
+
+// SensibleRetryPolicy is a retry policy with sensible defaults.
+var SensibleRetryPolicy = RetryPolicy{
+	MaxRetries: 4,
+	Wait:       30 * time.Millisecond,
+	MaxWait:    200 * time.Millisecond,
+	Multiplier: 1.4,
+	Jitter:     15 * time.Millisecond,
 }

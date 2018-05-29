@@ -32,6 +32,7 @@ type DevClient struct {
 	token       string // session token
 	ua          string
 	environment string
+	retryPolicy RetryPolicy
 
 	Applications *ApplicationsService
 	Stats        *StatsService
@@ -76,6 +77,7 @@ func (d *DevClient) newReq(path string) req {
 		},
 		par:         params{},
 		environment: d.environment,
+		retryPolicy: d.retryPolicy,
 	}
 }
 

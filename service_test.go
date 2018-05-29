@@ -21,11 +21,18 @@ import (
 	"net/url"
 	"path"
 	"testing"
+	"time"
 )
 
 var (
 	noContentHandler = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
+	}
+
+	errorHandler = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
 	}
 
 	devTokenHandler = func(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +176,66 @@ func TestCreateDeveloper(t *testing.T) {
 
 	if devClient.ua != client.ua {
 		t.Errorf("got ua %q, wanted %q", devClient.ua, client.ua)
+	}
+
+}
+
+type transientErrorHandler struct {
+	retriesNeeded int
+}
+
+func (t *transientErrorHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	t.retriesNeeded--
+	if t.retriesNeeded > 0 {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`)
+
+}
+
+func TestRetryGet(t *testing.T) {
+
+	handler := &transientErrorHandler{5}
+
+	routes := routeMap{
+		"/v1/providers": {
+			http.MethodGet: handler.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	// Request fails without retry policy
+	clientNoRetry := New(hc, SandboxAddr)
+	appClientNoRetry := clientNoRetry.WithApplicationID("applicationid")
+
+	_, err := appClientNoRetry.Providers.Search("foo").Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	policy := RetryPolicy{
+		MaxRetries: 10,
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request fails without retry policy
+	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+
+	t.Logf("%+v", appClientWithRetry.retryPolicy)
+
+	_, err = appClientWithRetry.Providers.Search("foo").Send()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 }
