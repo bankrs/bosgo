@@ -449,6 +449,7 @@ func (r *DeleteApplicationsReq) Send() error {
 func (d *ApplicationsService) ListUsers(applicationID string) *ListDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users")
 	r.headers["x-application-id"] = applicationID
+	r.allowRetry = true
 	return &ListDevUsersReq{
 		req: r,
 	}

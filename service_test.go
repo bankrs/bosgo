@@ -181,7 +181,8 @@ func TestCreateDeveloper(t *testing.T) {
 }
 
 type transientErrorHandler struct {
-	retriesNeeded int
+	retriesNeeded   int
+	successResponse string
 }
 
 func (t *transientErrorHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -195,13 +196,16 @@ func (t *transientErrorHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`)
+	fmt.Fprint(w, t.successResponse)
 
 }
 
 func TestRetryGet(t *testing.T) {
 
-	handler := &transientErrorHandler{5}
+	handler := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`,
+	}
 
 	routes := routeMap{
 		"/v1/providers": {
@@ -234,6 +238,54 @@ func TestRetryGet(t *testing.T) {
 	t.Logf("%+v", appClientWithRetry.retryPolicy)
 
 	_, err = appClientWithRetry.Providers.Search("foo").Send()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+}
+
+func TestRetryPost(t *testing.T) {
+	handler1 := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `{"id":"foo"}`,
+	}
+	handler2 := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `{"users":[]}`,
+	}
+
+	routes := routeMap{
+		"/v1/transfers": {
+			http.MethodPost: handler1.Handle,
+		},
+		"/v1/developers/users": {
+			http.MethodPost: handler2.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	policy := RetryPolicy{
+		MaxRetries: 10,
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request fails since retries are not allowed when creating a transfer
+	userClient := NewUserClient(hc, SandboxAddr, "usertoken", "applicationid")
+	userClient.retryPolicy = policy
+
+	_, err := userClient.Transfers.Create(1, TransferAddress{Name: "test"}, MoneyAmount{Currency: "EUR", Value: "40.15"}).Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	// Request succeeds since retries are allowed when searching for users
+	devClient := NewDevClient(hc, SandboxAddr, "devtoken")
+	devClient.retryPolicy = policy
+
+	_, err = devClient.Applications.ListUsers("applicationid").Limit(40).Send()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

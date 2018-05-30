@@ -280,8 +280,11 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 
 // Login returns a request that may be used to login a user with the given username and password.
 func (a *AppUsersService) Login(username, password string) *UserLoginReq {
+	req := a.client.newReq(apiV1 + "/users/login")
+	req.allowRetry = true
+
 	return &UserLoginReq{
-		req:    a.client.newReq(apiV1 + "/users/login"),
+		req:    req,
 		client: a.client,
 		data: UserCredentials{
 			Username: username,
