@@ -86,12 +86,24 @@ func (c *Client) userAgent() string {
 	return DefaultUserAgent + " " + c.ua
 }
 
+// WithApplicationID creates an AppClient with the supplied application ID,
+// copying options set on the receiver.
 func (c *Client) WithApplicationID(applicationID string) *AppClient {
 	ac := NewAppClient(c.hc, c.addr, applicationID)
 	ac.ua = c.ua
 	ac.environment = c.environment
 	ac.retryPolicy = c.retryPolicy
 	return ac
+}
+
+// WithDeveloperToken creates a DevClient with the supplied developer token,
+// copying options set on the receiver.
+func (c *Client) WithDeveloperToken(token string) *DevClient {
+	dc := NewDevClient(c.hc, c.addr, token)
+	dc.ua = c.ua
+	dc.environment = c.environment
+	dc.retryPolicy = c.retryPolicy
+	return dc
 }
 
 // Login prepares and returns a request to log a developer into the Bankrs
@@ -146,11 +158,7 @@ func (r *DeveloperLoginReq) Send() (*DevClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
-	dc.ua = r.client.ua
-	dc.environment = r.client.environment
-	dc.retryPolicy = r.client.retryPolicy
-	return dc, nil
+	return r.client.WithDeveloperToken(t.Token), nil
 }
 
 // CreateDeveloper prepares and returns a request to create a developer account for the

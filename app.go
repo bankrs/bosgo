@@ -78,6 +78,16 @@ func (a *AppClient) userAgent() string {
 	return DefaultUserAgent + " " + a.ua
 }
 
+// WithUserToken creates a UserClient with the supplied user token and
+// application ID, copying options set on the receiver.
+func (a *AppClient) WithUserToken(token string) *UserClient {
+	uc := NewUserClient(a.hc, a.addr, token, a.applicationID)
+	uc.ua = a.ua
+	uc.environment = a.environment
+	uc.retryPolicy = a.retryPolicy
+	return uc
+}
+
 // CategoriesService provides access to category related API services.
 type CategoriesService struct {
 	client *AppClient
@@ -271,11 +281,7 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
-	uc.ua = r.client.ua
-	uc.environment = r.client.environment
-	uc.retryPolicy = r.client.retryPolicy
-	return uc, nil
+	return r.client.WithUserToken(t.Token), nil
 }
 
 // Login returns a request that may be used to login a user with the given username and password.
@@ -327,11 +333,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
-	uc.ua = r.client.ua
-	uc.environment = r.client.environment
-	uc.retryPolicy = r.client.retryPolicy
-	return uc, nil
+	return r.client.WithUserToken(t.Token), nil
 }
 
 // ResetPassword prepares and returns a request to reset a user's password.
