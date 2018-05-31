@@ -31,6 +31,7 @@ type AppClient struct {
 	applicationID string
 	ua            string
 	environment   string
+	retryPolicy   RetryPolicy
 
 	Categories *CategoriesService
 	Providers  *ProvidersService
@@ -65,6 +66,7 @@ func (a *AppClient) newReq(path string) req {
 		},
 		par:         params{},
 		environment: a.environment,
+		retryPolicy: a.retryPolicy,
 	}
 }
 
@@ -272,13 +274,17 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
 	uc.ua = r.client.ua
 	uc.environment = r.client.environment
+	uc.retryPolicy = r.client.retryPolicy
 	return uc, nil
 }
 
 // Login returns a request that may be used to login a user with the given username and password.
 func (a *AppUsersService) Login(username, password string) *UserLoginReq {
+	req := a.client.newReq(apiV1 + "/users/login")
+	req.allowRetry = true
+
 	return &UserLoginReq{
-		req:    a.client.newReq(apiV1 + "/users/login"),
+		req:    req,
 		client: a.client,
 		data: UserCredentials{
 			Username: username,
@@ -324,6 +330,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 	uc := NewUserClient(r.client.hc, r.client.addr, t.Token, r.client.applicationID)
 	uc.ua = r.client.ua
 	uc.environment = r.client.environment
+	uc.retryPolicy = r.client.retryPolicy
 	return uc, nil
 }
 

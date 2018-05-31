@@ -21,11 +21,18 @@ import (
 	"net/url"
 	"path"
 	"testing"
+	"time"
 )
 
 var (
 	noContentHandler = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
+	}
+
+	errorHandler = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
 	}
 
 	devTokenHandler = func(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +176,164 @@ func TestCreateDeveloper(t *testing.T) {
 
 	if devClient.ua != client.ua {
 		t.Errorf("got ua %q, wanted %q", devClient.ua, client.ua)
+	}
+
+}
+
+type transientErrorHandler struct {
+	retriesNeeded   int
+	successResponse string
+}
+
+func (t *transientErrorHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	t.retriesNeeded--
+	if t.retriesNeeded > 0 {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"errors":[{"code":"retry_test_failure"}]}`)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, t.successResponse)
+
+}
+
+func TestRetryGet(t *testing.T) {
+
+	handler := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`,
+	}
+
+	routes := routeMap{
+		"/v1/providers": {
+			http.MethodGet: handler.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	// Request fails without retry policy
+	clientNoRetry := New(hc, SandboxAddr)
+	appClientNoRetry := clientNoRetry.WithApplicationID("applicationid")
+
+	_, err := appClientNoRetry.Providers.Search("foo").Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	policy := RetryPolicy{
+		MaxRetries: 10,
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request succeeds with retry policy
+	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+
+	_, err = appClientWithRetry.Providers.Search("foo").Send()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+}
+
+func TestRetryGetReturnsLastError(t *testing.T) {
+	handler := &transientErrorHandler{
+		retriesNeeded:   20,
+		successResponse: `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`,
+	}
+
+	routes := routeMap{
+		"/v1/providers": {
+			http.MethodGet: handler.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	policy := RetryPolicy{
+		MaxRetries: 10, // Fewer retries than are needed by service
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request succeeds with retry policy
+	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+
+	_, err := appClientWithRetry.Providers.Search("foo").Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	rerr, ok := err.(*Error)
+	if !ok {
+		t.Fatalf("expected response error of type *Error but got %T", err)
+	}
+
+	if rerr.StatusCode != 500 {
+		t.Errorf("got status %d, wanted 500", rerr.StatusCode)
+	}
+
+	if len(rerr.Errors) != 1 {
+		t.Errorf("got %d error messages, wanted 1", len(rerr.Errors))
+	}
+
+	if rerr.Errors[0].Code != "retry_test_failure" {
+		t.Errorf("got error code %s, wanted retry_test_failure", rerr.Errors[0].Code)
+	}
+}
+
+func TestRetryPost(t *testing.T) {
+	handler1 := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `{"id":"foo"}`,
+	}
+	handler2 := &transientErrorHandler{
+		retriesNeeded:   5,
+		successResponse: `{"users":[]}`,
+	}
+
+	routes := routeMap{
+		"/v1/transfers": {
+			http.MethodPost: handler1.Handle,
+		},
+		"/v1/developers/users": {
+			http.MethodPost: handler2.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	policy := RetryPolicy{
+		MaxRetries: 10,
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request fails since retries are not allowed when creating a transfer
+	userClient := NewUserClient(hc, SandboxAddr, "usertoken", "applicationid")
+	userClient.retryPolicy = policy
+
+	_, err := userClient.Transfers.Create(1, TransferAddress{Name: "test"}, MoneyAmount{Currency: "EUR", Value: "40.15"}).Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	// Request succeeds since retries are allowed when searching for users
+	devClient := NewDevClient(hc, SandboxAddr, "devtoken")
+	devClient.retryPolicy = policy
+
+	_, err = devClient.Applications.ListUsers("applicationid").Limit(40).Send()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 }

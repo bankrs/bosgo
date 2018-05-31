@@ -35,6 +35,7 @@ type UserClient struct {
 	applicationID string
 	ua            string
 	environment   string
+	retryPolicy   RetryPolicy
 
 	Accesses              *AccessesService
 	Jobs                  *JobsService
@@ -85,6 +86,7 @@ func (u *UserClient) newReq(path string) req {
 		},
 		par:         params{},
 		environment: u.environment,
+		retryPolicy: u.retryPolicy,
 	}
 }
 
