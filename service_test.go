@@ -190,7 +190,7 @@ func (t *transientErrorHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if t.retriesNeeded > 0 {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
+		fmt.Fprint(w, `{"errors":[{"code":"retry_test_failure"}]}`)
 		return
 	}
 
@@ -231,17 +231,63 @@ func TestRetryGet(t *testing.T) {
 		MaxWait:    500 * time.Microsecond,
 	}
 
-	// Request fails without retry policy
+	// Request succeeds with retry policy
 	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
 	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
-
-	t.Logf("%+v", appClientWithRetry.retryPolicy)
 
 	_, err = appClientWithRetry.Providers.Search("foo").Send()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+}
+
+func TestRetryGetReturnsLastError(t *testing.T) {
+	handler := &transientErrorHandler{
+		retriesNeeded:   20,
+		successResponse: `[{"score":1, "provider":{"id":"DE-BIN-10001000"}}]`,
+	}
+
+	routes := routeMap{
+		"/v1/providers": {
+			http.MethodGet: handler.Handle,
+		},
+	}
+
+	hc, cleanup := startTestServer(t, routes)
+	defer cleanup()
+
+	policy := RetryPolicy{
+		MaxRetries: 10, // Fewer retries than are needed by service
+		Wait:       100 * time.Microsecond,
+		MaxWait:    500 * time.Microsecond,
+	}
+
+	// Request succeeds with retry policy
+	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+
+	_, err := appClientWithRetry.Providers.Search("foo").Send()
+	if err == nil {
+		t.Fatalf("expected error but did not get one")
+	}
+
+	rerr, ok := err.(*Error)
+	if !ok {
+		t.Fatalf("expected response error of type *Error but got %T", err)
+	}
+
+	if rerr.StatusCode != 500 {
+		t.Errorf("got status %d, wanted 500", rerr.StatusCode)
+	}
+
+	if len(rerr.Errors) != 1 {
+		t.Errorf("got %d error messages, wanted 1", len(rerr.Errors))
+	}
+
+	if rerr.Errors[0].Code != "retry_test_failure" {
+		t.Errorf("got error code %s, wanted retry_test_failure", rerr.Errors[0].Code)
+	}
 }
 
 func TestRetryPost(t *testing.T) {
