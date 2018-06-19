@@ -310,6 +310,7 @@ type Transaction struct {
 	Amount                *MoneyAmount `json:"amount,omitempty"`
 	Usage                 string       `json:"usage,omitempty"`
 	TransactionType       string       `json:"transaction_type,omitempty"`
+	Gvcode                string       `json:"gvcode,omitempty"`
 }
 
 type AccountRef struct {
