@@ -200,12 +200,6 @@ type Account struct {
 	Bin               string            `json:"bin"`
 }
 
-type AccountCapabilities struct {
-	AccountStatement  []string `json:"account_statement"`
-	Transfer          []string `json:"transfer"`
-	RecurringTransfer []string `json:"recurring_transfer"`
-}
-
 type AllowedOperations struct {
 	PaymentTransfer     bool `json:"transfer"`
 	AccountStatement    bool `json:"statement"`
