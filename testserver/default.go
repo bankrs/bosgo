@@ -225,6 +225,11 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				BalanceDate:      time.Date(2017, 7, 13, 22, 0, 0, 0, time.UTC),
 				Currency:         "EUR",
 				IBAN:             "DE84200700245353762745",
+				Capabilities: bosgo.AccountCapabilities{
+					AccountStatement:  []string{"read"},
+					Transfer:          []string{"read"},
+					RecurringTransfer: []string{"read"},
+				},
 				AllowedOperations: bosgo.AllowedOperations{
 					AccountStatement: true,
 					PaymentTransfer:  true,
@@ -244,6 +249,11 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 				CreditLine:       "",
 				Currency:         "EUR",
 				IBAN:             "DE56200800950445688921",
+				Capabilities: bosgo.AccountCapabilities{
+					AccountStatement:  []string{"read"},
+					Transfer:          []string{"read"},
+					RecurringTransfer: []string{"read"},
+				},
 				AllowedOperations: bosgo.AllowedOperations{
 					AccountStatement: true,
 					PaymentTransfer:  true,
