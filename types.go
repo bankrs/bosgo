@@ -182,22 +182,29 @@ type Access struct {
 }
 
 type Account struct {
-	ID                int64             `json:"id"`
-	ProviderID        string            `json:"provider_id"`
-	BankAccessID      int64             `json:"bank_access_id"`
-	Name              string            `json:"name"`
-	Type              AccountType       `json:"type"`
-	Number            string            `json:"number"`
-	Balance           string            `json:"balance"`
-	BalanceDate       time.Time         `json:"balance_date"`
-	AvailableBalance  string            `json:"available_balance"`
-	CreditLine        string            `json:"credit_line"`
-	Removed           bool              `json:"removed"`
-	Currency          string            `json:"currency"`
-	IBAN              string            `json:"iban"`
-	Alias             string            `json:"alias"`
-	AllowedOperations AllowedOperations `json:"allowed_operations"`
-	Bin               string            `json:"bin"`
+	ID                int64               `json:"id"`
+	ProviderID        string              `json:"provider_id"`
+	BankAccessID      int64               `json:"bank_access_id"`
+	Name              string              `json:"name"`
+	Type              AccountType         `json:"type"`
+	Number            string              `json:"number"`
+	Balance           string              `json:"balance"`
+	BalanceDate       time.Time           `json:"balance_date"`
+	AvailableBalance  string              `json:"available_balance"`
+	CreditLine        string              `json:"credit_line"`
+	Removed           bool                `json:"removed"`
+	Currency          string              `json:"currency"`
+	IBAN              string              `json:"iban"`
+	Alias             string              `json:"alias"`
+	Capabilities      AccountCapabilities `json:"capabilities"`
+	AllowedOperations AllowedOperations   `json:"allowed_operations"`
+	Bin               string              `json:"bin"`
+}
+
+type AccountCapabilities struct {
+	AccountStatement  []string `json:"account_statement"`
+	Transfer          []string `json:"transfer"`
+	RecurringTransfer []string `json:"recurring_transfer"`
 }
 
 type AllowedOperations struct {
