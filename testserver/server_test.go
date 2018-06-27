@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bankrs/bosgo"
+	"code.bankrs.com/bosgo"
 )
 
 func TestUserLogin(t *testing.T) {
