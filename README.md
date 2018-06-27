@@ -2,7 +2,7 @@
 
 This is the official Go client for accessing the Bankrs OS API.
 
-**Documentation:** [![GoDoc](https://godoc.org/code.bankrs.com/bosgo?status.svg)](https://godoc.org/code.bankrs.com/bosgo)  
+**Documentation:** [![GoDoc](https://godoc.org/code.bankrs.com/bosgo?status.svg)](https://godoc.org/code.bankrs.com/bosgo)
 
 bosgo requires Go version 1.7 or greater.
 
