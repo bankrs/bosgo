@@ -1,5 +1,5 @@
 defaults: &defaults
-    working_directory: /home/circleci/src/github.com/bankrs/bosgo
+    working_directory: /home/circleci/src/code.bankrs.com/bosgo
 
 buildsteps: &buildsteps
     steps:

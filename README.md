@@ -2,7 +2,7 @@
 
 This is the official Go client for accessing the Bankrs OS API.
 
-**Documentation:** [![GoDoc](https://godoc.org/github.com/bankrs/bosgo?status.svg)](https://godoc.org/github.com/bankrs/bosgo)  
+**Documentation:** [![GoDoc](https://godoc.org/code.bankrs.com/bosgo?status.svg)](https://godoc.org/code.bankrs.com/bosgo)  
 
 bosgo requires Go version 1.7 or greater.
 
@@ -11,13 +11,13 @@ bosgo requires Go version 1.7 or greater.
 Ensure you have a working Go installation and then use go get as follows:
 
 ```
-go get github.com/bankrs/bosgo
+go get code.bankrs.com/bosgo
 ```
 
 ## Usage
 
 ```go
-import "github.com/bankrs/bosgo"
+import "code.bankrs.com/bosgo"
 ```
 
 There are four types of client that represent the three levels of authorisation required for interacting with Bankrs OS:

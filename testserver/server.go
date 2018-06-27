@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bankrs/bosgo"
+	"code.bankrs.com/bosgo"
 )
 
 type Dev struct {

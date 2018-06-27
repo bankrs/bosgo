@@ -3,7 +3,7 @@ package testserver
 import (
 	"time"
 
-	"github.com/bankrs/bosgo"
+	"code.bankrs.com/bosgo"
 )
 
 const (
