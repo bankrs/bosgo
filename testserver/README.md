@@ -14,7 +14,7 @@ Current API coverage is minimal and focussed on the happy path:
  - [x] List user accounts
  - [x] List transactions
 
-**Documentation:** [![GoDoc](https://godoc.org/code.bankrs.com/bosgo/testserver?status.svg)](https://godoc.org/code.bankrs.com/bosgo/testserver)  
+**Documentation:** [![GoDoc](https://godoc.org/code.bankrs.com/bosgo/testserver?status.svg)](https://godoc.org/code.bankrs.com/bosgo/testserver)
 
 bosgo testserver requires Go version 1.7 or greater.
 
