@@ -466,6 +466,8 @@ type TransferStepData struct {
 type TANType string
 
 const (
+	// TANTypePaymentPin4 is an abstract 4-chars string used to authorise payment
+	TANTypePaymentPin4 TANType = "paymentPIN4"
 	// TANTypeOptical indicates an optical TAN such as flickering barcodes
 	TANTypeOptical TANType = "optical"
 	// TANTypeITAN indicates an iTAN (aka indexed TAN) such as a list of TAN numbers with a sequence
