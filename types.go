@@ -299,19 +299,20 @@ type TransactionPage struct {
 }
 
 type Transaction struct {
-	ID                    int64        `json:"id"`
-	AccessID              int64        `json:"user_bank_access_id,omitempty"`
-	UserAccountID         int64        `json:"user_bank_account_id,omitempty"`
-	UserAccount           AccountRef   `json:"user_account,omitempty"`
-	CategoryID            int64        `json:"category_id,omitempty"`
-	RepeatedTransactionID int64        `json:"repeated_transaction_id,omitempty"`
-	Counterparty          Counterparty `json:"counterparty,omitempty"`
-	EntryDate             time.Time    `json:"entry_date,omitempty"`
-	SettlementDate        time.Time    `json:"settlement_date,omitempty"`
-	Amount                *MoneyAmount `json:"amount,omitempty"`
-	Usage                 string       `json:"usage,omitempty"`
-	TransactionType       string       `json:"transaction_type,omitempty"`
-	Gvcode                string       `json:"gvcode,omitempty"`
+	ID                    int64           `json:"id"`
+	AccessID              int64           `json:"user_bank_access_id,omitempty"`
+	UserAccountID         int64           `json:"user_bank_account_id,omitempty"`
+	UserAccount           AccountRef      `json:"user_account,omitempty"`
+	CategoryID            int64           `json:"category_id,omitempty"`
+	RepeatedTransactionID int64           `json:"repeated_transaction_id,omitempty"`
+	Counterparty          Counterparty    `json:"counterparty,omitempty"`
+	EntryDate             time.Time       `json:"entry_date,omitempty"`
+	SettlementDate        time.Time       `json:"settlement_date,omitempty"`
+	Amount                *MoneyAmount    `json:"amount,omitempty"`
+	OriginalAmount        *OriginalAmount `json:"original_amount,omitempty"`
+	Usage                 string          `json:"usage,omitempty"`
+	TransactionType       string          `json:"transaction_type,omitempty"`
+	Gvcode                string          `json:"gvcode,omitempty"`
 }
 
 type AccountRef struct {
@@ -320,6 +321,11 @@ type AccountRef struct {
 	Label      string `json:"label,omitempty"`
 	Number     string `json:"id,omitempty"`
 	Type       string `json:"type,omitempty"`
+}
+
+type OriginalAmount struct {
+	Value        *MoneyAmount `json:"value"`
+	ExchangeRate string       `json:"exchange_rate"`
 }
 
 type Merchant struct {
