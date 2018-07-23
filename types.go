@@ -133,7 +133,7 @@ type ChallengeSpec struct {
 	Type        ChallengeType     `json:"type"`
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
-	Options     map[string]string `json:"options,omitempty"`
+	Info        map[string]string `json:"info,omitempty"`
 }
 
 type ChallengeType string
@@ -147,9 +147,10 @@ const (
 type ChallengeAnswerList []ChallengeAnswer
 
 type ChallengeAnswer struct {
-	ID    string `json:"id"`
-	Value string `json:"value"`
-	Store bool   `json:"store"`
+	ID         string    `json:"id"`
+	Value      string    `json:"value"`
+	Store      bool      `json:"store"`
+	ValidUntil time.Time `json:"valid_until"`
 }
 
 type UserListPage struct {
@@ -176,6 +177,7 @@ type Access struct {
 	Name         string             `json:"name"`
 	Enabled      bool               `json:"enabled"`
 	IsPinSaved   bool               `json:"is_pin_saved"`
+	AuthPossible bool               `json:"auth_possible"`
 	ProviderID   string             `json:"provider_id"`
 	Accounts     []Account          `json:"accounts,omitempty"`
 	Capabilities AccessCapabilities `json:"capabilities"`
@@ -258,16 +260,17 @@ type Challenge struct {
 }
 
 type ChallengeField struct {
-	ID            string   `json:"id"`
-	Description   string   `json:"description"`
-	ChallengeType string   `json:"type"`
-	Previous      string   `json:"previous"`
-	Stored        bool     `json:"stored"`
-	Reset         bool     `json:"reset"`
-	Secure        bool     `json:"secure"`
-	Optional      bool     `json:"optional"`
-	UnStoreable   bool     `json:"unstoreable"`
-	Methods       []string `json:"methods"`
+	ID            string            `json:"id"`
+	Description   string            `json:"description"`
+	ChallengeType string            `json:"type"`
+	Previous      string            `json:"previous"`
+	Stored        bool              `json:"stored"`
+	Reset         bool              `json:"reset"`
+	Secure        bool              `json:"secure"`
+	Optional      bool              `json:"optional"`
+	UnStoreable   bool              `json:"unstoreable"`
+	Methods       []string          `json:"methods"`
+	Info          map[string]string `json:"info"`
 }
 
 type Problem struct {
@@ -440,6 +443,7 @@ type TransferIntent string
 
 const (
 	TransferIntentProvidePIN             TransferIntent = "provide_pin"
+	TransferIntentProvideCredentials     TransferIntent = "provide_credentials"
 	TransferIntentSelectAuthMethod       TransferIntent = "select_auth_method"
 	TransferIntentProvideChallengeAnswer TransferIntent = "provide_challenge_answer"
 	TransferIntentConfirmSimilarTransfer TransferIntent = "confirm_similar_transfer"
