@@ -413,6 +413,7 @@ type Transfer struct {
 	SettlementDate   time.Time          `json:"effective_date,omitempty"`
 	Created          time.Time          `json:"created,omitempty"`
 	Updated          time.Time          `json:"updated,omitempty"`
+	RemoteID         string             `json:"remote_id"`
 	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
 	Errors           []Problem          `json:"errors"`
 }
@@ -427,6 +428,7 @@ type RecurringTransfer struct {
 	Step             TransferStep       `json:"step"`
 	State            TransferState      `json:"state"`
 	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
+	RemoteID         string             `json:"remote_id"`
 	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
 	Errors           []Problem          `json:"errors,omitempty"`
 }
