@@ -309,6 +309,7 @@ type Transaction struct {
 	CategoryID            int64           `json:"category_id,omitempty"`
 	RepeatedTransactionID int64           `json:"repeated_transaction_id,omitempty"`
 	Counterparty          Counterparty    `json:"counterparty,omitempty"`
+	RemoteID              string          `json:"remote_id"`
 	EntryDate             time.Time       `json:"entry_date,omitempty"`
 	SettlementDate        time.Time       `json:"settlement_date,omitempty"`
 	Amount                *MoneyAmount    `json:"amount,omitempty"`
