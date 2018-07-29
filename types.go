@@ -372,6 +372,7 @@ type RecurrenceRule struct {
 type Frequency string
 
 const (
+	FrequencyOnce    Frequency = "once"
 	FrequencyDaily   Frequency = "daily"
 	FrequencyWeekly  Frequency = "weekly"
 	FrequencyMonthly Frequency = "monthly"
