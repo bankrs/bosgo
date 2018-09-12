@@ -18,9 +18,9 @@ type ApplicationPage struct {
 }
 
 type ApplicationMetadata struct {
-	ApplicationID string    `json:"application_id,omitempty"`
+	ApplicationID string    `json:"id,omitempty"`
 	Label         string    `json:"label,omitempty"`
-	CreatedAt     time.Time `json:"created_at,omitempty"`
+	CreatedAt     time.Time `json:"created_at,omitempty"` // Deprecated: no longer used
 }
 
 type StatsPeriod struct {

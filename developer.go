@@ -355,23 +355,19 @@ func (r *CreateApplicationsReq) ClientID(id string) *CreateApplicationsReq {
 	return r
 }
 
-func (r *CreateApplicationsReq) Send() (string, error) {
+func (r *CreateApplicationsReq) Send() (*ApplicationMetadata, error) {
 	res, cleanup, err := r.req.postJSON(r.data)
 	defer cleanup()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	var car CreateApplicationsResponse
+	var car ApplicationMetadata
 	if err := json.NewDecoder(res.Body).Decode(&car); err != nil {
-		return "", decodeError(err, res)
+		return nil, decodeError(err, res)
 	}
 
-	return car.ApplicationID, nil
-}
-
-type CreateApplicationsResponse struct {
-	ApplicationID string `json:"application_id"`
+	return &car, nil
 }
 
 func (d *ApplicationsService) Update(applicationID string, label string) *UpdateApplicationReq {
