@@ -442,6 +442,45 @@ func (r *DeleteApplicationsReq) Send() error {
 	return nil
 }
 
+func (d *ApplicationsService) ListKeys(applicationID string) *ListAppKeysReq {
+	return &ListAppKeysReq{
+		req: d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/keys"),
+	}
+}
+
+type ListAppKeysReq struct {
+	req
+}
+
+// Context sets the context to be used during this request. If no context is supplied then
+// the request will use context.Background.
+func (r *ListAppKeysReq) Context(ctx context.Context) *ListAppKeysReq {
+	r.req.ctx = ctx
+	return r
+}
+
+// ClientID sets a client identifier that will be passed to the Bankrs API in
+// the X-Client-Id header.
+func (r *ListAppKeysReq) ClientID(id string) *ListAppKeysReq {
+	r.req.clientID = id
+	return r
+}
+
+func (r *ListAppKeysReq) Send() (*ApplicationKeyPage, error) {
+	res, cleanup, err := r.req.get()
+	defer cleanup()
+	if err != nil {
+		return nil, err
+	}
+
+	var page ApplicationKeyPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Keys); err != nil {
+		return nil, decodeError(err, res)
+	}
+
+	return &page, nil
+}
+
 func (d *ApplicationsService) ListUsers(applicationID string) *ListDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users")
 	r.headers["x-application-id"] = applicationID

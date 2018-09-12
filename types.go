@@ -23,6 +23,15 @@ type ApplicationMetadata struct {
 	CreatedAt     time.Time `json:"created_at,omitempty"` // Deprecated: no longer used
 }
 
+type ApplicationKeyPage struct {
+	Keys []ApplicationKey `json:"keys,omitempty"`
+}
+
+type ApplicationKey struct {
+	Key       string    `json:"key,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+}
+
 type StatsPeriod struct {
 	From   string `json:"from_date"`
 	To     string `json:"to_date"`
