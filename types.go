@@ -427,22 +427,21 @@ const (
 type ChallengeAnswerMap map[string]ChallengeAnswer
 
 type Transfer struct {
-	ID               string             `json:"id"`
-	From             TransferAddress    `json:"from"`
-	To               TransferAddress    `json:"to"`
-	Amount           *MoneyAmount       `json:"amount"`
-	Usage            string             `json:"usage"`
-	Version          int                `json:"version"`
-	Step             TransferStep       `json:"step"`
-	State            TransferState      `json:"state"`
-	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
-	EntryDate        time.Time          `json:"booking_date,omitempty"`
-	SettlementDate   time.Time          `json:"effective_date,omitempty"`
-	Created          time.Time          `json:"created,omitempty"`
-	Updated          time.Time          `json:"updated,omitempty"`
-	RemoteID         string             `json:"remote_id"`
-	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
-	Errors           []Problem          `json:"errors"`
+	ID             string          `json:"id"`
+	From           TransferAddress `json:"from"`
+	To             TransferAddress `json:"to"`
+	Amount         *MoneyAmount    `json:"amount"`
+	Usage          string          `json:"usage"`
+	Version        int             `json:"version"`
+	Step           TransferStep    `json:"step"`
+	State          TransferState   `json:"state"`
+	Schedule       *RecurrenceRule `json:"schedule,omitempty"`
+	EntryDate      time.Time       `json:"booking_date,omitempty"`
+	SettlementDate time.Time       `json:"effective_date,omitempty"`
+	Created        time.Time       `json:"created,omitempty"`
+	Updated        time.Time       `json:"updated,omitempty"`
+	RemoteID       string          `json:"remote_id"`
+	Errors         []Problem       `json:"errors"`
 }
 
 type RecurringTransfer struct {
@@ -485,8 +484,9 @@ type PaymentTransferCancelParams struct {
 }
 
 type TransferStep struct {
-	Intent TransferIntent    `json:"intent,omitempty"`
-	Data   *TransferStepData `json:"data,omitempty"`
+	Intent    TransferIntent    `json:"intent,omitempty"`
+	Data      *TransferStepData `json:"data,omitempty"`
+	Challenge *Challenge        `json:"challenge,omitempty"`
 }
 
 type AuthMethod struct {
