@@ -9,8 +9,12 @@ type DeveloperCredentials struct {
 	Password string `json:"password"`
 }
 type DeveloperProfile struct {
-	Company             string `json:"company"`
-	HasProductionAccess bool   `json:"has_production_access"`
+	Company             string          `json:"company"`
+	HasProductionAccess bool            `json:"has_production_access"`
+	Confirmed           bool            `json:"confirmed"`
+	ExpiresAt           string          `json:"expires_at,omitempty"`
+	LinkedAccounts      []LinkedAccount `json:"linked_accounts,omitempty"`
+	LinkedTeam          []LinkedTeam    `json:"linked_teams,omitempty"`
 }
 
 type ApplicationPage struct {
@@ -128,14 +132,20 @@ type ProviderSearchResult struct {
 }
 
 type Provider struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Country     string          `json:"country"`
-	URL         string          `json:"url"`
-	Address     string          `json:"address"`
-	PostalCode  string          `json:"postal_code"`
-	Challenges  []ChallengeSpec `json:"challenges"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Country     string             `json:"country"`
+	URL         string             `json:"url"`
+	Address     string             `json:"address"`
+	PostalCode  string             `json:"postal_code"`
+	Operations  ProviderOperations `json:"operations"`
+	Challenges  []ChallengeSpec    `json:"challenges"`
+}
+
+type ProviderOperations struct {
+	Adapter           string            `json:"adapter"`
+	AllowedOperations AllowedOperations `json:"allowed_operations,omitempty" `
 }
 
 type ChallengeSpec struct {
@@ -191,6 +201,7 @@ type Access struct {
 	ProviderID        string             `json:"provider_id"`
 	Accounts          []Account          `json:"accounts,omitempty"`
 	Capabilities      AccessCapabilities `json:"capabilities"`
+	Beneficiaries     []Beneficiary      `json:"beneficiaries,omitempty"`
 	ConsentExpiration time.Time          `json:"consent_expiration,omitempty"`
 }
 
@@ -200,6 +211,7 @@ type Account struct {
 	BankAccessID      int64               `json:"bank_access_id"`
 	Name              string              `json:"name"`
 	Type              AccountType         `json:"type"`
+	Holder            string              `json:"holder,omitempty"`
 	Number            string              `json:"number"`
 	Balance           string              `json:"balance"`
 	BalanceDate       time.Time           `json:"balance_date"`
@@ -212,6 +224,7 @@ type Account struct {
 	Capabilities      AccountCapabilities `json:"capabilities"`
 	AllowedOperations AllowedOperations   `json:"allowed_operations"`
 	Bin               string              `json:"bin"`
+	Beneficiaries     []int64             `json:"beneficiaries,omitempty"`
 }
 
 type AccountCapabilities struct {
@@ -230,6 +243,7 @@ type AllowedOperations struct {
 	ReadRecTrf          bool `json:"read_recurring_transfer"`
 	UpdateRecTrf        bool `json:"update_recurring_transfer"`
 	DeleteRecTrf        bool `json:"delete_recurring_transfer"`
+	ReadBeneficiaries   bool `json:"beneficiaries"`
 }
 
 type AccountType string
@@ -298,11 +312,12 @@ type JobAccess struct {
 }
 
 type JobAccount struct {
-	ID     int64     `json:"id,omitempty"`
-	Name   string    `json:"name"`
-	Number string    `json:"number"`
-	IBAN   string    `json:"iban"`
-	Errors []Problem `json:"errors"`
+	ID         int64     `json:"id,omitempty"`
+	Name       string    `json:"name"`
+	Number     string    `json:"number"`
+	IBAN       string    `json:"iban"`
+	ProviderID string    `json:"provider_id,omitempty"`
+	Errors     []Problem `json:"errors"`
 }
 
 type TransactionPage struct {
@@ -484,7 +499,6 @@ type TransferStepData struct {
 	Challenge        string       `json:"challenge,omitempty"`         // TAN Challenge
 	ChallengeMessage string       `json:"challenge_message,omitempty"` // TAN Challenge Message
 	TANType          TANType      `json:"tan_type,omitempty"`          // Type of the TAN (optical, itan, unknown)
-	Confirm          bool         `json:"confirm,omitempty"`           // Confirm (similar transfer)
 	Transfers        []Transfer   `json:"transfers,omitempty"`         // Transfer list (similar transfers)
 }
 
@@ -620,4 +634,32 @@ type ScheduledTransferCapabilities struct {
 type Period struct {
 	Type   string `json:"type"`
 	Repeat int    `json:"repeat"`
+}
+
+type Beneficiary struct {
+	ID        int64      `json:"id"`
+	RemoteAcc AccountRef `json:"remote_account"`
+	Reference string     `json:"reference,omitempty"`
+}
+
+type LinkedAccountType int
+
+const (
+	LinkedAccountTypeRegular       LinkedAccountType = 0
+	LinkedAccountTypeAuthorization LinkedAccountType = 1
+)
+
+type LinkedAccount struct {
+	Type     LinkedAccountType `json:"type"`
+	ID       string            `json:"id"`
+	Title    string            `json:"title"`
+	UserName string            `json:"user_name"`
+	SyncTime string            `json:"sync_time"`
+}
+
+type LinkedTeam struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Active bool   `json:"active"`
+	Owner  bool   `json:"owner"`
 }
