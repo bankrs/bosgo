@@ -185,7 +185,6 @@ type Access struct {
 	ID           int64              `json:"id"`
 	Name         string             `json:"name"`
 	Enabled      bool               `json:"enabled"`
-	IsPinSaved   bool               `json:"is_pin_saved"`
 	AuthPossible bool               `json:"auth_possible"`
 	ProviderID   string             `json:"provider_id"`
 	Accounts     []Account          `json:"accounts,omitempty"`
