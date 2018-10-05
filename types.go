@@ -32,14 +32,10 @@ type ApplicationKey struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
-type StatsPeriod struct {
-	From   string `json:"from_date"`
-	To     string `json:"to_date"`
-	Domain string `json:"domain"`
-}
-
 type UsersStats struct {
-	StatsPeriod
+	From       string            `json:"from_date"`
+	To         string            `json:"to_date"`
+	Domain     string            `json:"domain"`
 	UsersTotal StatsValue        `json:"users_total"` // with weekly relative change
 	UsersToday StatsValue        `json:"users_today"` // with daily relative change
 	Stats      []DailyUsersStats `json:"stats"`
@@ -50,14 +46,14 @@ type StatsValue struct {
 }
 
 type DailyUsersStats struct {
-	Date        string `json:"date"`
-	UsersTotal  int64  `json:"users_total"`
-	NewUsers    int64  `json:"new_users"`
-	ActiveUsers int64  `json:"active_users"`
+	Date     string `json:"date"`
+	NewUsers int64  `json:"new_users"`
 }
 
 type TransfersStats struct {
-	StatsPeriod
+	From     string                `json:"from_date"`
+	To       string                `json:"to_date"`
+	Domain   string                `json:"domain"`
 	TotalOut StatsMoneyAmount      `json:"total_out"`
 	TodayOut StatsMoneyAmount      `json:"today_out"`
 	Stats    []DailyTransfersStats `json:"stats"`
@@ -69,23 +65,27 @@ type DailyTransfersStats struct {
 }
 
 type MerchantsStats struct {
-	StatsPeriod
-	Stats []DailyMerchantsStats `json:"stats"`
+	From   string                `json:"from_date"`
+	To     string                `json:"to_date"`
+	Domain string                `json:"domain"`
+	Stats  []DailyMerchantsStats `json:"stats"`
 }
 
 type DailyMerchantsStats struct {
-	Date      string      `json:"date"`
-	Merchants []NameValue `json:"merchants"`
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
 }
 
 type ProvidersStats struct {
-	StatsPeriod
-	Stats []DailyProvidersStats `json:"stats"`
+	From   string                `json:"from_date"`
+	To     string                `json:"to_date"`
+	Domain string                `json:"domain"`
+	Stats  []DailyProvidersStats `json:"stats"`
 }
 
 type DailyProvidersStats struct {
-	Date      string      `json:"date"`
-	Providers []NameValue `json:"providers"`
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
 }
 
 type StatsMoneyAmount struct {
@@ -99,7 +99,9 @@ type NameValue struct {
 }
 
 type RequestsStats struct {
-	StatsPeriod
+	From          string               `json:"from_date"`
+	To            string               `json:"to_date"`
+	Domain        string               `json:"domain"`
 	RequestsTotal StatsValue           `json:"requests_total"`
 	RequestsToday StatsValue           `json:"requests_today"`
 	Stats         []DailyRequestsStats `json:"stats"`
