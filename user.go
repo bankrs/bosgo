@@ -35,6 +35,7 @@ type UserClient struct {
 	applicationID string
 	ua            string
 	environment   string
+	forceUnsecure bool
 	retryPolicy   RetryPolicy
 
 	Accesses              *AccessesService
@@ -87,6 +88,7 @@ func (u *UserClient) newReq(path string) req {
 		par:         params{},
 		environment: u.environment,
 		retryPolicy: u.retryPolicy,
+		forceUnsecure: u.forceUnsecure,
 	}
 }
 

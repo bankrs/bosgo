@@ -22,7 +22,6 @@ import (
 )
 
 const (
-
 	// Version is the current version of the bosgo library.
 	Version = "0.1"
 
@@ -42,11 +41,12 @@ const (
 // safe for concurrent use by multiple goroutines.
 type Client struct {
 	// never modified once they have been set
-	hc          *http.Client
-	addr        string
-	ua          string
-	environment string
-	retryPolicy RetryPolicy
+	hc            *http.Client
+	addr          string
+	ua            string
+	environment   string
+	retryPolicy   RetryPolicy
+	forceUnsecure bool
 }
 
 type ClientOption func(*Client)
@@ -75,6 +75,7 @@ func (c *Client) newReq(path string) req {
 		par:         params{},
 		environment: c.environment,
 		retryPolicy: c.retryPolicy,
+		forceUnsecure: c.forceUnsecure,
 	}
 }
 
@@ -93,6 +94,7 @@ func (c *Client) WithApplicationID(applicationID string) *AppClient {
 	ac.ua = c.ua
 	ac.environment = c.environment
 	ac.retryPolicy = c.retryPolicy
+	ac.forceUnsecure = c.forceUnsecure
 	return ac
 }
 
@@ -322,5 +324,12 @@ func Environment(environment string) ClientOption {
 func WithRetryPolicy(policy RetryPolicy) ClientOption {
 	return func(c *Client) {
 		c.retryPolicy = policy
+	}
+}
+
+// WithForcedUnsecuredConnection is a client option thatforces http usage over https
+func WithForcedUnsecuredConnection(fu bool) ClientOption {
+	return func(c *Client) {
+		c.forceUnsecure = fu
 	}
 }
