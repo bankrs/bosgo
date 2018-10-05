@@ -2,6 +2,7 @@ package bosgo
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -151,6 +152,9 @@ func TestTypes(t *testing.T) {
 				bpFields[bpField.Name] = true
 			}
 			for bosField := range fieldsByTag {
+				if bosField == "-" {
+					continue
+				}
 				if _, ok := bpFields[bosField]; !ok {
 					t.Errorf("bosgo has additional field %s", bosField)
 					continue
@@ -182,11 +186,13 @@ type Parser struct {
 	state int
 	typ   Type
 	done  bool
+	types map[string]Type
 }
 
 func NewParser(r io.Reader) *Parser {
 	return &Parser{
-		s: bufio.NewScanner(r),
+		s:     bufio.NewScanner(r),
+		types: make(map[string]Type),
 	}
 }
 
@@ -210,14 +216,44 @@ func (p *Parser) Next() bool {
 				p.typ = Type{
 					Name: fields[1],
 				}
+
+				if len(fields) > 2 {
+					if strings.HasPrefix(fields[2], "(") {
+						qualifiers := strings.Split(fields[2][1:], ",")
+						baseType := strings.TrimSuffix(qualifiers[0], ")")
+						if baseType != "object" {
+							btyp, ok := p.types[baseType]
+							if !ok {
+								p.err = fmt.Errorf("found unknown base type %s for type %s", baseType, p.typ.Name)
+								return false
+							}
+							p.typ.Fields = append(p.typ.Fields, btyp.Fields...)
+
+						}
+
+					}
+				}
+
 			}
 		case 2:
 			if len(p.typ.Fields) > 0 && strings.TrimSpace(line) == "" {
 				p.state = 1
+				p.types[p.typ.Name] = p.typ
 				return true
 			}
 			if strings.HasPrefix(line, "+") {
 				fields := strings.Fields(line)
+
+				if fields[1] == "Include" {
+					btyp, ok := p.types[fields[2]]
+					if !ok {
+						p.err = fmt.Errorf("found unknown included type %s for type %s", fields[2], p.typ.Name)
+						return false
+					}
+					p.typ.Fields = append(p.typ.Fields, btyp.Fields...)
+					continue
+				}
+
 				field := Field{
 					Name: strings.TrimSuffix(fields[1], ":"),
 				}
@@ -299,7 +335,20 @@ var sample = "" +
 	"+ from_date                     (string,required) - the from date\n" +
 	"+ to_date                       (string,required) - the to date\n" +
 	"+ domain:       `merchants`     (string) - the stats domain\n" +
-	"+ stats                         (array[DailyMerchantObjStats],optional,fixed-type) - Top most used\n"
+	"+ stats                         (array[DailyMerchantObjStats],optional,fixed-type) - Top most used\n" +
+	"\n" +
+	"## BaseAnswer (object,fixed-type)\n" +
+	"+ id:       login           (string, required) - Identifier of the answer, which answers a challenge with the same id\n" +
+	"+ value:    john_doe_hsbc   (string, required) - Value of of the submitted answer\n" +
+	"\n" +
+	"## Answer (BaseAnswer,fixed-type)\n" +
+	"+ store:        true                    (boolean) - Flag indicating whether the submitted answer should be stored\n" +
+	"+ valid_until:  `2018-04-16T22:00:00Z`  (string) - Date when the answer should expire\n" +
+	"\n" +
+	"## AnswerInclude (object,fixed-type)\n" +
+	"+ store:        true                    (boolean) - Flag indicating whether the submitted answer should be stored\n" +
+	"+ valid_until:  `2018-04-16T22:00:00Z`  (string) - Date when the answer should expire\n" +
+	"+ Include BaseAnswer"
 
 func TestParser(t *testing.T) {
 	expected := []Type{
@@ -341,6 +390,31 @@ func TestParser(t *testing.T) {
 				{Name: "to_date", BaseType: "string", Required: true},
 				{Name: "domain", BaseType: "string", Required: false},
 				{Name: "stats", BaseType: "array[DailyMerchantObjStats]", Required: false},
+			},
+		},
+		{
+			Name: "BaseAnswer",
+			Fields: []Field{
+				{Name: "id", BaseType: "string", Required: true},
+				{Name: "value", BaseType: "string", Required: true},
+			},
+		},
+		{
+			Name: "Answer",
+			Fields: []Field{
+				{Name: "id", BaseType: "string", Required: true},
+				{Name: "value", BaseType: "string", Required: true},
+				{Name: "store", BaseType: "boolean", Required: false},
+				{Name: "valid_until", BaseType: "string", Required: false},
+			},
+		},
+		{
+			Name: "AnswerInclude",
+			Fields: []Field{
+				{Name: "store", BaseType: "boolean", Required: false},
+				{Name: "valid_until", BaseType: "string", Required: false},
+				{Name: "id", BaseType: "string", Required: true},
+				{Name: "value", BaseType: "string", Required: true},
 			},
 		},
 	}
