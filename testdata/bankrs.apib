@@ -1,0 +1,658 @@
+# Data Structures
+
+## DeveloperCredentials (object,fixed-type)
++ email:    `john.doe@bankworld.com` (string, required) - Email address for the developer, requires valid email format
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - Developer's password
+
+## DeveloperConfirmAction
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string) - Developer's password if registered by email/password
++ email:    `john.doe@bankworld.com` (string) - Primary email address used on provider side if OAuth authorization is used
+
+## DeveloperOAuthLogin (object,fixed-type)
++ provider:    `github`              (string,required) - Provider ID
++ code                               (string,required) - OAuth code for exchange to an access `token`
+
+## LinkedAccount (object,fixed-type)
++ type                               (enum[number],required) - Type of account
+    + 0                               - Regular
+    + 1                               - Used for authorization
++ id:          `github`              (string,required) - Provider ID
++ title:       `GitHub`              (string,required) - Provider title
++ user_name                          (string,required) - User name or identifier in provider system
++ sync_time                          (string,required) - Provider data sync time
+
+## LinkedTeam (object,fixed-type)
++ id                                 (string,required) - Team ID
++ name                               (string,required) - Team name
++ active                             (boolean,required) - Describes which team account is now used
++ owner                              (boolean,required) - Describes if is own team
+
+## DeveloperProfile (object,fixed-type)
++ company:               `Test Company Ltd.`          (string) - Name of the company.
++ has_production_access                               (boolean,required) - Flag indicating whether the developer may access the production API.
++ confirmed                                           (boolean,required) - Flag indicating the account is confirmend (by email), this allow to enable access for production API
++ expires_at                                          (string) - Date when account will be deleted if not confirmed
++ linked_accounts                                     (array[LinkedAccount],optional) - List of third party account integration for example GitHub
++ linked_teams                                        (array[LinkedTeam],optional) - List of teams where developer is owner or member
+
+## ApplicationID (object,fixed-type)
++ id:                    `89acfa2-0058-4c75-b30e-aa917bd3b446`  (string,required) - Application id for current environment
+
+## ApplicationItem (object,fixed-type)
++ id:                    `89acfa2-0058-4c75-b30e-aa917bd3b446`  (string,required) - Unique id
++ label:                 `my app`                               (string) - label associated to the application id
+
+## ApplicationKey (object,fixed-type)
++ key:                   `544a563d-2b23-4391-b1f9-9187dbe40a17` (string,required) - Unique key id
++ created_at:            `2017-04-16T22:00:00Z`                 (string,required) - Time when the key was created
+
+## Provider (object,fixed-type)
+
++ id:                    `DE-BIN-60010070`            (string) - Unique ID constructed in an internal format
++ name:                  `Postbank`                   (string) - Name of the provider
++ description:           `Postbank Stuttgart`         (string) - Description of the provider (name including country, branch name etc.)
++ address:               `70148 Stuttgart`            (string) - Provider address
++ postal_code:           `70148`                      (string) - Provider postal code
++ operations                                          (FiOperations) - Supported operations
++ country:               `DE`                         (string) - ISO 3166-1 alpha-2 country code
++ url:                   `https://www.postbank.de/`   (string) - Provider URL
++ challenges                                          (array[InitialChallenge]) - Set of initial challenges required for obtaining access to the provider
+
+## ProviderSearchResult (object,fixed-type)
+
++ score: 0.75 (number) - Search relevancy score
++ provider (Provider) - The matching provider.
+
+## Access (object,fixed-type)
+
++ id:                    2                (number) - Unique id
++ name                                    (string) - Name of the access
++ enabled:               true             (boolean) - Flag if the access is enabled
++ auth_possible:         false            (boolean) - Flag indicating whether all authentication-related answers have been supplied with values.
++ accounts                                (array[Account],optional,fixed-type) - The accounts that belong to the access
++ provider_id:          `DE-BIN-10010010` (string) - Financial institution reference
++ capabilities                            (AccessCapabilities) - Description of the features supported by the access
++ beneficiaries                           (array[Beneficiary],optional) - List of trusted beneficiaries used by the accounts belonging to the access
+
+## AccessCapabilities (object,fixed-type)
+
++ recurring_transfer                      (RecurringTransferCapabilities) - Features supported for recurring transfers
++ scheduled_transfer                      (ScheduledTransferCapabilities) - Features supported for scheduled transfers
++ trading:              false             (boolean) - Flag indicating whether the access supports trading accounts
+
+## RecurringTransferCapabilities (object,fixed-type)
+
++ minimum_lead_time_create:         5               (number) - The minimum number of days between creation of a recurring transfer and its first execution
++ maximum_lead_time_create:         30              (number) - The maximum number of days between creation of a recurring transfer and its first execution
++ minimum_lead_time_edit:           1               (number) - The minimum number of days between editing a recurring transfer and its next execution
++ maximum_lead_time_edit:           6               (number) - The maximum number of days between editing a recurring transfer and its next execution
++ minimum_lead_time_delete:         1               (number) - The minimum number of days between deleting a recurring transfer and its next execution
++ maximum_lead_time_delete:         14              (number) - The maximum number of days between deleting a recurring transfer and its next execution
++ last_day_of_month_enabled:        true            (boolean) - Flag indicating whether recurring transfer may be scheduled to execute on the last day of each month
++ time_unit_modifiable:             true            (boolean) - Flag indicating whether the type of time period of a transfer may be modified
++ period_length_modifiable:         true            (boolean) - Flag indicating whether the length of the time period of a transfer may be modified
++ scheduled_date_modifiable:        true            (boolean) - Flag indicating whether the next scheduled execution date of a transfer may be modified
++ first_scheduled_date_modifiable:  true            (boolean) - Flag indicating whether the first scheduled execution date of a transfer may be modified
++ last_schedule_date_modifiable:    true            (boolean) - Flag indicating whether the last scheduled execution date of a transfer may be modified
++ periods                                           (array[RecurringTransferPeriod],optional,fixed-type) - A list of schedules that are supported for recurring transfers.
+
+## RecurringTransferPeriod  (object,fixed-type)
+
++ type:           monthly                (string) - enum[weekly, monthly]
++ repeat:         1                      (number) - The number of weeks or months in the period
+
+## ScheduledTransferCapabilities (object,fixed-type)
+
++ supported:               true             (boolean) - Flag indicating whether the access supports scheduled transfers
+
+## Account (object,fixed-type)
++ id:                    4                      (number) - Unique id
++ bank_access_id:        2                      (number) - The access this account belongs to
++ number:                704357300              (string) - Unique ID assigned by the provider
++ holder:                `Bruce Lee`            (string,optional) - The real name of the account holder
++ name:                  Girokonto              (string) - The name of the account as provided by the provider
++ bin:                   10010010               (string) - The bank identification number
++ type:                  bank                   (string) - enum[current, savings, creditcard, loan]
++ removed:               false                  (boolean,optional) - Flag indicating whether the account has been removed
++ alias                                         (string) - An alias for the account
++ balance:               971.20                 (string) - The account balance
++ balance_date:          `2017-04-16T22:00:00Z` (string) - The time on which the account balance was determined
++ available_balance:     1471.20                (string) - The balance of the account that is available to spend
++ credit_line:           500.00                 (string) - The amount of credit available for the account
++ iban:                  DE54200411110704357300 (string) - International bank account number
++ currency:              EUR                    (string) - Currency
++ provider_id:           `DE-BIN-10010010`      (string) - Financial institution reference
++ capabilities                                  (AccountCapabilities,optional,fixed-type) - The account capabilities
++ allowed_operations                            (AccountAllowedOperations,optional,fixed-type) - The operations allowed on account
++ beneficiaries                                 (array[number],optional) - List of identifiers of trusted beneficiaries associated with the account
+
+## AccountCapabilities (object,fixed-type)
++ account_statement:    read                  (array[string],optional) - List of operations allowed for transaction statements
++ transfer:             create,read           (array[string],optional) - List of operations allowed for transfers
++ recurring_transfer:   create,read,delete    (array[string],optional) - List of operations allowed for recurring transfers
+
+## AccountAllowedOperations (object,fixed-type)
++ transfer:                  true               (boolean) - Create payment transfer
++ statement:                 true               (boolean) - Get account statement
++ balance:                   true               (boolean) - Get account balance
++ create_recurring_transfer: true               (boolean) - Create recurring transfer
++ read_recurring_transfer:   true               (boolean) - Read recurring transfer
++ update_recurring_transfer: true               (boolean) - Update recurring transfer
++ delete_recurring_transfer: true               (boolean) - Delete recurring transfer
+
+## ProviderAllowedOperations (object,fixed-type)
++ transfer:                  true               (boolean) - Create payment transfer
++ statement:                 true               (boolean) - Get account statement
++ balance:                   true               (boolean) - Get account balance
++ create_recurring_transfer: true               (boolean) - Create recurring transfer
++ read_recurring_transfer:   true               (boolean) - Read recurring transfer
++ update_recurring_transfer: true               (boolean) - Update recurring transfer
++ delete_recurring_transfer: true               (boolean) - Delete recurring transfer
++ beneficiaries:             true               (boolean) - Get list of trusted beneficiaries
+
+## Money (object,fixed-type)
++ value:                 1283.4    (string) - Amount of money transferred
++ currency:              EUR       (string) - Currency of money transferred
+
+## OriginalAmount (object,fixed-type)
++ value                            (Money) - Amount of money transferred
++ exchange_rate:         1.02       (string) - Exchange rate
+
+## JobStatusOK (object,fixed-type)
++ finished:       true     (boolean,required) - Is this job complete
++ stage:          imported (enum[string],required) -
+    + unauthenticated
+    + authenticated
+    + challenge
+    + imported
+    + cancelled
+    + problem
++ type                  (string,required) - Type of job
++ challenge             (ChallengeEmpty,optional) - Challenges required for completing the job
++ uri:            `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61`  (string) - URI of the job
++ errors                (array[],optional,fixed-type) - List of errors encountered
++ access                (JobAccess) - Details of the access that has been created.
+
+## JobStatus (object,fixed-type)
++ finished              (boolean,required) - Is this job complete
++ stage                 (enum[string],required) -
+    + unauthenticated
+    + authenticated
+    + challenge
+    + imported
+    + cancelled
+    + problem
++ challenge             (Challenge,optional,fixed-type) - Challenges required for completing the job
++ uri:      `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61`   (string,optional) - URI of the job
++ errors                (array[Error],optional,fixed-type) - List of errors encountered
++ access                (JobAccess,optional,fixed-type) - Details of the access that has been created.
+
+## ChallengeEmpty (object,fixed-type)
+
+## Challenge (object,fixed-type)
++ can_continue           (boolean,required)  - Indicates whether the job can continue or has encountered a fatal error
++ current_step           (number,required) - Current step
++ next_challenges        (array[ChallengeField],optional,fixed-type) - Ordered list of challenges to be answered
++ last_problems          (array[Problem],optional,fixed-type) - List of challenge problems in the language of the provider
+
+## ChallengeField (object,fixed-type)
++ id                    (string,required) - Unique (per provider) identifier with meaningful name (e.g login, email)
++ description           (string,required) - Challenge description
++ type                  (enum[string],required) - Type of the challenge
+    + alpha
+    + numeric
+    + alphanumeric
++ previous              (string,optional)  - A copy of the previous value supplied when an invalid answer was given. Masked for secure fields.
++ stored                (boolean,optional) - Flag indicating that previously the answer to this challenge was stored.
++ reset                 (boolean,optional) - Flag indicating that some previously stored answers have been reset.
++ secure                (boolean,optional) - Flag indicating confidential information, which should be masked on user input.
++ optional              (boolean,optional) - Flag indicating whether the answer is optional or required.
++ unstoreable           (boolean,optional) - Flag indicating whether it is possible to unstore a previously supplied value.
++ methods               (array[string],optional) - Auth methods for which this field belongs to.
++ info                  (object,optional) - Map of key/value strings providing more detail on the challenge.
+ 
+## Problem (object,fixed-type)
++ domain                (string,required) - General grouping of the problem
++ code                  (string,required) - A code that uniquely identifies the problem
++ message               (string,required) - Human readable description of the problem
++ info                  (object,optional) - Map of key/value strings providing more detail on the problem.
+
+## JobAccess (object,fixed-type)
++ id                                 (number,required) - Unique id
++ provider_id:   `DE-BIN-23232424`   (string) - Idenitifer of the bank
++ name                               (string,optional) - Name of the access
++ accounts                           (array[JobAccount],optional,fixed-type) - The accounts that belong to the access
+
+## JobAccount (object,fixed-type)
++ id                                           (number,required) - Unique id
++ name:            `Current giro account`      (string,optional) - The name of the account as provided by the provider
++ number:          `704357300`                 (string,optional) - Bank account number
++ iban:            `DE56120300001036391454`    (string,optional) - International bank account number
++ provider_id:     `DE-BIN-23232424`           (string) - Identifier of the bank
++ errors                                       (array[Error],optional,fixed-type) - List of errors encountered
+
+## JobURI (object,fixed-type)
++ uri: `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61` (string) - URI pointing to a job
+
+## Error (object,fixed-type)
++ code:                  user_token_invalid                       (string,required) - Error code
++ message:               Invalid user token. Please log in again. (string,optional) - Descriptive human readable message of the error
++ info                                                            (object,optional) - Map of key/value strings providing more detail on the problem.
+
+## BadRequestObj (object,fixed-type)
++ code:     `validation_bad_parameters`         (string,required) - Error code
++ message                                       (string,optional) - Descriptive human readable message of the error
++ info                                          (object,optional) - Map of key/value strings providing more detail on the problem.
+
+## BadRequestError (object,fixed-type)
++ errors                                        (array[BadRequestObj],required) - List of errors
+
+## FiOperations (object,fixed-type)
++ adapter:              `HBCI`                  (string) - Adapter name
++ capabilities                                  (AccountCapabilities,optional) -
++ allowed_operations                            (ProviderAllowedOperations,optional,fixed-type) - The operations allowed on bank accounts
+
+## InitialChallenge (object,fixed-type)
++ id:                   pin                     (string) - Unique (per provider) identifier with meaningful name (e.g login, email)
++ description:          Account PIN 4 digits    (string) - Challenge description
++ type:                 numeric                 (enum[string]) - Type of the challenge
+    + alpha
+    + numeric
+    + alphanumeric
++ secure:               true                    (boolean) - Flag indicating confidential information, which should be masked on user input
++ unstoreable:          false                   (boolean) - Flag indicating, whether it's possible to unstore a previously provided value
++ methods                                       (array[string],optional) - Auth methods for which this field belongs to.
++ info                                          (object,optional) - Map of key/value strings providing more detail on the challenge
+
+## BaseAnswer (object,fixed-type)
++ id:       login           (string, required) - Identifier of the answer, which answers a challenge with the same id
++ value:    john_doe_hsbc   (string, required) - Value of of the submitted answer
+
+## Answer (BaseAnswer,fixed-type)
++ store:        true                    (boolean) - Flag indicating whether the submitted answer should be stored
++ valid_until:  `2018-04-16T22:00:00Z`  (string) - Date when the answer should expire
+
+## BaseTransaction (object,fixed-type)
++ id:                         4                           (number) - Unique (per user) numeric identifier of the transaction
++ user_bank_account_id:       3                           (number) - Reference to one of the user accounts by ID
++ user_bank_access_id:        8                           (number) - Reference to one of the user bank accesses by ID
++ amount                                                  (Money) - Amount of money transferred in the transaction
++ usage:                    `Ebay - John D. 9$ ref. 91`   (string) - Transaction description (usage) field
++ user_account                                            (AccountReference) - Reference of the user account
+
+## Transaction (BaseTransaction,fixed-type)
++ entry_date:               `2017-04-16T22:00:00Z`                 (string,optional) - Time when the transaction became known in the account
++ settlement_date:          `2017-04-16T22:00:00Z`                 (string,optional) - Time when  the transaction is cleared
++ repeated_transaction_id:  0                                      (number) - Unique ID, if 0 it is not an instance of recurring transfer. If the transaction originates from recurring transfers, the id stand for the related repeated transfer on the user's account
++ transaction_type:         Fast Payment                           (string) - Transaction type as identifier by the financial provider
++ gvcode:                   104                                    (string,optional) - SEPA GVC (e.g. 104 for SEPA Direct Debit)
++ original_amount                                                  (OriginalAmount,optional) - Original amount before currency conversion
++ counterparty                                                     (Counterparty) - Identifier of the Counterparty of the user's transaction
++ category_id:              12                                     (number) - Category identifier identified by our classifier
++ remote_id:                `62fd9815-e61e-4626-92ce-6078703710d9` (string, optional) - An optional identifier for this transaction provided by the financial institution
+
+## ScheduledTransaction (BaseTransaction,fixed-type)
++ entry_date:               `2017-04-16T22:00:00Z`                 (string) - Time when the transaction became known in the account
++ repeated_transaction_id:  0                                      (number) - Unique ID, if 0 it is not an instance of recurring transfer. If the transaction originates from recurring transfers, the id stand for the related repeated transfer on the user's account
++ transaction_type:         Fast Payment                           (string) - Transaction type as identifier by the financial provider
++ original_amount                                                  (OriginalAmount,optional) - Original amount before currency conversion
++ counterparty                                                     (Counterparty) - Identifier of the Counterparty of the user's transaction
++ category_id:              12                                     (number) - Category identifier identified by our classifier
++ remote_id:                `62fd9815-e61e-4626-92ce-6078703710d9` (string, optional) - An optional identifier for this transaction provided by the financial institution
+
+## RepeatedTransaction (BaseTransaction,fixed-type)
++ user_account                                          (AccountReference,required,fixed-type) - Reference of the user account
++ remote_account                                        (AccountReference,required,fixed-type) - Reference of the 3rd party account
++ schedule                                              (Schedule,required,fixed-type) - Schedule of the repeated transfer (frequency, interval etc.)
++ remote_id:               `001234`                     (string, optional) - Remote transaction reference, issued by 3rd party.
+
+## Counterparty (object,fixed-type)
++ name:                     McDonalds ZurichHB          (string) - Name of the counterparty
++ account                                               (AccountReference) - Account of the counterparty
++ merchant                                              (Merchant,optional) - Information about the merchant if there's any
+
+## Merchant (object,fixed-type)
++ name:                     McDonalds                   (string) - the name of the merchant
+
+## Category (object,fixed-type)
++ id:                       10                          (number) - Unique numeric identifier of the category
++ names                                                 (CategoryName) - The localised names of the category
++ group:                    SPENDING                    (enum[string]) - The category group
+    + `SPENDING`
+    + `INCOME`
+
+## CategoryName (object,fixed-type)
++ de:                       Bargeld                     (string) - German name
++ en:                       Cash                        (string) - English name
+
+## Schedule (object,fixed-type)
++ start:                 `2015-11-03T12:00:00Z`  (string) - Start date. Must not be before today.
++ until:                 `2018-10-03T12:00:00Z`  (string) - End date. Must be later than the start date.
++ frequency: monthly                             (enum[string]) - Frequency
+    + `daily`
+    + `weekly`
+    + `monthly`
+    + `yearly`
++ interval:             2                        (number) - Interval for the given frequency. Valid values for `weekly` are: 1 (every week), 2 (every second weeks). Valid values for `monthly`: 1 (every month), 2 (every second month), 6 (every six months).
++ by_day:               26                       (number) - A day within the frequency unit to execute the transaction, i.e. a specifc day in a month (1-31) or a weekday (1-5, starting with Monday). The special value -1 designates the last day of the month.
+
+## Credentials (object,fixed-type)
++ username: `john.doe@bankworld.com` (string, required) - User name (valid email format required)
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - User password
+
+## TransferRequest (object,fixed-type)
++ from: `2`                    (string, required) - The ID of the source bank account.
++ to                           (TransferAddress, required) - The recipient for this money transfer.
++ type:  `regular`             (enum[string]) - The type of transfer
+    + `regular`
+    + `recurring`
++ schedule                     (Schedule,optional) - The recurrence schedule. Required for transfers of type `recurring`.
++ amount                       (Money, required) - The amount of money to be transferred.
++ entry_date: `2017-06-01`     (string) - Date when the transfer has to be placed
++ usage: `Rent June 2017`      (string) - Transfer description.
++ challenge_answers            (array[Answer]) - Challenge answers.
+
+## TransferBusinessFieldsObject (object,fixed-type)
++ from                                       (TransferAddress, required) - The source of the money transfer.
++ to                                         (TransferAddress, required) - The recipient for this money transfer.
++ schedule                                   (Schedule,optional) - The recurrence schedule. Required for transfers of type `recurring`.
++ amount                                     (Money, required) - The amount of money to be transferred.
++ usage: `Rent June 2017`                    (string, required) - Transfer description.
++ booking_date                               (string,optional) - Date when the transfer has been placed to the payment platform.
++ effective_date                             (string,optional) - Date upon which the transfer takes effect.
+
+## TransferResponse (object,fixed-type)
++ id:        `23232-dfdf23-1df1a3-32232-42`  (string, required) - The identifier for this transfer
++ version:   2                               (number,required) - A version number that should be used in subsequent requests.
++ type                                       (string,optional) - Type of this transfer (bank_account, credit_card, paypal, ...).
++ step                                       (TransferStep, required) - The current step of the transfer process.
++ state                                      (enum[string]) - The current state of this transfer.
+    + `new`
+    + `ongoing`
+    + `succeeded`
+    + `failed`
+    + `cancelled`
++ created                                    (string,optional) - The creation date.
++ updated                                    (string,optional) - Last updated timestamp.
++ remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
++ errors                                     (array[Error],optional,fixed-type) - List of errors.
++ Include TransferBusinessFieldsObject
+
+## TransferAddress (object,fixed-type)
++ iban:                   `DE54200411110704357300`      (string) - International bank account number.
++ name:                   Jane Doe                      (string,optional) - Name of the recipient.
++ bank_access_id:         2                             (number,optional) - The bank access id.
++ bank_account_id:        3                             (number,optional) - The bank account id.
+
+## TransferStep (object,fixed-type)
++ intent                            (enum[string],optional) - The intent of the step
+    + `provide_pin`
+    + `provide_challenge_answer`
+    + `select_auth_method`
+    + `confirm_similar_transfer`
++ data                              (TransferStepData,optional) - Data.
+
+## TransferStepData (object,fixed-type)
++ auth_methods                                           (array[AuthMethod],optional,fixed-type)      - List of authentication methods.
++ challenge:         `sms`                               (string,optional)                            - The type of challenge for the user.
++ challenge_message: `enter the code sent to your phone` (string,optional)                            - Instructions from the provider for the challenge.
++ tan_type                                               (string,optional)                            - Type of the TAN (optical, itan, unknown)
++ transfers                                              (array[TransferResponse],optional,fixed-type) - List of similar transfers (only for confirm_similar_transfer intent)
+
+## TransferStatusResponse (object,fixed-type)
++ id:        `23232-dfdf23-1df1a3-32232-42`  (string, required) - The identifier for this transfer
++ version:   2                               (number,required) - A version number that should be used in subsequent requests.
++ type                                       (string,optional) - Type of this transfer (bank_account, credit_card, paypal, ...).
++ step                                       (TransferStep, required) - The current step of the transfer process.
++ state                                      (enum[string]) - The current state of this transfer.
+    + `new`
+    + `ongoing`
+    + `succeeded`
+    + `failed`
+    + `cancelled`
++ created                                    (string,optional) - The creation date.
++ updated                                    (string,optional) - Last updated timestamp.
++ remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
++ errors                                     (array[Error],optional,fixed-type) - List of errors.
+
+## AuthMethod (object,fixed-type)
++ id                'pin'         (string) - The unique identifier for the auth method.
++ description       'Four digits' (string) - A description of the method.
+
+## TransactionCategorisationRequest (object,fixed-type)
++ id: 1                       (string, required) - The transaction ID.
++ category_id: 2              (string, required) - The category ID.
+
+## AccountReference (object,fixed-type)
++ provider_id:             `DE-BIN-23232424`            (string,required) - the id of the financial institution
++ iban:                    `DE56120300001036391454`     (string,required) - Account IBAN
++ id:                      `83723211`                   (string,optional) - Account identifier, usually account number issued by the financial provider
++ label:                   `Current giro account`       (string,optional) - Account name
++ type:                    `current`                    (enum[string],optional) - Type of account
+    + `current`
+    + `savings`
+    + `creditcard`
+    + `loan`
+
+## StatsMoneyAmount (object,fixed-type)
++ value:    26750475 (number,required)
++ currency: EUR      (string,optional)
+
+## DailyTransfersStats (object,fixed-type)
++ date (string,required)
++ out  (array[StatsMoneyAmount],required)
+
+## TransfersStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:       `transfers`     (string) - the stats domain
++ total_out                     (array[StatsMoneyAmount],fixed-type) - total funds transferred in the period
++ today_out                     (array[StatsMoneyAmount],fixed-type) - funds transferred today
++ stats                         (array[DailyTransfersStats],optional,fixed-type) - daily statistics
+
+## StatsValueChange (object,fixed-type)
++ value     (number,required)
++ change    (number,required)
+
+## DailyUsersStats (object,fixed-type)
++ date         (string,required)
++ new_users    (number,required)
+
+## UsersStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:          `users`      (string) - the stats domain
++ users_total                   (StatsValueChange,fixed-type) - total number of users
++ users_today                   (StatsValueChange,fixed-type) - number of users today
++ stats                         (array[DailyUsersStats],optional,fixed-type) - daily statistics
+
+## MonthlyUsersStats (object,fixed-type)
++ date         (string,required)
++ active_users (number,required)
+
+## MAUStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:          `mau`        (string) - the stats domain
++ stats                         (array[MonthlyUsersStats],optional,fixed-type) - monthly statistics
+
+## DailyRequestsStats (object,fixed-type)
++ date           (string,required)
++ requests_total (number,required)
+
+## RequestsStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:       `requests`      (string) - the stats domain
++ requests_total                (StatsValueChange,fixed-type) - total number of requests
++ requests_today                (StatsValueChange,fixed-type) - number of requests today
++ stats                         (array[DailyRequestsStats],optional,fixed-type) - daily statistics
+
+## DailyProviderObjStats (object,fixed-type)
++ name      (string,required)
++ value     (number,required)
+
+## ProvidersStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:       `providers`     (string) - the stats domain
++ stats                         (array[DailyProviderObjStats],optional,fixed-type) - Top most used
+
+## DailyMerchantObjStats (object,fixed-type)
++ name     (string,required)
++ value    (number,required)
+
+## MerchantsStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:       `merchants`     (string) - the stats domain
++ stats                         (array[DailyMerchantObjStats],optional,fixed-type) - Top most used
+
+## ProviderPingStats (object,fixed-type)
++ from_date                     (string,required) - the from date
++ to_date                       (string,required) - the to date
++ domain:    `provider_ping`    (string) - the stats domain
++ stats                         (array[DailyProviderPingStats],optional,fixed-type) - daily statuses
+
+## DailyProviderPingStats (object,fixed-type)
++ status                    (string,required) - ping status
++ requested_at              (string,required) - the request date
+
+## IBANValidation (object,fixed-type)
++ acc_ref (object,fixed-type)
+    + IBAN: `DE16200411110704357305` - the validated IBAN
+    + provider: `IBO` - the authoritative provider, IBO for IBANs
++ fis (array[Bank],fixed-type)
+
+## Bank (object,fixed-type)
++ id: `COBADEHDXXX` - the bank identity assigned by the identity provider
++ label: `comdirect bank` - the bank name
++ country: `DE` - the country
++ provider: `BIC` - the identity provider
++ service_context: `SEPA` - the service context, usually SEPA or empty
+
+## Usernames (object,fixed-type)
++ usernames: `john.doe@bankworld.com`, `unknown@example.com`  (array[string],required,fixed-type) - list of usernames
+
+## WebhookNew
++ api_version:      `1`                                          (number,required) - Version to use
++ url:              `https://domain.com/webhook`                 (string,required) - URL to event send
++ events                                                         (array,required) - List of event types
+    + transactions                                               (string) - Eny events
+
+## Webhook
++ id:               `7ea712bd-2db9-4408-b2ca-4c43cc98f369`       (string,required) - Webhook ID
++ api_version:      `1`                                          (number,required) - Version to use
++ url:              `https://domain.com/webhook`                 (string,required) - URL to event send
++ events                                                         (array,required) - List of event types
++ environment:      `sandbox`                                    (string,required) - Environment is used
++ enabled:          `true`                                       (boolean,required)
++ created_at:       `2018-03-21T14:03:00Z`                       (string,required) - Date webhook was created
+
+## WebhooksTypes
++ versions                                                       (array[number],required) - List of versions
++ events                                                         (array[string],required) - List of events
+
+## WebhookTest
++ event:            `job.state`                                  (string,required) - Event type
+
+## WebhookTestResult
++ payload                                                        (EventPayload,required,fixed-type) - Event payload sent to enpoint
++ response                                                       (object,required,fixed-type) - Response from enpoint
+    + id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`       (string,required) - Event unique ID
+    + code:         `200`                                        (number,required) - Response code from endpoint
+    + status:       `200 OK`                                     (string,required) - Status message
+
+## WebhookEvent (object,fixed-type)
++ code:    `200`                                                 (number,required) - Response code from endpoint
++ status:  `200 OK`                                              (string,required) - Status message
++ payload                                                        (EventPayload,required) - Event payload send to endpoint
+
+## EventPayload (object,fixed-type)
++ event                                                          (object,required,fixed-type) - Information about event
+    + id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`       (string,required) - Unique ID
+    + type:         `job.state`                                  (string,required) - Event type
+    + url:          `https://domain.com/webhook`                 (string,required) - URL where event sent
+    + api_version:  `1`                                          (number,required) - API version is used
+    + created_at:   `2018-03-15T08:50:00Z`                       (string,required) - Date event was created
+    + environment:  `sandbox`                                    (string,required) - Environment is used
++ data                                                           (object,required) - Object containing data associated with the event
+
+## CredentialKeys
++ oauth_client_id:          `8qw98hda`                           (string) - Example key object
+
+## CredentialNew (object,fixed-type)
++ provider:         `openbanking`                                (string,required) - Provider name
++ keys                                                           (CredentialKeys,required) - Simple map of key name and value
+
+## CredentialUpdate (object,fixed-type)
++ keys                                                           (CredentialKeys,required) - Simple map of key name and value
+
+## CredentialIndex (object,fixed-type)
++ id:               `6307f538-ee72-4b2d-9dbd-f3fd4ebc6a84`       (string,required) - Credential unique ID
++ provider:         `openbanking`                                (string,required) - Provider name
++ created_at:       `2018-03-15T08:50:00Z`                       (string,required) - Date credential was created
+
+## Credential (object,fixed-type)
++ id:               `6307f538-ee72-4b2d-9dbd-f3fd4ebc6a84`       (string,required) - Credential unique ID
++ provider:         `openbanking`                                (string,required) - Provider name
++ keys                                                           (CredentialKeys,required) - Simple map of key name and value
++ created_at:       `2018-03-15T08:50:00Z`                       (string,required) - Date credential was created
+
+## CredentialProvider (object,fixed-type)
++ name:             `openbanking`                                (string,required) - Provider name
++ keys                                                           (array,required) - List of required keys
+    + oauth_client_id                                            (string) - Example key
+
+## TeamNew (object,fixed-type)
++ name:             `My team`                                    (string,required) - Team name
+
+## TeamUpdate (object,fixed-type)
++ name:             `New team`                                   (string,required) - Team name
+
+# Team (object,fixed-type)
++ id                                                             (string,required) - Team ID
++ name:             `My team`                                    (string,required) - Team name
++ owner                                                          (boolean,required) - Indicates if developer is team owner
++ members                                                        (array[TeamMember],required) - List of team members
++ created_at                                                     (string,required) - Team created date
+
+## TeamInvite (object,fixed-type)
++ email:            `new.developer@mail.com`                     (string,required) - Email to send invite
+
+## TeamInviteToken (object,fixed-type)
++ token:            `d13b19efe911c9za`                           (string,required) - Invite code
+
+## TeamInviteResponse (object,fixed-type)
++ team_name                                                      (string,required) - Team name
++ success                                                        (boolean,required) - Indicates if invite was applied or next `step` required
++ step                                                           (enum[string],optional) - Describes next step if needed
+    + login                                                      - Required login
+    + create_account                                             - Required create account
+
+## TeamAccess (object,fixed-type)
++ resource_name:    `application`                                (string,required) - Resource name
++ access_level:     `1`                                          (number,required) - Access level
+
+## TeamMember (object,fixed-type)
++ id                                                             (string) - Member ID
++ email                                                          (string,required) - Member email
++ owner                                                          (boolean,required) - Indicates if member is team owner
++ created_at                                                     (string) - Member created date (was add to team)
+
+## TeamMemberAccess (object,fixed-type)
++ resource_name:    `application`                                (string,required) - Resource name
++ access_level:     `1`                                          (number,required) - Access level
++ updated_at                                                     (string,required) - Updated date
+
+## TeamMemberNewAccess (object,fixed-type)
++ resource_name:    `application`                                (string,required) - Resource name
++ access_level:     `1`                                          (number,required) - Access level
+
+## TeamMemberUpdateAccess (object,fixed-type)
++ accesses                                                       (array[TeamMemberNewAccess],required) - List of updated accesses
+
+## Beneficiary (object,fixed-type)
++ id:               1                                            (number,required) - Beneficiary ID, unique within a single access.
++ remote_account                                                 (AccountReference,required,fixed-type) - Identifying details of the beneficiary account
++ reference:        `X100201`                                    (string,optional) - Reference to be used when the beneficiary is used in a transfer
