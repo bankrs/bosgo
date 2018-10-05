@@ -577,16 +577,16 @@ type WebhookPage struct {
 }
 
 type WebhookTestResult struct {
-	Payload  EventPayload  `json:"payload"`
-	Response EventResponse `json:"response"`
+	Payload  WebhookPayload      `json:"payload"`
+	Response WebhookTestResponse `json:"response"`
 }
 
-type EventPayload struct {
-	Event Event                  `json:"event"`
+type WebhookPayload struct {
+	Event WebhookEventDetail     `json:"event"`
 	Data  map[string]interface{} `json:"data"`
 }
 
-type Event struct {
+type WebhookEventDetail struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
 	URL         string    `json:"url"`
@@ -595,7 +595,7 @@ type Event struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type EventResponse struct {
+type WebhookTestResponse struct {
 	ID     string `json:"id"`
 	Code   int    `json:"code"`
 	Status string `json:"status"`

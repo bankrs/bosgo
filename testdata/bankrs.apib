@@ -546,26 +546,30 @@
 + event:            `job.state`                                  (string,required) - Event type
 
 ## WebhookTestResult
-+ payload                                                        (EventPayload,required,fixed-type) - Event payload sent to enpoint
-+ response                                                       (object,required,fixed-type) - Response from enpoint
-    + id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`       (string,required) - Event unique ID
-    + code:         `200`                                        (number,required) - Response code from endpoint
-    + status:       `200 OK`                                     (string,required) - Status message
++ payload                                                        (WebhookPayload,required,fixed-type) - Event payload sent to enpoint
++ response                                                       (WebhookTestResponse,required,fixed-type) - Response from enpoint
+
+## WebhookTestResponse
++ id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`           (string,required) - Event unique ID
++ code:         `200`                                            (number,required) - Response code from endpoint
++ status:       `200 OK`                                         (string,required) - Status message
 
 ## WebhookEvent (object,fixed-type)
 + code:    `200`                                                 (number,required) - Response code from endpoint
 + status:  `200 OK`                                              (string,required) - Status message
-+ payload                                                        (EventPayload,required) - Event payload send to endpoint
++ payload                                                        (WebhookPayload,required) - Event payload send to endpoint
 
-## EventPayload (object,fixed-type)
-+ event                                                          (object,required,fixed-type) - Information about event
-    + id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`       (string,required) - Unique ID
-    + type:         `job.state`                                  (string,required) - Event type
-    + url:          `https://domain.com/webhook`                 (string,required) - URL where event sent
-    + api_version:  `1`                                          (number,required) - API version is used
-    + created_at:   `2018-03-15T08:50:00Z`                       (string,required) - Date event was created
-    + environment:  `sandbox`                                    (string,required) - Environment is used
+## WebhookPayload (object,fixed-type)
++ event                                                          (WebhookEventDetail,required,fixed-type) - Information about event
 + data                                                           (object,required) - Object containing data associated with the event
+
+## WebhookEventDetail (object,fixed-type)
++ id:           `f5a0e4ff-8bda-4ff8-8702-60a13012c16c`           (string,required) - Unique ID
++ type:         `job.state`                                      (string,required) - Event type
++ url:          `https://domain.com/webhook`                     (string,required) - URL where event sent
++ api_version:  `1`                                              (number,required) - API version is used
++ created_at:   `2018-03-15T08:50:00Z`                           (string,required) - Date event was created
++ environment:  `sandbox`                                        (string,required) - Environment is used
 
 ## CredentialKeys
 + oauth_client_id:          `8qw98hda`                           (string) - Example key object

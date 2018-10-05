@@ -51,7 +51,6 @@ var typeMap = map[string]interface{}{
 	"DeveloperCredentials":             DeveloperCredentials{},
 	"DeveloperOAuthLogin":              nil,
 	"DeveloperProfile":                 DeveloperProfile{},
-	"EventPayload":                     EventPayload{},
 	"FiOperations":                     nil,
 	"IBANValidation":                   IBANDetails{},
 	"InitialChallenge":                 nil,
@@ -106,11 +105,14 @@ var typeMap = map[string]interface{}{
 	"Usernames":                        nil,
 	"UsersStats":                       UsersStats{},
 	"Webhook":                          Webhook{},
-	"WebhookEvent":                     Event{},
+	"WebhookEvent":                     nil,
+	"WebhookEventDetail":               WebhookEventDetail{},
 	"WebhookNew":                       nil,
+	"WebhookPayload":                   WebhookPayload{},
 	"WebhooksTypes":                    nil,
 	"WebhookTest":                      nil,
 	"WebhookTestResult":                WebhookTestResult{},
+	"WebhookTestResponse":              WebhookTestResponse{},
 }
 
 func TestTypes(t *testing.T) {
