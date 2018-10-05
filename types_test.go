@@ -51,7 +51,6 @@ var typeMap = map[string]interface{}{
 	"DeveloperCredentials":             DeveloperCredentials{},
 	"DeveloperOAuthLogin":              nil,
 	"DeveloperProfile":                 DeveloperProfile{},
-	"Error":                            nil,
 	"EventPayload":                     EventPayload{},
 	"FiOperations":                     nil,
 	"IBANValidation":                   IBANDetails{},

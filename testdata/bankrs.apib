@@ -184,7 +184,7 @@
     + problem
 + challenge             (Challenge,optional,fixed-type) - Challenges required for completing the job
 + uri:      `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61`   (string,optional) - URI of the job
-+ errors                (array[Error],optional,fixed-type) - List of errors encountered
++ errors                (array[Problem],optional,fixed-type) - List of errors encountered
 + access                (JobAccess,optional,fixed-type) - Details of the access that has been created.
 
 ## ChallengeEmpty (object,fixed-type)
@@ -214,7 +214,6 @@
 ## Problem (object,fixed-type)
 + domain                (string,required) - General grouping of the problem
 + code                  (string,required) - A code that uniquely identifies the problem
-+ message               (string,required) - Human readable description of the problem
 + info                  (object,optional) - Map of key/value strings providing more detail on the problem.
 
 ## JobAccess (object,fixed-type)
@@ -229,23 +228,13 @@
 + number:          `704357300`                 (string,optional) - Bank account number
 + iban:            `DE56120300001036391454`    (string,optional) - International bank account number
 + provider_id:     `DE-BIN-23232424`           (string) - Identifier of the bank
-+ errors                                       (array[Error],optional,fixed-type) - List of errors encountered
++ errors                                       (array[Problem],optional,fixed-type) - List of errors encountered
 
 ## JobURI (object,fixed-type)
 + uri: `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61` (string) - URI pointing to a job
 
-## Error (object,fixed-type)
-+ code:                  user_token_invalid                       (string,required) - Error code
-+ message:               Invalid user token. Please log in again. (string,optional) - Descriptive human readable message of the error
-+ info                                                            (object,optional) - Map of key/value strings providing more detail on the problem.
-
-## BadRequestObj (object,fixed-type)
-+ code:     `validation_bad_parameters`         (string,required) - Error code
-+ message                                       (string,optional) - Descriptive human readable message of the error
-+ info                                          (object,optional) - Map of key/value strings providing more detail on the problem.
-
 ## BadRequestError (object,fixed-type)
-+ errors                                        (array[BadRequestObj],required) - List of errors
++ errors                                        (array[Problem],required) - List of errors
 
 ## FiOperations (object,fixed-type)
 + adapter:              `HBCI`                  (string) - Adapter name
@@ -375,7 +364,7 @@
 + created                                    (string,optional) - The creation date.
 + updated                                    (string,optional) - Last updated timestamp.
 + remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
-+ errors                                     (array[Error],optional,fixed-type) - List of errors.
++ errors                                     (array[Problem],optional,fixed-type) - List of errors.
 + Include TransferBusinessFieldsObject
 
 ## TransferAddress (object,fixed-type)
@@ -413,7 +402,7 @@
 + created                                    (string,optional) - The creation date.
 + updated                                    (string,optional) - Last updated timestamp.
 + remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
-+ errors                                     (array[Error],optional,fixed-type) - List of errors.
++ errors                                     (array[Problem],optional,fixed-type) - List of errors.
 
 ## AuthMethod (object,fixed-type)
 + id                'pin'         (string) - The unique identifier for the auth method.
