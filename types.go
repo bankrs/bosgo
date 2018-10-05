@@ -182,13 +182,14 @@ type AccessPage struct {
 }
 
 type Access struct {
-	ID           int64              `json:"id"`
-	Name         string             `json:"name"`
-	Enabled      bool               `json:"enabled"`
-	AuthPossible bool               `json:"auth_possible"`
-	ProviderID   string             `json:"provider_id"`
-	Accounts     []Account          `json:"accounts,omitempty"`
-	Capabilities AccessCapabilities `json:"capabilities"`
+	ID                int64              `json:"id"`
+	Name              string             `json:"name"`
+	Enabled           bool               `json:"enabled"`
+	AuthPossible      bool               `json:"auth_possible"`
+	ProviderID        string             `json:"provider_id"`
+	Accounts          []Account          `json:"accounts,omitempty"`
+	Capabilities      AccessCapabilities `json:"capabilities"`
+	ConsentExpiration time.Time          `json:"consent_expiration,omitempty"`
 }
 
 type Account struct {
