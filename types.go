@@ -145,8 +145,8 @@ type Provider struct {
 }
 
 type ProviderOperations struct {
-	Adapter           string            `json:"adapter"`
-	AllowedOperations AllowedOperations `json:"allowed_operations,omitempty" `
+	Adapter           string                    `json:"adapter"`
+	AllowedOperations ProviderAllowedOperations `json:"allowed_operations,omitempty" `
 }
 
 type ChallengeSpec struct {
@@ -208,25 +208,25 @@ type Access struct {
 }
 
 type Account struct {
-	ID                int64               `json:"id"`
-	ProviderID        string              `json:"provider_id"`
-	BankAccessID      int64               `json:"bank_access_id"`
-	Name              string              `json:"name"`
-	Type              AccountType         `json:"type"`
-	Holder            string              `json:"holder,omitempty"`
-	Number            string              `json:"number"`
-	Balance           string              `json:"balance"`
-	BalanceDate       time.Time           `json:"balance_date"`
-	AvailableBalance  string              `json:"available_balance"`
-	CreditLine        string              `json:"credit_line"`
-	Removed           bool                `json:"removed"`
-	Currency          string              `json:"currency"`
-	IBAN              string              `json:"iban"`
-	Alias             string              `json:"alias"`
-	Capabilities      AccountCapabilities `json:"capabilities"`
-	AllowedOperations AllowedOperations   `json:"allowed_operations"`
-	Bin               string              `json:"bin"`
-	Beneficiaries     []int64             `json:"beneficiaries,omitempty"`
+	ID                int64                    `json:"id"`
+	ProviderID        string                   `json:"provider_id"`
+	BankAccessID      int64                    `json:"bank_access_id"`
+	Name              string                   `json:"name"`
+	Type              AccountType              `json:"type"`
+	Holder            string                   `json:"holder,omitempty"`
+	Number            string                   `json:"number"`
+	Balance           string                   `json:"balance"`
+	BalanceDate       time.Time                `json:"balance_date"`
+	AvailableBalance  string                   `json:"available_balance"`
+	CreditLine        string                   `json:"credit_line"`
+	Removed           bool                     `json:"removed"`
+	Currency          string                   `json:"currency"`
+	IBAN              string                   `json:"iban"`
+	Alias             string                   `json:"alias"`
+	Capabilities      AccountCapabilities      `json:"capabilities"`
+	AllowedOperations AccountAllowedOperations `json:"allowed_operations"`
+	Bin               string                   `json:"bin"`
+	Beneficiaries     []int64                  `json:"beneficiaries,omitempty"`
 }
 
 type AccountCapabilities struct {
@@ -235,7 +235,19 @@ type AccountCapabilities struct {
 	RecurringTransfer []string `json:"recurring_transfer"`
 }
 
-type AllowedOperations struct {
+type AccountAllowedOperations struct {
+	PaymentTransfer     bool `json:"transfer"`
+	AccountStatement    bool `json:"statement"`
+	AccountBalance      bool `json:"balance"`
+	CreditCardStatement bool `json:"-"`
+	CreditCardBalance   bool `json:"-"`
+	CreateRecTrf        bool `json:"create_recurring_transfer"`
+	ReadRecTrf          bool `json:"read_recurring_transfer"`
+	UpdateRecTrf        bool `json:"update_recurring_transfer"`
+	DeleteRecTrf        bool `json:"delete_recurring_transfer"`
+}
+
+type ProviderAllowedOperations struct {
 	PaymentTransfer     bool `json:"transfer"`
 	AccountStatement    bool `json:"statement"`
 	AccountBalance      bool `json:"balance"`
