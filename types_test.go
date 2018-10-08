@@ -25,12 +25,13 @@ var typeMap = map[string]interface{}{
 	"AuthMethod":                       AuthMethod{},
 	"BadRequestError":                  nil,
 	"BadRequestObj":                    nil,
-	"Bank":                             nil,
+	"Bank":                             IBANBank{},
 	"BaseAnswer":                       nil,
 	"BaseTransaction":                  nil,
 	"Beneficiary":                      Beneficiary{},
 	"Category":                         Category{},
 	"CategoryName":                     nil,
+	"Challenge":                        Challenge{},
 	"ChallengeEmpty":                   nil,
 	"ChallengeField":                   ChallengeField{},
 	"Counterparty":                     Counterparty{},
@@ -51,9 +52,9 @@ var typeMap = map[string]interface{}{
 	"DeveloperCredentials":             DeveloperCredentials{},
 	"DeveloperOAuthLogin":              nil,
 	"DeveloperProfile":                 DeveloperProfile{},
-	"FiOperations":                     nil,
+	"FiOperations":                     ProviderOperations{},
 	"IBANValidation":                   IBANDetails{},
-	"InitialChallenge":                 nil,
+	"InitialChallenge":                 ChallengeSpec{},
 	"JobAccess":                        JobAccess{},
 	"JobAccount":                       JobAccount{},
 	"JobStatus":                        JobStatus{},
@@ -81,7 +82,7 @@ var typeMap = map[string]interface{}{
 	"ScheduledTransaction":             nil,
 	"ScheduledTransferCapabilities":    ScheduledTransferCapabilities{},
 	"StatsMoneyAmount":                 StatsMoneyAmount{},
-	"StatsValueChange":                 nil,
+	"StatsValueChange":                 StatsValueChange{},
 	"TeamAccess":                       nil,
 	"TeamInvite":                       nil,
 	"TeamInviteResponse":               nil,
@@ -115,6 +116,13 @@ var typeMap = map[string]interface{}{
 	"WebhookTestResponse":              WebhookTestResponse{},
 }
 
+var exclusions = map[string][]string{
+	"TransferResponse": {
+		"type",     // bosgo uses separate structs for the two types of transfer response
+		"schedule", // schedile only used for recurring transfer responses
+	},
+}
+
 func TestTypes(t *testing.T) {
 	f, err := os.Open("testdata/bankrs.apib")
 	if err != nil {
@@ -144,14 +152,27 @@ func TestTypes(t *testing.T) {
 				fieldsByTag[names[0]] = f
 			}
 
+			// Check if bosgo has all the fields defined
 			bpFields := map[string]bool{}
 			for _, bpField := range bpType.Fields {
-				if _, ok := fieldsByTag[bpField.Name]; !ok {
+				if excluded(bpType.Name, bpField.Name) {
+					continue
+				}
+				bosField, ok := fieldsByTag[bpField.Name]
+				if !ok {
 					t.Errorf("bosgo is missing field %s", bpField.Name)
 					continue
 				}
 				bpFields[bpField.Name] = true
+
+				// Check if bosgo has a compatible type for the field
+				if !compatibleFieldType(bpField.BaseType, bosField.Type) {
+					t.Errorf("bosgo has incompatible type for field %s, got type %s which is not compatible with %s", bpField.Name, bosField.Type.Name(), bpField.BaseType)
+					continue
+				}
 			}
+
+			// Check if bosgo has extra fields defined
 			for bosField := range fieldsByTag {
 				if bosField == "-" {
 					continue
@@ -168,6 +189,59 @@ func TestTypes(t *testing.T) {
 	if p.Err() != nil {
 		t.Errorf("unexpected error: %v", p.Err())
 	}
+}
+
+func excluded(typeName, fieldName string) bool {
+	exclusions, ok := exclusions[typeName]
+	if !ok {
+		return false
+	}
+	for _, ex := range exclusions {
+		if ex == fieldName {
+			return true
+		}
+	}
+	return false
+}
+
+func compatibleFieldType(bpFieldType string, bosFieldType reflect.Type) bool {
+	bosFieldKind := bosFieldType.Kind()
+	if bosFieldKind == reflect.Ptr {
+		bosFieldKind = bosFieldType.Elem().Kind()
+		bosFieldType = bosFieldType.Elem()
+	}
+
+	switch bpFieldType {
+	case "string", "enum[string]":
+		return bosFieldKind == reflect.String ||
+			bosFieldType.Name() == "Time"
+	case "boolean":
+		return bosFieldKind == reflect.Bool
+	case "object":
+		return bosFieldKind == reflect.Struct || bosFieldKind == reflect.Map
+	case "number", "enum[number]":
+		return bosFieldKind == reflect.Int || bosFieldKind == reflect.Float64 || bosFieldKind == reflect.Int64 || bosFieldKind == reflect.Int32 || bosFieldKind == reflect.Float32
+
+	}
+
+	if strings.HasPrefix(bpFieldType, "array[") && strings.HasSuffix(bpFieldType, "]") {
+		if bosFieldKind != reflect.Slice {
+			return false
+		}
+		elemType := bpFieldType[6 : len(bpFieldType)-1]
+		return compatibleFieldType(elemType, bosFieldType.Elem())
+	}
+
+	if x, ok := typeMap[bpFieldType]; ok && x != nil {
+		return reflect.TypeOf(x) == bosFieldType
+	}
+
+	// maps are a catch all type
+	if bosFieldKind == reflect.Map {
+		return true
+	}
+
+	return false
 }
 
 type Type struct {

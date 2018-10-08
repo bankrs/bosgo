@@ -73,6 +73,7 @@
 + provider_id:          `DE-BIN-10010010` (string) - Financial institution reference
 + capabilities                            (AccessCapabilities) - Description of the features supported by the access
 + beneficiaries                           (array[Beneficiary],optional) - List of trusted beneficiaries used by the accounts belonging to the access
++ consent_expiration                      (string,optional) - Date when the user granted consent for usage of the access expires
 
 ## AccessCapabilities (object,fixed-type)
 
@@ -139,6 +140,7 @@
 + read_recurring_transfer:   true               (boolean) - Read recurring transfer
 + update_recurring_transfer: true               (boolean) - Update recurring transfer
 + delete_recurring_transfer: true               (boolean) - Delete recurring transfer
++ beneficiaries:             false              (boolean) - Get list of trusted beneficiaries
 
 ## ProviderAllowedOperations (object,fixed-type)
 + transfer:                  true               (boolean) - Create payment transfer
@@ -148,7 +150,7 @@
 + read_recurring_transfer:   true               (boolean) - Read recurring transfer
 + update_recurring_transfer: true               (boolean) - Update recurring transfer
 + delete_recurring_transfer: true               (boolean) - Delete recurring transfer
-+ beneficiaries:             true               (boolean) - Get list of trusted beneficiaries
++ beneficiaries:             false              (boolean) - Get list of trusted beneficiaries
 
 ## Money (object,fixed-type)
 + value:                 1283.4    (string) - Amount of money transferred
@@ -238,7 +240,6 @@
 
 ## FiOperations (object,fixed-type)
 + adapter:              `HBCI`                  (string) - Adapter name
-+ capabilities                                  (AccountCapabilities,optional) -
 + allowed_operations                            (ProviderAllowedOperations,optional,fixed-type) - The operations allowed on bank accounts
 
 ## InitialChallenge (object,fixed-type)
@@ -380,6 +381,7 @@
     + `select_auth_method`
     + `confirm_similar_transfer`
 + data                              (TransferStepData,optional) - Data.
++ challenge                         (Challenge,optional) - Challenges required for completing the job
 
 ## TransferStepData (object,fixed-type)
 + auth_methods                                           (array[AuthMethod],optional,fixed-type)      - List of authentication methods.
@@ -514,11 +516,11 @@
 + fis (array[Bank],fixed-type)
 
 ## Bank (object,fixed-type)
-+ id: `COBADEHDXXX` - the bank identity assigned by the identity provider
-+ label: `comdirect bank` - the bank name
-+ country: `DE` - the country
-+ provider: `BIC` - the identity provider
-+ service_context: `SEPA` - the service context, usually SEPA or empty
++ id:              `COBADEHDXXX`     (string) - the bank identity assigned by the identity provider
++ label:           `comdirect bank`  (string) - the bank name
++ country:         `DE`              (string) - the country
++ provider:        `BIC`             (string) - the identity provider
++ service_context: `SEPA`            (string) - the service context, usually SEPA or empty
 
 ## Usernames (object,fixed-type)
 + usernames: `john.doe@bankworld.com`, `unknown@example.com`  (array[string],required,fixed-type) - list of usernames
@@ -526,14 +528,14 @@
 ## WebhookNew
 + api_version:      `1`                                          (number,required) - Version to use
 + url:              `https://domain.com/webhook`                 (string,required) - URL to event send
-+ events                                                         (array,required) - List of event types
++ events                                                         (array[string],required) - List of event types
     + transactions                                               (string) - Eny events
 
 ## Webhook
 + id:               `7ea712bd-2db9-4408-b2ca-4c43cc98f369`       (string,required) - Webhook ID
 + api_version:      `1`                                          (number,required) - Version to use
 + url:              `https://domain.com/webhook`                 (string,required) - URL to event send
-+ events                                                         (array,required) - List of event types
++ events                                                         (array[string],required) - List of event types
 + environment:      `sandbox`                                    (string,required) - Environment is used
 + enabled:          `true`                                       (boolean,required)
 + created_at:       `2018-03-21T14:03:00Z`                       (string,required) - Date webhook was created

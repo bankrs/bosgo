@@ -40,13 +40,14 @@ type UsersStats struct {
 	From       string            `json:"from_date"`
 	To         string            `json:"to_date"`
 	Domain     string            `json:"domain"`
-	UsersTotal StatsValue        `json:"users_total"` // with weekly relative change
-	UsersToday StatsValue        `json:"users_today"` // with daily relative change
+	UsersTotal StatsValueChange  `json:"users_total"` // with weekly relative change
+	UsersToday StatsValueChange  `json:"users_today"` // with daily relative change
 	Stats      []DailyUsersStats `json:"stats"`
 }
 
-type StatsValue struct {
-	Value int64 `json:"value"`
+type StatsValueChange struct {
+	Value  int64   `json:"value"`
+	Change float64 `json:"change"`
 }
 
 type DailyUsersStats struct {
@@ -58,14 +59,14 @@ type TransfersStats struct {
 	From     string                `json:"from_date"`
 	To       string                `json:"to_date"`
 	Domain   string                `json:"domain"`
-	TotalOut StatsMoneyAmount      `json:"total_out"`
-	TodayOut StatsMoneyAmount      `json:"today_out"`
+	TotalOut []StatsMoneyAmount    `json:"total_out"`
+	TodayOut []StatsMoneyAmount    `json:"today_out"`
 	Stats    []DailyTransfersStats `json:"stats"`
 }
 
 type DailyTransfersStats struct {
-	Date string           `json:"date"`
-	Out  StatsMoneyAmount `json:"out"`
+	Date string             `json:"date"`
+	Out  []StatsMoneyAmount `json:"out"`
 }
 
 type MerchantsStats struct {
@@ -106,8 +107,8 @@ type RequestsStats struct {
 	From          string               `json:"from_date"`
 	To            string               `json:"to_date"`
 	Domain        string               `json:"domain"`
-	RequestsTotal StatsValue           `json:"requests_total"`
-	RequestsToday StatsValue           `json:"requests_today"`
+	RequestsTotal StatsValueChange     `json:"requests_total"`
+	RequestsToday StatsValueChange     `json:"requests_today"`
 	Stats         []DailyRequestsStats `json:"stats"`
 }
 
@@ -154,6 +155,7 @@ type ChallengeSpec struct {
 	Type        ChallengeType     `json:"type"`
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
+	Methods     []string          `json:"methods,omitempty"`
 	Info        map[string]string `json:"info,omitempty"`
 }
 
@@ -435,7 +437,6 @@ type Transfer struct {
 	Version        int             `json:"version"`
 	Step           TransferStep    `json:"step"`
 	State          TransferState   `json:"state"`
-	Schedule       *RecurrenceRule `json:"schedule,omitempty"`
 	EntryDate      time.Time       `json:"booking_date,omitempty"`
 	SettlementDate time.Time       `json:"effective_date,omitempty"`
 	Created        time.Time       `json:"created,omitempty"`
@@ -445,18 +446,19 @@ type Transfer struct {
 }
 
 type RecurringTransfer struct {
-	ID               string             `json:"id"`
-	From             TransferAddress    `json:"from"`
-	To               TransferAddress    `json:"to"`
-	Amount           MoneyAmount        `json:"amount"`
-	Usage            string             `json:"usage"`
-	Version          int                `json:"version"`
-	Step             TransferStep       `json:"step"`
-	State            TransferState      `json:"state"`
-	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
-	RemoteID         string             `json:"remote_id"`
-	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
-	Errors           []Problem          `json:"errors,omitempty"`
+	ID       string          `json:"id"`
+	From     TransferAddress `json:"from"`
+	To       TransferAddress `json:"to"`
+	Amount   MoneyAmount     `json:"amount"`
+	Usage    string          `json:"usage"`
+	Version  int             `json:"version"`
+	Step     TransferStep    `json:"step"`
+	State    TransferState   `json:"state"`
+	Schedule *RecurrenceRule `json:"schedule,omitempty"`
+	Created  time.Time       `json:"created,omitempty"`
+	Updated  time.Time       `json:"updated,omitempty"`
+	RemoteID string          `json:"remote_id"`
+	Errors   []Problem       `json:"errors,omitempty"`
 }
 
 type TransferState string
