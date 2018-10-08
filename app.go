@@ -31,6 +31,7 @@ type AppClient struct {
 	applicationID string
 	ua            string
 	environment   string
+	forceUnsecure bool
 	retryPolicy   RetryPolicy
 
 	Categories *CategoriesService
@@ -67,6 +68,7 @@ func (a *AppClient) newReq(path string) req {
 		par:         params{},
 		environment: a.environment,
 		retryPolicy: a.retryPolicy,
+		forceUnsecure: a.forceUnsecure,
 	}
 }
 
@@ -85,6 +87,7 @@ func (a *AppClient) WithUserToken(token string) *UserClient {
 	uc.ua = a.ua
 	uc.environment = a.environment
 	uc.retryPolicy = a.retryPolicy
+	uc.forceUnsecure = a.forceUnsecure
 	return uc
 }
 

@@ -40,6 +40,7 @@ type req struct {
 	requestsAttempted int
 	retryPolicy       RetryPolicy
 	allowRetry        bool
+	forceUnsecure     bool
 }
 
 func (r *req) url() *url.URL {
@@ -48,6 +49,9 @@ func (r *req) url() *url.URL {
 		Host:     r.addr,
 		Path:     r.path,
 		RawQuery: r.par.Encode(),
+	}
+	if r.forceUnsecure {
+		u.Scheme = "http"
 	}
 	return &u
 }
