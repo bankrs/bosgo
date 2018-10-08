@@ -20,7 +20,7 @@ var typeMap = map[string]interface{}{
 	"AccountReference":                 AccountRef{},
 	"Answer":                           nil,
 	"ApplicationID":                    nil,
-	"ApplicationItem":                  nil,
+	"ApplicationItem":                  ApplicationMetadata{},
 	"ApplicationKey":                   ApplicationKey{},
 	"AuthMethod":                       AuthMethod{},
 	"BadRequestError":                  nil,
@@ -35,11 +35,11 @@ var typeMap = map[string]interface{}{
 	"ChallengeEmpty":                   nil,
 	"ChallengeField":                   ChallengeField{},
 	"Counterparty":                     Counterparty{},
-	"Credential":                       nil,
-	"CredentialIndex":                  nil,
+	"Credential":                       Credential{},
+	"CredentialIndex":                  CredentialEntry{},
 	"CredentialKeys":                   nil,
 	"CredentialNew":                    nil,
-	"CredentialProvider":               nil,
+	"CredentialProvider":               CredentialProvider{},
 	"Credentials":                      nil,
 	"CredentialUpdate":                 nil,
 	"DailyMerchantObjStats":            DailyMerchantsStats{},
@@ -160,7 +160,7 @@ func TestTypes(t *testing.T) {
 				}
 				bosField, ok := fieldsByTag[bpField.Name]
 				if !ok {
-					t.Errorf("bosgo is missing field %s", bpField.Name)
+					t.Errorf("bosgo type %s is missing field %s", bosType.Name(), bpField.Name)
 					continue
 				}
 				bpFields[bpField.Name] = true
@@ -178,7 +178,7 @@ func TestTypes(t *testing.T) {
 					continue
 				}
 				if _, ok := bpFields[bosField]; !ok {
-					t.Errorf("bosgo has additional field %s", bosField)
+					t.Errorf("bosgo type %s has additional field %s", bosType.Name(), bosField)
 					continue
 				}
 			}
@@ -230,6 +230,13 @@ func compatibleFieldType(bpFieldType string, bosFieldType reflect.Type) bool {
 		}
 		elemType := bpFieldType[6 : len(bpFieldType)-1]
 		return compatibleFieldType(elemType, bosFieldType.Elem())
+	}
+
+	if bpFieldType == "array" {
+		if bosFieldKind != reflect.Slice {
+			return false
+		}
+		return compatibleFieldType("string", bosFieldType.Elem())
 	}
 
 	if x, ok := typeMap[bpFieldType]; ok && x != nil {

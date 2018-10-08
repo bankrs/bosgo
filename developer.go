@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // DevClient is a client used for interacting with services that require a
@@ -34,9 +33,10 @@ type DevClient struct {
 	environment string
 	retryPolicy RetryPolicy
 
-	Applications *ApplicationsService
-	Stats        *StatsService
-	Webhooks     *WebhooksService
+	Applications    *ApplicationsService
+	ApplicationKeys *ApplicationKeysService
+	Stats           *StatsService
+	Webhooks        *WebhooksService
 }
 
 // NewDevClient creates a new developer client, ready to use.
@@ -47,6 +47,7 @@ func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 		token: token,
 	}
 	dc.Applications = NewApplicationsService(dc)
+	dc.ApplicationKeys = NewApplicationKeysService(dc)
 	dc.Stats = NewStatsService(dc)
 	dc.Webhooks = NewWebhooksService(dc)
 
@@ -775,542 +776,95 @@ func (r *UpdateApplicationSettingsReq) Send() (*ApplicationSettings, error) {
 	return &settings, nil
 }
 
-// StatsService provides access to statistic related API services.
-type StatsService struct {
-	client *DevClient
-}
-
-func NewStatsService(c *DevClient) *StatsService { return &StatsService{client: c} }
-
-func (d *StatsService) Merchants() *StatsMerchantsReq {
-	return &StatsMerchantsReq{
-		req: d.client.newReq(apiV1 + "/stats/merchants"),
-	}
-}
-
-type StatsMerchantsReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *StatsMerchantsReq) Context(ctx context.Context) *StatsMerchantsReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *StatsMerchantsReq) ClientID(id string) *StatsMerchantsReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *StatsMerchantsReq) FromDate(date time.Time) *StatsMerchantsReq {
-	r.req.par.Set("from_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsMerchantsReq) ToDate(date time.Time) *StatsMerchantsReq {
-	r.req.par.Set("to_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsMerchantsReq) Send() (*MerchantsStats, error) {
-	// TODO: remove environment parameter
-	r.req.par.Set("environment", "sandbox")
-
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var stats MerchantsStats
-	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &stats, nil
-}
-
-func (d *StatsService) Providers() *StatsProvidersReq {
-	return &StatsProvidersReq{
-		req: d.client.newReq(apiV1 + "/stats/providers"),
-	}
-}
-
-type StatsProvidersReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *StatsProvidersReq) Context(ctx context.Context) *StatsProvidersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *StatsProvidersReq) ClientID(id string) *StatsProvidersReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *StatsProvidersReq) FromDate(date time.Time) *StatsProvidersReq {
-	r.req.par.Set("from_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsProvidersReq) ToDate(date time.Time) *StatsProvidersReq {
-	r.req.par.Set("to_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsProvidersReq) Send() (*ProvidersStats, error) {
-	// TODO: remove environment parameter
-	r.req.par.Set("environment", "sandbox")
-
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var stats ProvidersStats
-	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &stats, nil
-}
-
-func (d *StatsService) Transfers() *StatsTransfersReq {
-	return &StatsTransfersReq{
-		req: d.client.newReq(apiV1 + "/stats/transfers"),
-	}
-}
-
-type StatsTransfersReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *StatsTransfersReq) Context(ctx context.Context) *StatsTransfersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *StatsTransfersReq) ClientID(id string) *StatsTransfersReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *StatsTransfersReq) FromDate(date time.Time) *StatsTransfersReq {
-	r.req.par.Set("from_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsTransfersReq) ToDate(date time.Time) *StatsTransfersReq {
-	r.req.par.Set("to_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsTransfersReq) Send() (interface{}, error) {
-	// TODO: remove environment parameter
-	r.req.par.Set("environment", "sandbox")
-
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var stats interface{}
-	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	fmt.Printf("%+v\n", stats)
-
-	return stats, nil
-}
-
-func (d *StatsService) Users() *StatsUsersReq {
-	return &StatsUsersReq{
-		req: d.client.newReq(apiV1 + "/stats/users"),
-	}
-}
-
-type StatsUsersReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *StatsUsersReq) Context(ctx context.Context) *StatsUsersReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *StatsUsersReq) ClientID(id string) *StatsUsersReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *StatsUsersReq) FromDate(date time.Time) *StatsUsersReq {
-	r.req.par.Set("from_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsUsersReq) ToDate(date time.Time) *StatsUsersReq {
-	r.req.par.Set("to_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsUsersReq) Send() (*UsersStats, error) {
-	// TODO: remove environment parameter
-	r.req.par.Set("environment", "sandbox")
-
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var stats UsersStats
-	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &stats, nil
-}
-
-func (d *StatsService) Requests() *StatsRequestsReq {
-	return &StatsRequestsReq{
-		req: d.client.newReq(apiV1 + "/stats/requests"),
-	}
-}
-
-type StatsRequestsReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *StatsRequestsReq) Context(ctx context.Context) *StatsRequestsReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *StatsRequestsReq) ClientID(id string) *StatsRequestsReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *StatsRequestsReq) FromDate(date time.Time) *StatsRequestsReq {
-	r.req.par.Set("from_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsRequestsReq) ToDate(date time.Time) *StatsRequestsReq {
-	r.req.par.Set("to_date", date.Format("2006-01-02"))
-	return r
-}
-
-func (r *StatsRequestsReq) Send() (*RequestsStats, error) {
-	// TODO: remove environment parameter
-	r.req.par.Set("environment", "sandbox")
-
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var stats RequestsStats
-	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &stats, nil
-}
-
-// WebhooksService provides access to webhook related API services.
-type WebhooksService struct {
-	client *DevClient
-}
-
-func NewWebhooksService(c *DevClient) *WebhooksService { return &WebhooksService{client: c} }
-
-// Create prepares and returns a request to create a new webhook.
-func (d *WebhooksService) Create(apiVersion int, url string, events []string) *CreateWebhookReq {
-	return &CreateWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks"),
-		data: createWebhookParams{
-			URL:        url,
-			Events:     events,
-			APIVersion: apiVersion,
+// CreateCredential returns a request that may be used to create a set of developer credentials.
+func (d *ApplicationsService) CreateCredential(applicationID, provider string, credentials map[string]string) *CreateCredentialReq {
+	return &CreateCredentialReq{
+		req: d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/credentials"),
+		data: newCredentialData{
+			Provider:    provider,
+			Credentials: credentials,
 		},
 	}
 }
 
-type createWebhookParams struct {
-	URL        string   `json:"url"`
-	Events     []string `json:"events"`
-	APIVersion int      `json:"api_version"`
+type newCredentialData struct {
+	Provider    string            `json:"provider"`
+	Credentials map[string]string `json:"keys"`
 }
 
-type CreateWebhookReq struct {
+type CreateCredentialReq struct {
 	req
-	data createWebhookParams
+	data newCredentialData
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
 // the request will use context.Background.
-func (r *CreateWebhookReq) Context(ctx context.Context) *CreateWebhookReq {
+func (r *CreateCredentialReq) Context(ctx context.Context) *CreateCredentialReq {
 	r.req.ctx = ctx
 	return r
 }
 
 // ClientID sets a client identifier that will be passed to the Bankrs API in
 // the X-Client-Id header.
-func (r *CreateWebhookReq) ClientID(id string) *CreateWebhookReq {
+func (r *CreateCredentialReq) ClientID(id string) *CreateCredentialReq {
 	r.req.clientID = id
 	return r
 }
 
-func (r *CreateWebhookReq) Send() (string, error) {
+func (r *CreateCredentialReq) Send() (string, error) {
 	res, cleanup, err := r.req.postJSON(r.data)
 	defer cleanup()
 	if err != nil {
 		return "", err
 	}
 
-	var id struct {
+	var data struct {
 		ID string `json:"id"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&id); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
 		return "", decodeError(err, res)
 	}
 
-	return id.ID, nil
+	return data.ID, nil
 }
 
-// Get prepares and returns a request to get details of an existing webhook.
-func (d *WebhooksService) Get(id string) *GetWebhookReq {
-	return &GetWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks/" + url.PathEscape(id)),
+// ListCredentials returns a request that may be used to list all developer credentials associated
+// with an application.
+func (d *ApplicationsService) ListCredentials(applicationID string) *ListCredentialsReq {
+	return &ListCredentialsReq{
+		req: d.client.newReq(apiV1 + "/developers/applications/" + url.PathEscape(applicationID) + "/credentials"),
 	}
 }
 
-type GetWebhookReq struct {
+type ListCredentialsReq struct {
 	req
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
 // the request will use context.Background.
-func (r *GetWebhookReq) Context(ctx context.Context) *GetWebhookReq {
+func (r *ListCredentialsReq) Context(ctx context.Context) *ListCredentialsReq {
 	r.req.ctx = ctx
 	return r
 }
 
 // ClientID sets a client identifier that will be passed to the Bankrs API in
 // the X-Client-Id header.
-func (r *GetWebhookReq) ClientID(id string) *GetWebhookReq {
+func (r *ListCredentialsReq) ClientID(id string) *ListCredentialsReq {
 	r.req.clientID = id
 	return r
 }
 
-func (r *GetWebhookReq) Send() (*Webhook, error) {
+func (r *ListCredentialsReq) Send() (*CredentialsPage, error) {
 	res, cleanup, err := r.req.get()
 	defer cleanup()
 	if err != nil {
 		return nil, err
 	}
 
-	var wh Webhook
-	if err := json.NewDecoder(res.Body).Decode(&wh); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &wh, nil
-}
-
-// List prepares and returns a request to list details of all webhooks.
-func (d *WebhooksService) List() *ListWebhookReq {
-	return &ListWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks"),
-	}
-}
-
-type ListWebhookReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *ListWebhookReq) Context(ctx context.Context) *ListWebhookReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *ListWebhookReq) ClientID(id string) *ListWebhookReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *ListWebhookReq) Send() (*WebhookPage, error) {
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var page WebhookPage
-	if err := json.NewDecoder(res.Body).Decode(&page.Webhooks); err != nil {
+	var page CredentialsPage
+	if err := json.NewDecoder(res.Body).Decode(&page.Entries); err != nil {
 		return nil, decodeError(err, res)
 	}
 
 	return &page, nil
-}
-
-// Update prepares and returns a request to update an existing webhook.
-func (d *WebhooksService) Update(id string, apiVersion int, u string, events []string) *UpdateWebhookReq {
-	return &UpdateWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks/" + url.PathEscape(id)),
-		data: UpdateWebhookParams{
-			URL:        u,
-			Events:     events,
-			APIVersion: apiVersion,
-		},
-	}
-}
-
-type UpdateWebhookParams struct {
-	URL        string   `json:"url"`
-	Events     []string `json:"events"`
-	APIVersion int      `json:"api_version"`
-}
-
-type UpdateWebhookReq struct {
-	req
-	data UpdateWebhookParams
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *UpdateWebhookReq) Context(ctx context.Context) *UpdateWebhookReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *UpdateWebhookReq) ClientID(id string) *UpdateWebhookReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *UpdateWebhookReq) Send() error {
-	_, cleanup, err := r.req.putJSON(r.data)
-	defer cleanup()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Delete prepares and returns a request to delete an existing webhook.
-func (d *WebhooksService) Delete(id string) *DeleteWebhookReq {
-	return &DeleteWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks/" + url.PathEscape(id)),
-	}
-}
-
-type DeleteWebhookReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *DeleteWebhookReq) Context(ctx context.Context) *DeleteWebhookReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *DeleteWebhookReq) ClientID(id string) *DeleteWebhookReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *DeleteWebhookReq) Send() error {
-	_, cleanup, err := r.req.delete(nil)
-	defer cleanup()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Test prepares and returns a request to test a webhook.
-func (d *WebhooksService) Test(id string, event string) *TestWebhookReq {
-	return &TestWebhookReq{
-		req: d.client.newReq(apiV1 + "/webhooks/" + url.PathEscape(id)),
-		data: testWebhookParams{
-			Event: event,
-		},
-	}
-}
-
-type testWebhookParams struct {
-	Event string `json:"event"`
-}
-
-type TestWebhookReq struct {
-	req
-	data testWebhookParams
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *TestWebhookReq) Context(ctx context.Context) *TestWebhookReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *TestWebhookReq) ClientID(id string) *TestWebhookReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *TestWebhookReq) Send() (*WebhookTestResult, error) {
-	res, cleanup, err := r.req.postJSON(r.data)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var testResponse WebhookTestResult
-	if err := json.NewDecoder(res.Body).Decode(&testResponse); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &testResponse, nil
 }

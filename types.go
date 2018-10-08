@@ -22,9 +22,8 @@ type ApplicationPage struct {
 }
 
 type ApplicationMetadata struct {
-	ApplicationID string    `json:"id,omitempty"`
-	Label         string    `json:"label,omitempty"`
-	CreatedAt     time.Time `json:"created_at,omitempty"` // Deprecated: no longer used
+	ApplicationID string `json:"id,omitempty"`
+	Label         string `json:"label,omitempty"`
 }
 
 type ApplicationKeyPage struct {
@@ -676,4 +675,30 @@ type LinkedTeam struct {
 	Name   string `json:"name"`
 	Active bool   `json:"active"`
 	Owner  bool   `json:"owner"`
+}
+
+type CredentialsPage struct {
+	Entries []CredentialEntry `json:"entries,omitempty"`
+}
+
+type CredentialEntry struct {
+	ID        string    `json:"id"`
+	Provider  string    `json:"provider"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Credential struct {
+	ID          string            `json:"id"`
+	Provider    string            `json:"provider"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Credentials map[string]string `json:"keys"`
+}
+
+type CredentialProviderPage struct {
+	Providers []CredentialProvider `json:"providers"`
+}
+
+type CredentialProvider struct {
+	Name string   `json:"name"`
+	Keys []string `json:"keys"`
 }
