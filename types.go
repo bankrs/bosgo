@@ -9,8 +9,12 @@ type DeveloperCredentials struct {
 	Password string `json:"password"`
 }
 type DeveloperProfile struct {
-	Company             string `json:"company"`
-	HasProductionAccess bool   `json:"has_production_access"`
+	Company             string          `json:"company"`
+	HasProductionAccess bool            `json:"has_production_access"`
+	Confirmed           bool            `json:"confirmed"`
+	ExpiresAt           string          `json:"expires_at,omitempty"`
+	LinkedAccounts      []LinkedAccount `json:"linked_accounts,omitempty"`
+	LinkedTeam          []LinkedTeam    `json:"linked_teams,omitempty"`
 }
 
 type ApplicationPage struct {
@@ -32,60 +36,61 @@ type ApplicationKey struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
-type StatsPeriod struct {
-	From   string `json:"from_date"`
-	To     string `json:"to_date"`
-	Domain string `json:"domain"`
-}
-
 type UsersStats struct {
-	StatsPeriod
-	UsersTotal StatsValue        `json:"users_total"` // with weekly relative change
-	UsersToday StatsValue        `json:"users_today"` // with daily relative change
+	From       string            `json:"from_date"`
+	To         string            `json:"to_date"`
+	Domain     string            `json:"domain"`
+	UsersTotal StatsValueChange  `json:"users_total"` // with weekly relative change
+	UsersToday StatsValueChange  `json:"users_today"` // with daily relative change
 	Stats      []DailyUsersStats `json:"stats"`
 }
 
-type StatsValue struct {
-	Value int64 `json:"value"`
+type StatsValueChange struct {
+	Value  int64   `json:"value"`
+	Change float64 `json:"change"`
 }
 
 type DailyUsersStats struct {
-	Date        string `json:"date"`
-	UsersTotal  int64  `json:"users_total"`
-	NewUsers    int64  `json:"new_users"`
-	ActiveUsers int64  `json:"active_users"`
+	Date     string `json:"date"`
+	NewUsers int64  `json:"new_users"`
 }
 
 type TransfersStats struct {
-	StatsPeriod
-	TotalOut StatsMoneyAmount      `json:"total_out"`
-	TodayOut StatsMoneyAmount      `json:"today_out"`
+	From     string                `json:"from_date"`
+	To       string                `json:"to_date"`
+	Domain   string                `json:"domain"`
+	TotalOut []StatsMoneyAmount    `json:"total_out"`
+	TodayOut []StatsMoneyAmount    `json:"today_out"`
 	Stats    []DailyTransfersStats `json:"stats"`
 }
 
 type DailyTransfersStats struct {
-	Date string           `json:"date"`
-	Out  StatsMoneyAmount `json:"out"`
+	Date string             `json:"date"`
+	Out  []StatsMoneyAmount `json:"out"`
 }
 
 type MerchantsStats struct {
-	StatsPeriod
-	Stats []DailyMerchantsStats `json:"stats"`
+	From   string                `json:"from_date"`
+	To     string                `json:"to_date"`
+	Domain string                `json:"domain"`
+	Stats  []DailyMerchantsStats `json:"stats"`
 }
 
 type DailyMerchantsStats struct {
-	Date      string      `json:"date"`
-	Merchants []NameValue `json:"merchants"`
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
 }
 
 type ProvidersStats struct {
-	StatsPeriod
-	Stats []DailyProvidersStats `json:"stats"`
+	From   string                `json:"from_date"`
+	To     string                `json:"to_date"`
+	Domain string                `json:"domain"`
+	Stats  []DailyProvidersStats `json:"stats"`
 }
 
 type DailyProvidersStats struct {
-	Date      string      `json:"date"`
-	Providers []NameValue `json:"providers"`
+	Name  string `json:"name"`
+	Value int64  `json:"value"`
 }
 
 type StatsMoneyAmount struct {
@@ -99,9 +104,11 @@ type NameValue struct {
 }
 
 type RequestsStats struct {
-	StatsPeriod
-	RequestsTotal StatsValue           `json:"requests_total"`
-	RequestsToday StatsValue           `json:"requests_today"`
+	From          string               `json:"from_date"`
+	To            string               `json:"to_date"`
+	Domain        string               `json:"domain"`
+	RequestsTotal StatsValueChange     `json:"requests_total"`
+	RequestsToday StatsValueChange     `json:"requests_today"`
 	Stats         []DailyRequestsStats `json:"stats"`
 }
 
@@ -126,14 +133,20 @@ type ProviderSearchResult struct {
 }
 
 type Provider struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Country     string          `json:"country"`
-	URL         string          `json:"url"`
-	Address     string          `json:"address"`
-	PostalCode  string          `json:"postal_code"`
-	Challenges  []ChallengeSpec `json:"challenges"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Country     string             `json:"country"`
+	URL         string             `json:"url"`
+	Address     string             `json:"address"`
+	PostalCode  string             `json:"postal_code"`
+	Operations  ProviderOperations `json:"operations"`
+	Challenges  []ChallengeSpec    `json:"challenges"`
+}
+
+type ProviderOperations struct {
+	Adapter           string                    `json:"adapter"`
+	AllowedOperations ProviderAllowedOperations `json:"allowed_operations,omitempty" `
 }
 
 type ChallengeSpec struct {
@@ -142,6 +155,7 @@ type ChallengeSpec struct {
 	Type        ChallengeType     `json:"type"`
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
+	Methods     []string          `json:"methods,omitempty"`
 	Info        map[string]string `json:"info,omitempty"`
 }
 
@@ -189,27 +203,30 @@ type Access struct {
 	ProviderID        string             `json:"provider_id"`
 	Accounts          []Account          `json:"accounts,omitempty"`
 	Capabilities      AccessCapabilities `json:"capabilities"`
+	Beneficiaries     []Beneficiary      `json:"beneficiaries,omitempty"`
 	ConsentExpiration time.Time          `json:"consent_expiration,omitempty"`
 }
 
 type Account struct {
-	ID                int64               `json:"id"`
-	ProviderID        string              `json:"provider_id"`
-	BankAccessID      int64               `json:"bank_access_id"`
-	Name              string              `json:"name"`
-	Type              AccountType         `json:"type"`
-	Number            string              `json:"number"`
-	Balance           string              `json:"balance"`
-	BalanceDate       time.Time           `json:"balance_date"`
-	AvailableBalance  string              `json:"available_balance"`
-	CreditLine        string              `json:"credit_line"`
-	Removed           bool                `json:"removed"`
-	Currency          string              `json:"currency"`
-	IBAN              string              `json:"iban"`
-	Alias             string              `json:"alias"`
-	Capabilities      AccountCapabilities `json:"capabilities"`
-	AllowedOperations AllowedOperations   `json:"allowed_operations"`
-	Bin               string              `json:"bin"`
+	ID                int64                    `json:"id"`
+	ProviderID        string                   `json:"provider_id"`
+	BankAccessID      int64                    `json:"bank_access_id"`
+	Name              string                   `json:"name"`
+	Type              AccountType              `json:"type"`
+	Holder            string                   `json:"holder,omitempty"`
+	Number            string                   `json:"number"`
+	Balance           string                   `json:"balance"`
+	BalanceDate       time.Time                `json:"balance_date"`
+	AvailableBalance  string                   `json:"available_balance"`
+	CreditLine        string                   `json:"credit_line"`
+	Removed           bool                     `json:"removed"`
+	Currency          string                   `json:"currency"`
+	IBAN              string                   `json:"iban"`
+	Alias             string                   `json:"alias"`
+	Capabilities      AccountCapabilities      `json:"capabilities"`
+	AllowedOperations AccountAllowedOperations `json:"allowed_operations"`
+	Bin               string                   `json:"bin"`
+	Beneficiaries     []int64                  `json:"beneficiaries,omitempty"`
 }
 
 type AccountCapabilities struct {
@@ -218,7 +235,7 @@ type AccountCapabilities struct {
 	RecurringTransfer []string `json:"recurring_transfer"`
 }
 
-type AllowedOperations struct {
+type AccountAllowedOperations struct {
 	PaymentTransfer     bool `json:"transfer"`
 	AccountStatement    bool `json:"statement"`
 	AccountBalance      bool `json:"balance"`
@@ -228,6 +245,19 @@ type AllowedOperations struct {
 	ReadRecTrf          bool `json:"read_recurring_transfer"`
 	UpdateRecTrf        bool `json:"update_recurring_transfer"`
 	DeleteRecTrf        bool `json:"delete_recurring_transfer"`
+}
+
+type ProviderAllowedOperations struct {
+	PaymentTransfer     bool `json:"transfer"`
+	AccountStatement    bool `json:"statement"`
+	AccountBalance      bool `json:"balance"`
+	CreditCardStatement bool `json:"-"`
+	CreditCardBalance   bool `json:"-"`
+	CreateRecTrf        bool `json:"create_recurring_transfer"`
+	ReadRecTrf          bool `json:"read_recurring_transfer"`
+	UpdateRecTrf        bool `json:"update_recurring_transfer"`
+	DeleteRecTrf        bool `json:"delete_recurring_transfer"`
+	ReadBeneficiaries   bool `json:"beneficiaries"`
 }
 
 type AccountType string
@@ -296,11 +326,12 @@ type JobAccess struct {
 }
 
 type JobAccount struct {
-	ID     int64     `json:"id,omitempty"`
-	Name   string    `json:"name"`
-	Number string    `json:"number"`
-	IBAN   string    `json:"iban"`
-	Errors []Problem `json:"errors"`
+	ID         int64     `json:"id,omitempty"`
+	Name       string    `json:"name"`
+	Number     string    `json:"number"`
+	IBAN       string    `json:"iban"`
+	ProviderID string    `json:"provider_id,omitempty"`
+	Errors     []Problem `json:"errors"`
 }
 
 type TransactionPage struct {
@@ -410,37 +441,36 @@ const (
 type ChallengeAnswerMap map[string]ChallengeAnswer
 
 type Transfer struct {
-	ID               string             `json:"id"`
-	From             TransferAddress    `json:"from"`
-	To               TransferAddress    `json:"to"`
-	Amount           *MoneyAmount       `json:"amount"`
-	Usage            string             `json:"usage"`
-	Version          int                `json:"version"`
-	Step             TransferStep       `json:"step"`
-	State            TransferState      `json:"state"`
-	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
-	EntryDate        time.Time          `json:"booking_date,omitempty"`
-	SettlementDate   time.Time          `json:"effective_date,omitempty"`
-	Created          time.Time          `json:"created,omitempty"`
-	Updated          time.Time          `json:"updated,omitempty"`
-	RemoteID         string             `json:"remote_id"`
-	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
-	Errors           []Problem          `json:"errors"`
+	ID             string          `json:"id"`
+	From           TransferAddress `json:"from"`
+	To             TransferAddress `json:"to"`
+	Amount         *MoneyAmount    `json:"amount"`
+	Usage          string          `json:"usage"`
+	Version        int             `json:"version"`
+	Step           TransferStep    `json:"step"`
+	State          TransferState   `json:"state"`
+	EntryDate      time.Time       `json:"booking_date,omitempty"`
+	SettlementDate time.Time       `json:"effective_date,omitempty"`
+	Created        time.Time       `json:"created,omitempty"`
+	Updated        time.Time       `json:"updated,omitempty"`
+	RemoteID       string          `json:"remote_id"`
+	Errors         []Problem       `json:"errors"`
 }
 
 type RecurringTransfer struct {
-	ID               string             `json:"id"`
-	From             TransferAddress    `json:"from"`
-	To               TransferAddress    `json:"to"`
-	Amount           MoneyAmount        `json:"amount"`
-	Usage            string             `json:"usage"`
-	Version          int                `json:"version"`
-	Step             TransferStep       `json:"step"`
-	State            TransferState      `json:"state"`
-	Schedule         *RecurrenceRule    `json:"schedule,omitempty"`
-	RemoteID         string             `json:"remote_id"`
-	ChallengeAnswers ChallengeAnswerMap `json:"challenge_answers,omitempty"`
-	Errors           []Problem          `json:"errors,omitempty"`
+	ID       string          `json:"id"`
+	From     TransferAddress `json:"from"`
+	To       TransferAddress `json:"to"`
+	Amount   MoneyAmount     `json:"amount"`
+	Usage    string          `json:"usage"`
+	Version  int             `json:"version"`
+	Step     TransferStep    `json:"step"`
+	State    TransferState   `json:"state"`
+	Schedule *RecurrenceRule `json:"schedule,omitempty"`
+	Created  time.Time       `json:"created,omitempty"`
+	Updated  time.Time       `json:"updated,omitempty"`
+	RemoteID string          `json:"remote_id"`
+	Errors   []Problem       `json:"errors,omitempty"`
 }
 
 type TransferState string
@@ -468,8 +498,9 @@ type PaymentTransferCancelParams struct {
 }
 
 type TransferStep struct {
-	Intent TransferIntent    `json:"intent,omitempty"`
-	Data   *TransferStepData `json:"data,omitempty"`
+	Intent    TransferIntent    `json:"intent,omitempty"`
+	Data      *TransferStepData `json:"data,omitempty"`
+	Challenge *Challenge        `json:"challenge,omitempty"`
 }
 
 type AuthMethod struct {
@@ -482,7 +513,6 @@ type TransferStepData struct {
 	Challenge        string       `json:"challenge,omitempty"`         // TAN Challenge
 	ChallengeMessage string       `json:"challenge_message,omitempty"` // TAN Challenge Message
 	TANType          TANType      `json:"tan_type,omitempty"`          // Type of the TAN (optical, itan, unknown)
-	Confirm          bool         `json:"confirm,omitempty"`           // Confirm (similar transfer)
 	Transfers        []Transfer   `json:"transfers,omitempty"`         // Transfer list (similar transfers)
 }
 
@@ -561,16 +591,16 @@ type WebhookPage struct {
 }
 
 type WebhookTestResult struct {
-	Payload  EventPayload  `json:"payload"`
-	Response EventResponse `json:"response"`
+	Payload  WebhookPayload      `json:"payload"`
+	Response WebhookTestResponse `json:"response"`
 }
 
-type EventPayload struct {
-	Event Event                  `json:"event"`
+type WebhookPayload struct {
+	Event WebhookEventDetail     `json:"event"`
 	Data  map[string]interface{} `json:"data"`
 }
 
-type Event struct {
+type WebhookEventDetail struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
 	URL         string    `json:"url"`
@@ -579,7 +609,7 @@ type Event struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type EventResponse struct {
+type WebhookTestResponse struct {
 	ID     string `json:"id"`
 	Code   int    `json:"code"`
 	Status string `json:"status"`
@@ -618,4 +648,32 @@ type ScheduledTransferCapabilities struct {
 type Period struct {
 	Type   string `json:"type"`
 	Repeat int    `json:"repeat"`
+}
+
+type Beneficiary struct {
+	ID        int64      `json:"id"`
+	RemoteAcc AccountRef `json:"remote_account"`
+	Reference string     `json:"reference,omitempty"`
+}
+
+type LinkedAccountType int
+
+const (
+	LinkedAccountTypeRegular       LinkedAccountType = 0
+	LinkedAccountTypeAuthorization LinkedAccountType = 1
+)
+
+type LinkedAccount struct {
+	Type     LinkedAccountType `json:"type"`
+	ID       string            `json:"id"`
+	Title    string            `json:"title"`
+	UserName string            `json:"user_name"`
+	SyncTime string            `json:"sync_time"`
+}
+
+type LinkedTeam struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Active bool   `json:"active"`
+	Owner  bool   `json:"owner"`
 }
