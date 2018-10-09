@@ -20,6 +20,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"strings"
 	"testing"
 	"time"
 )
@@ -81,13 +82,17 @@ func startTestServer(t *testing.T, routes routeMap) (*http.Client, func()) {
 }
 
 type urlRewriteTransport struct {
-	Transport http.RoundTripper
-	URL       *url.URL
+	Transport    http.RoundTripper
+	URL          *url.URL
+	StripVersion bool
 }
 
 func (t urlRewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.URL.Scheme = t.URL.Scheme
 	req.URL.Host = t.URL.Host
+	if t.StripVersion {
+		req.URL.Path = req.URL.Path[strings.IndexByte(req.URL.Path[1:], '/')+1:]
+	}
 	req.URL.Path = path.Join(t.URL.Path, req.URL.Path)
 	rt := t.Transport
 	if rt == nil {

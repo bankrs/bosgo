@@ -1103,6 +1103,7 @@ func (r *DeleteRepeatedTransactionReq) ChallengeAnswer(answer ChallengeAnswer) *
 // Send sends the request to delete a repeated transaction. It returns
 // information about the long running recurring transfer job that may be used
 // to track and progress the deletion.
+// TODO: This looks wrong
 func (r *DeleteRepeatedTransactionReq) Send() (*RecurringTransfer, error) {
 	data := struct {
 		ChallengeAnswers ChallengeAnswerList `json:"challenge_answers"`
