@@ -259,9 +259,10 @@ type ChallengeField struct {
 }
 
 type Problem struct {
-	Domain string                 `json:"domain"`
-	Code   string                 `json:"code"`
-	Info   map[string]interface{} `json:"info"`
+	Domain                     string                 `json:"domain"`
+	Code                       string                 `json:"code"`
+	Info                       map[string]interface{} `json:"info"`
+	ContainsPrivateInformation bool                   `json:"contains_private_information"`
 }
 
 type JobAccess struct {
