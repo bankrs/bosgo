@@ -211,11 +211,12 @@
 + unstoreable           (boolean,optional) - Flag indicating whether it is possible to unstore a previously supplied value.
 + methods               (array[string],optional) - Auth methods for which this field belongs to.
 + info                  (object,optional) - Map of key/value strings providing more detail on the challenge.
- 
+
 ## Problem (object,fixed-type)
-+ domain                (string,required) - General grouping of the problem
-+ code                  (string,required) - A code that uniquely identifies the problem
-+ info                  (object,optional) - Map of key/value strings providing more detail on the problem.
++ domain                        (string,required) - General grouping of the problem
++ code                          (string,required) - A code that uniquely identifies the problem
++ info                          (object,optional) - Map of key/value strings providing more detail on the problem.
++ contains_private_information  (boolean,required) - Indicates to end user if this problem contains sensitive private information so he can decide whether to log it
 
 ## JobAccess (object,fixed-type)
 + id                                 (number,required) - Unique id
