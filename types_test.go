@@ -15,7 +15,6 @@ var typeMap = map[string]interface{}{
 	"Access":                           Access{},
 	"AccessCapabilities":               AccessCapabilities{},
 	"Account":                          Account{},
-	"AccountAllowedOperations":         AccountAllowedOperations{},
 	"AccountCapabilities":              AccountCapabilities{},
 	"AccountReference":                 AccountRef{},
 	"Answer":                           nil,

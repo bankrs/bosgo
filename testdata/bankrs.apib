@@ -124,22 +124,12 @@
 + currency:              EUR                    (string) - Currency
 + provider_id:           `DE-BIN-10010010`      (string) - Financial institution reference
 + capabilities                                  (AccountCapabilities,optional,fixed-type) - The account capabilities
-+ allowed_operations                            (AccountAllowedOperations,optional,fixed-type) - The operations allowed on account
 + beneficiaries                                 (array[number],optional) - List of identifiers of trusted beneficiaries associated with the account
 
 ## AccountCapabilities (object,fixed-type)
 + account_statement:    read                  (array[string],optional) - List of operations allowed for transaction statements
 + transfer:             create,read           (array[string],optional) - List of operations allowed for transfers
 + recurring_transfer:   create,read,delete    (array[string],optional) - List of operations allowed for recurring transfers
-
-## AccountAllowedOperations (object,fixed-type)
-+ transfer:                  true               (boolean) - Create payment transfer
-+ statement:                 true               (boolean) - Get account statement
-+ balance:                   true               (boolean) - Get account balance
-+ create_recurring_transfer: true               (boolean) - Create recurring transfer
-+ read_recurring_transfer:   true               (boolean) - Read recurring transfer
-+ update_recurring_transfer: true               (boolean) - Update recurring transfer
-+ delete_recurring_transfer: true               (boolean) - Delete recurring transfer
 
 ## ProviderAllowedOperations (object,fixed-type)
 + transfer:                  true               (boolean) - Create payment transfer
