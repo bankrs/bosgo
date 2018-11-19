@@ -230,11 +230,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 					Transfer:          []string{"read"},
 					RecurringTransfer: []string{"read"},
 				},
-				AllowedOperations: bosgo.AccountAllowedOperations{
-					AccountStatement: true,
-					PaymentTransfer:  true,
-					ReadRecTrf:       true,
-				},
 			},
 			{
 				ID:               s.nextID(),
@@ -253,11 +248,6 @@ func (s *Server) MakeAccess(providerID, name string) *bosgo.Access {
 					AccountStatement:  []string{"read"},
 					Transfer:          []string{"read"},
 					RecurringTransfer: []string{"read"},
-				},
-				AllowedOperations: bosgo.AccountAllowedOperations{
-					AccountStatement: true,
-					PaymentTransfer:  true,
-					ReadRecTrf:       true,
 				},
 			},
 		},
