@@ -37,6 +37,7 @@ type DevClient struct {
 	ApplicationKeys *ApplicationKeysService
 	Stats           *StatsService
 	Webhooks        *WebhooksService
+	Credentials     *CredentialsService
 }
 
 // NewDevClient creates a new developer client, ready to use.
@@ -50,6 +51,7 @@ func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 	dc.ApplicationKeys = NewApplicationKeysService(dc)
 	dc.Stats = NewStatsService(dc)
 	dc.Webhooks = NewWebhooksService(dc)
+	dc.Credentials = NewCredentialsService(dc)
 
 	return dc
 }
