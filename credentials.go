@@ -125,7 +125,7 @@ func (r *UpdateCredentialReq) Send() error {
 		Credentials: r.creds,
 	}
 
-	_, cleanup, err := r.req.postJSON(data)
+	_, cleanup, err := r.req.putJSON(data)
 	defer cleanup()
 	if err != nil {
 		return err
