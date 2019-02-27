@@ -54,6 +54,9 @@ type ClientOption func(*Client)
 // New creates a new client that will use the supplied HTTP client and connect
 // via the specified API host address.
 func New(client *http.Client, addr string, opts ...ClientOption) *Client {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	c := &Client{
 		hc:   client,
 		addr: addr,

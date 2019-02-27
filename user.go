@@ -49,6 +49,9 @@ type UserClient struct {
 
 // NewUserClient creates a new user client, ready to use.
 func NewUserClient(client *http.Client, addr string, token string, applicationID string) *UserClient {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	uc := &UserClient{
 		hc:            client,
 		addr:          addr,

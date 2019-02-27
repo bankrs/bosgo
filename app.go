@@ -42,6 +42,9 @@ type AppClient struct {
 // NewAppClient creates a new client that may be used to interact with
 // services that require a specific application context.
 func NewAppClient(client *http.Client, addr string, applicationID string) *AppClient {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	ac := &AppClient{
 		hc:            client,
 		addr:          addr,

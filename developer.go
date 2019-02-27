@@ -42,6 +42,9 @@ type DevClient struct {
 
 // NewDevClient creates a new developer client, ready to use.
 func NewDevClient(client *http.Client, addr string, token string) *DevClient {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	dc := &DevClient{
 		hc:    client,
 		addr:  addr,
