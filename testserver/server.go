@@ -695,7 +695,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 	case bosgo.TransferIntentProvidePIN:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		for _, ans := range combinedAnswers {
-			if ans.ID == "pin" && ans.Value == tr.AccessDetails.ChallengeMap["pin"] {
+			if (ans.ID == ChallengePIN || ans.ID == ChallengePassword) && ans.Value == tr.AccessDetails.ChallengeMap[ans.ID] {
 				tr.Transfer.Step = bosgo.TransferStep{
 					Intent: bosgo.TransferIntentSelectAuthMethod,
 					Data: &bosgo.TransferStepData{

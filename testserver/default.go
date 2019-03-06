@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	ChallengeLogin = "login"
-	ChallengePIN   = "pin"
-	ChallengeTAN   = "tan"
+	ChallengeLogin      = "login"
+	ChallengePIN        = "pin"
+	ChallengePostbankID = "postbankId"
+	ChallengePassword   = "password"
+	ChallengeTAN        = "tan"
 
 	DefaultDeveloperID   = "default-dev"
 	DefaultApplicationID = "default-app"
