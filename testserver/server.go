@@ -685,14 +685,14 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 		}
 
 		tr.Transfer.Step = bosgo.TransferStep{
-			Intent: bosgo.TransferIntentProvidePIN,
+			Intent: bosgo.TransferIntentProvideCredentials,
 		}
 		if len(combinedAnswers) == 0 {
 			break
 		}
 		fallthrough
 
-	case bosgo.TransferIntentProvidePIN:
+	case bosgo.TransferIntentProvideCredentials:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		for _, ans := range combinedAnswers {
 			if ans.ID == "pin" && ans.Value == tr.AccessDetails.ChallengeMap["pin"] {
@@ -716,7 +716,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 		// No pin supplied or it didn't match
 		tr.Transfer.Errors = append(tr.Transfer.Errors, bosgo.Problem{Code: "fi_invalid_loginname_pin"})
 		tr.Transfer.Step = bosgo.TransferStep{
-			Intent: bosgo.TransferIntentProvidePIN,
+			Intent: bosgo.TransferIntentProvideCredentials,
 		}
 
 	case bosgo.TransferIntentSelectAuthMethod:
@@ -761,7 +761,7 @@ func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bos
 	case bosgo.TransferIntentConfirmSimilarTransfer:
 		tr.Transfer.State = bosgo.TransferStateOngoing
 		tr.Transfer.Step = bosgo.TransferStep{
-			Intent: bosgo.TransferIntentProvidePIN,
+			Intent: bosgo.TransferIntentProvideCredentials,
 		}
 	}
 }

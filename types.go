@@ -472,7 +472,7 @@ const (
 type TransferIntent string
 
 const (
-	TransferIntentProvidePIN             TransferIntent = "provide_pin"
+	TransferIntentProvidePIN             TransferIntent = "provide_pin" // deprecated by provide_credentials
 	TransferIntentProvideCredentials     TransferIntent = "provide_credentials"
 	TransferIntentSelectAuthMethod       TransferIntent = "select_auth_method"
 	TransferIntentProvideChallengeAnswer TransferIntent = "provide_challenge_answer"

@@ -845,8 +845,8 @@ func TestCreateTransfer(t *testing.T) {
 		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
 	}
 
-	if transfer.Step.Intent != bosgo.TransferIntentProvidePIN {
-		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvidePIN)
+	if transfer.Step.Intent != bosgo.TransferIntentCredentials {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvideCredentials)
 	}
 
 	// Send the pin
@@ -953,8 +953,8 @@ func TestCreateRecurringTransfer(t *testing.T) {
 		t.Fatalf("got %d errors, wanted none", len(transfer.Errors))
 	}
 
-	if transfer.Step.Intent != bosgo.TransferIntentProvidePIN {
-		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvidePIN)
+	if transfer.Step.Intent != bosgo.TransferIntentProvideCredentials {
+		t.Errorf("got intent %v, wanted %v", transfer.Step.Intent, bosgo.TransferIntentProvideCredentials)
 	}
 
 	// Send the pin
@@ -1062,8 +1062,8 @@ func TestDeleteRecurringTransfer(t *testing.T) {
 		t.Fatalf("got %d errors, wanted none", len(recTrf.Errors))
 	}
 
-	if recTrf.Step.Intent != bosgo.TransferIntentProvidePIN {
-		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvidePIN)
+	if recTrf.Step.Intent != bosgo.TransferIntentProvideCredentials {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvideCredentials)
 	}
 
 	// Send the pin
@@ -1179,8 +1179,8 @@ func TestUpdateRecurringTransfer(t *testing.T) {
 		t.Fatalf("got %d errors, wanted none", len(recTrf.Errors))
 	}
 
-	if recTrf.Step.Intent != bosgo.TransferIntentProvidePIN {
-		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvidePIN)
+	if recTrf.Step.Intent != bosgo.TransferIntentProvideCredentials {
+		t.Errorf("got intent %v, wanted %v", recTrf.Step.Intent, bosgo.TransferIntentProvideCredentials)
 	}
 
 	// Send the pin
