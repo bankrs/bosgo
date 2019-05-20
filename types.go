@@ -7,6 +7,7 @@ import (
 type DeveloperCredentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	OTP      string `json:"otp"`
 }
 type DeveloperProfile struct {
 	Company             string          `json:"company"`
@@ -154,6 +155,7 @@ type ChallengeSpec struct {
 	Type        ChallengeType     `json:"type"`
 	Secure      bool              `json:"secure"`
 	UnStoreable bool              `json:"unstoreable"`
+	Optional    bool              `json:"optional"`
 	Methods     []string          `json:"methods,omitempty"`
 	Info        map[string]string `json:"info,omitempty"`
 }
@@ -260,12 +262,13 @@ type Job struct {
 }
 
 type JobStatus struct {
-	Finished  bool       `json:"finished"`
-	Stage     JobStage   `json:"stage"`
-	Challenge *Challenge `json:"challenge,omitempty"`
-	URI       string     `json:"uri,omitempty"`
-	Errors    []Problem  `json:"errors,omitempty"`
-	Access    *JobAccess `json:"access,omitempty"`
+	Finished  bool        `json:"finished"`
+	Stage     JobStage    `json:"stage"`
+	Challenge *Challenge  `json:"challenge,omitempty"`
+	URI       string      `json:"uri,omitempty"`
+	Errors    []Problem   `json:"errors,omitempty"`
+	Access    *JobAccess  `json:"access,omitempty"`
+	Consent   *JobConsent `json:"consent,omitempty"`
 }
 
 type JobStage string
@@ -277,7 +280,14 @@ const (
 	JobStageImported        JobStage = "imported"
 	JobStageCancelled       JobStage = "cancelled"
 	JobStageProblem         JobStage = "problem"
+	JobStageConsent         JobStage = "consent"
 )
+
+type JobConsent struct {
+	ID          string `json:"id,omitempty"`
+	AuthURL     string `json:"auth_url,omitempty"`
+	AuthMessage string `json:"auth_message,omitempty"`
+}
 
 type Challenge struct {
 	NextChallenges []ChallengeField `json:"next_challenges"`
@@ -294,6 +304,8 @@ type ChallengeField struct {
 	Secure        bool              `json:"secure"`
 	Optional      bool              `json:"optional"`
 	UnStoreable   bool              `json:"unstoreable"`
+	Transient     bool              `json:"transient"`
+	MinLen        int               `json:"minLen"`
 	Methods       []string          `json:"methods"`
 	Info          map[string]string `json:"info"`
 }
@@ -428,36 +440,38 @@ const (
 type ChallengeAnswerMap map[string]ChallengeAnswer
 
 type Transfer struct {
-	ID             string          `json:"id"`
-	From           TransferAddress `json:"from"`
-	To             TransferAddress `json:"to"`
-	Amount         *MoneyAmount    `json:"amount"`
-	Usage          string          `json:"usage"`
-	Version        int             `json:"version"`
-	Step           TransferStep    `json:"step"`
-	State          TransferState   `json:"state"`
-	EntryDate      time.Time       `json:"booking_date,omitempty"`
-	SettlementDate time.Time       `json:"effective_date,omitempty"`
-	Created        time.Time       `json:"created,omitempty"`
-	Updated        time.Time       `json:"updated,omitempty"`
-	RemoteID       string          `json:"remote_id"`
-	Errors         []Problem       `json:"errors"`
+	ID             string           `json:"id"`
+	From           TransferAddress  `json:"from"`
+	To             TransferAddress  `json:"to"`
+	Amount         *MoneyAmount     `json:"amount"`
+	Usage          string           `json:"usage"`
+	Version        int              `json:"version"`
+	Step           TransferStep     `json:"step"`
+	State          TransferState    `json:"state"`
+	EntryDate      time.Time        `json:"booking_date,omitempty"`
+	SettlementDate time.Time        `json:"effective_date,omitempty"`
+	Created        time.Time        `json:"created,omitempty"`
+	Updated        time.Time        `json:"updated,omitempty"`
+	RemoteID       string           `json:"remote_id"`
+	Errors         []Problem        `json:"errors"`
+	Consent        *TransferConsent `json:"consent,omitempty"`
 }
 
 type RecurringTransfer struct {
-	ID       string          `json:"id"`
-	From     TransferAddress `json:"from"`
-	To       TransferAddress `json:"to"`
-	Amount   MoneyAmount     `json:"amount"`
-	Usage    string          `json:"usage"`
-	Version  int             `json:"version"`
-	Step     TransferStep    `json:"step"`
-	State    TransferState   `json:"state"`
-	Schedule *RecurrenceRule `json:"schedule,omitempty"`
-	Created  time.Time       `json:"created,omitempty"`
-	Updated  time.Time       `json:"updated,omitempty"`
-	RemoteID string          `json:"remote_id"`
-	Errors   []Problem       `json:"errors,omitempty"`
+	ID       string           `json:"id"`
+	From     TransferAddress  `json:"from"`
+	To       TransferAddress  `json:"to"`
+	Amount   MoneyAmount      `json:"amount"`
+	Usage    string           `json:"usage"`
+	Version  int              `json:"version"`
+	Step     TransferStep     `json:"step"`
+	State    TransferState    `json:"state"`
+	Schedule *RecurrenceRule  `json:"schedule,omitempty"`
+	Created  time.Time        `json:"created,omitempty"`
+	Updated  time.Time        `json:"updated,omitempty"`
+	RemoteID string           `json:"remote_id"`
+	Errors   []Problem        `json:"errors,omitempty"`
+	Consent  *TransferConsent `json:"consent,omitempty"`
 }
 
 type TransferState string
@@ -477,6 +491,7 @@ const (
 	TransferIntentSelectAuthMethod       TransferIntent = "select_auth_method"
 	TransferIntentProvideChallengeAnswer TransferIntent = "provide_challenge_answer"
 	TransferIntentConfirmSimilarTransfer TransferIntent = "confirm_similar_transfer"
+	TransferIntentConsent                TransferIntent = "consent"
 )
 
 type PaymentTransferCancelParams struct {
@@ -520,13 +535,19 @@ const (
 	TANTypePush TANType = "push"
 	// TANTypeOTP indicates a one-time password
 	TANTypeOTP TANType = "otp"
-	// TypeUSB indicate a usb based TAN
+	// TANTypeUSB indicate a usb based TAN
 	TANTypeUSB TANType = "usb"
 	// TANTypePhoto indicates a colorised matrix barcode
 	TANTypePhoto TANType = "photo"
 
 	TANTypeUnknown TANType = "unknown"
 )
+
+type TransferConsent struct {
+	ID          string `json:"id,omitempty"`
+	AuthURL     string `json:"auth_url,omitempty"`
+	AuthMessage string `json:"auth_message,omitempty"`
+}
 
 type DeletedUser struct {
 	DeletedUserID string `json:"deleted_user_id"`
@@ -690,3 +711,41 @@ type CredentialProvider struct {
 	Name string   `json:"name"`
 	Keys []string `json:"keys"`
 }
+
+type Consent struct {
+	ID               string            `json:"id"`
+	ObjectType       ConsentObjectType `json:"object_type"`
+	ObjectID         string            `json:"object_id"`
+	Status           ConsentStatus     `json:"status"`
+	StatusChangeTime time.Time         `json:"status_change_time"`
+	Expiration       time.Time         `json:"expiration"`
+	AuthMethod       ConsentAuthMethod `json:"auth_method"`
+	AuthURL          string            `json:"auth_url"`
+	AuthMessage      string            `json:"auth_message"`
+}
+
+type ConsentObjectType string
+
+const (
+	ObjectTypeAccess   ConsentObjectType = "access"
+	ObjectTypeTransfer ConsentObjectType = "transfer"
+)
+
+type ConsentStatus string
+
+const (
+	AwaitingAuthorisation ConsentStatus = "awaiting_authorisation"
+	Authorised            ConsentStatus = "authorised"
+	Rejected              ConsentStatus = "rejected"
+	Revoked               ConsentStatus = "revoked"
+	Consumed              ConsentStatus = "consumed"
+)
+
+type ConsentAuthMethod string
+
+const (
+	OAuth    ConsentAuthMethod = "oauth"
+	Redirect ConsentAuthMethod = "redirect"
+	External ConsentAuthMethod = "external"
+	Login    ConsentAuthMethod = "login"
+)
