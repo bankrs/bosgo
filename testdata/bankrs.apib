@@ -1,12 +1,25 @@
+
 # Data Structures
 
 ## DeveloperCredentials (object,fixed-type)
 + email:    `john.doe@bankworld.com` (string, required) - Email address for the developer, requires valid email format
 + password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - Developer's password
++ otp:      `760318`                 (string) - One Time Password
+
+## DeveloperPassword (object,fixed-type)
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - Developer's password
+
+## RecoveryDevCredentials (object,fixed-type)
++ email:    `john.doe@bankworld.com` (string, required) - Email address for the developer, requires valid email format
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - Developer's password
++ recovery_code: `fa673-0922c`       (string, required) - Recovery Code
 
 ## DeveloperConfirmAction
 + password: `F6hC>dEgAWNnmRg.7xBE`   (string) - Developer's password if registered by email/password
 + email:    `john.doe@bankworld.com` (string) - Primary email address used on provider side if OAuth authorization is used
+
+## AuthLinkConfirmAction (object,fixed-type)
++ first_otp: `784022`               (string, required) - One Time Password
 
 ## DeveloperOAuthLogin (object,fixed-type)
 + provider:    `github`              (string,required) - Provider ID
@@ -63,6 +76,24 @@
 + score: 0.75 (number) - Search relevancy score
 + provider (Provider) - The matching provider.
 
+## ProviderWithStatus (object,fixed-type)
+
++ id:                    `DE-BIN-60010070`            (string) - Unique ID constructed in an internal format
++ name:                  `Postbank`                   (string) - Name of the provider
++ description:           `Postbank Stuttgart`         (string) - Description of the provider (name including country, branch name etc.)
++ address:               `70148 Stuttgart`            (string) - Provider address
++ postal_code:           `70148`                      (string) - Provider postal code
++ operations                                          (FiOperations) - Supported operations
++ country:               `DE`                         (string) - ISO 3166-1 alpha-2 country code
++ url:                   `https://www.postbank.de/`   (string) - Provider URL
++ challenges                                          (array[InitialChallenge]) - Set of initial challenges required for obtaining access to the provider
++ status                                              (ProviderStatus)          - Status of provider.
+
+## ProviderStatus (object,fixed-type)
++ blocked: false              (boolean) - Is the provider available ?
++ auto:    false              (boolean) - If blocked, was the provider blocked automatically or by an admin ?
++ host:    `hbci.postbank.de` (string)  - Host of the provider.
+
 ## Access (object,fixed-type)
 
 + id:                    2                (number) - Unique id
@@ -70,6 +101,17 @@
 + enabled:               true             (boolean) - Flag if the access is enabled
 + auth_possible:         false            (boolean) - Flag indicating whether all authentication-related answers have been supplied with values.
 + accounts                                (array[Account],optional,fixed-type) - The accounts that belong to the access
++ provider_id:          `DE-BIN-10010010` (string) - Financial institution reference
++ capabilities                            (AccessCapabilities) - Description of the features supported by the access
++ beneficiaries                           (array[Beneficiary],optional) - List of trusted beneficiaries used by the accounts belonging to the access
++ consent_expiration                      (string,optional) - Date when the user granted consent for usage of the access expires
+
+## Accesses (object,fixed-type)
+
++ id:                    2                (number) - Unique id
++ name                                    (string) - Name of the access
++ enabled:               true             (boolean) - Flag if the access is enabled
++ auth_possible:         false            (boolean) - Flag indicating whether all authentication-related answers have been supplied with values.
 + provider_id:          `DE-BIN-10010010` (string) - Financial institution reference
 + capabilities                            (AccessCapabilities) - Description of the features supported by the access
 + beneficiaries                           (array[Beneficiary],optional) - List of trusted beneficiaries used by the accounts belonging to the access
@@ -150,8 +192,8 @@
 + exchange_rate:         1.02       (string) - Exchange rate
 
 ## JobStatusOK (object,fixed-type)
-+ finished:       true     (boolean,required) - Is this job complete
-+ stage:          imported (enum[string],required) -
++ finished:       true            (boolean,required) - Is this job complete
++ stage:          + imported      (enum[string],required) -
     + unauthenticated
     + authenticated
     + challenge
@@ -173,10 +215,17 @@
     + imported
     + cancelled
     + problem
+    + consent
 + challenge             (Challenge,optional,fixed-type) - Challenges required for completing the job
 + uri:      `/jobs/c7869a94-2050-4fc5-afeb-0e8a9dbe6b61`   (string,optional) - URI of the job
 + errors                (array[Problem],optional,fixed-type) - List of errors encountered
 + access                (JobAccess,optional,fixed-type) - Details of the access that has been created.
++ consent               (JobConsent,optional,fixed-type) - Details of the consent required to authorise the job.
+
+## JobConsent (object,fixed-type)
++ id                    (string) - Unique identifier of the consent object.
++ auth_url              (string,optional) - The URL the user should use to authorise the consent request.
++ auth_message          (string,optional) - Instructions the user should follow to authorise the consent request.
 
 ## ChallengeEmpty (object,fixed-type)
 
@@ -199,6 +248,8 @@
 + secure                (boolean,optional) - Flag indicating confidential information, which should be masked on user input.
 + optional              (boolean,optional) - Flag indicating whether the answer is optional or required.
 + unstoreable           (boolean,optional) - Flag indicating whether it is possible to unstore a previously supplied value.
++ transient             (boolean,optional)
++ minLen                (number,optional)
 + methods               (array[string],optional) - Auth methods for which this field belongs to.
 + info                  (object,optional) - Map of key/value strings providing more detail on the challenge.
 
@@ -235,12 +286,13 @@
 ## InitialChallenge (object,fixed-type)
 + id:                   pin                     (string) - Unique (per provider) identifier with meaningful name (e.g login, email)
 + description:          Account PIN 4 digits    (string) - Challenge description
-+ type:                 numeric                 (enum[string]) - Type of the challenge
++ type:                 + numeric               (enum[string]) - Type of the challenge
     + alpha
     + numeric
     + alphanumeric
 + secure:               true                    (boolean) - Flag indicating confidential information, which should be masked on user input
 + unstoreable:          false                   (boolean) - Flag indicating, whether it's possible to unstore a previously provided value
++ optional:             false                   (boolean) - Flag indicating, whether challenge is optional
 + methods                                       (array[string],optional) - Auth methods for which this field belongs to.
 + info                                          (object,optional) - Map of key/value strings providing more detail on the challenge
 
@@ -297,7 +349,7 @@
 ## Category (object,fixed-type)
 + id:                       10                          (number) - Unique numeric identifier of the category
 + names                                                 (CategoryName) - The localised names of the category
-+ group:                    SPENDING                    (enum[string]) - The category group
++ group:                    + `SPENDING`                (enum[string]) - The category group
     + `SPENDING`
     + `INCOME`
 
@@ -308,11 +360,11 @@
 ## Schedule (object,fixed-type)
 + start:                 `2015-11-03T12:00:00Z`  (string) - Start date. Must not be before today.
 + until:                 `2018-10-03T12:00:00Z`  (string) - End date. Must be later than the start date.
-+ frequency: monthly                             (enum[string]) - Frequency
-    + `daily`
-    + `weekly`
-    + `monthly`
-    + `yearly`
++ frequency:              + monthly              (enum[string]) - Frequency
+    + daily
+    + monthly
+    + weekly
+    + yearly
 + interval:             2                        (number) - Interval for the given frequency. Valid values for `weekly` are: 1 (every week), 2 (every second weeks). Valid values for `monthly`: 1 (every month), 2 (every second month), 6 (every six months).
 + by_day:               26                       (number) - A day within the frequency unit to execute the transaction, i.e. a specifc day in a month (1-31) or a weekday (1-5, starting with Monday). The special value -1 designates the last day of the month.
 
@@ -320,11 +372,14 @@
 + username: `john.doe@bankworld.com` (string, required) - User name (valid email format required)
 + password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - User password
 
+## NewUserPassword (object,fixed-type)
++ username: `john.doe@bankworld.com` (string, required) - User name (valid email format required)
++ password: `F6hC>dEgAWNnmRg.7xBE`   (string, required) - The new user password
+
 ## TransferRequest (object,fixed-type)
 + from: `2`                    (string, required) - The ID of the source bank account.
 + to                           (TransferAddress, required) - The recipient for this money transfer.
-+ type:  `regular`             (enum[string]) - The type of transfer
-    + `regular`
++ type:  + `regular`           (enum[string]) - The type of transfer
     + `recurring`
 + schedule                     (Schedule,optional) - The recurrence schedule. Required for transfers of type `recurring`.
 + amount                       (Money, required) - The amount of money to be transferred.
@@ -356,6 +411,7 @@
 + updated                                    (string,optional) - Last updated timestamp.
 + remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
 + errors                                     (array[Problem],optional,fixed-type) - List of errors.
++ consent                                    (TransferConsent,optional,fixed-type) - Details of the consent required to authorise the transfer.
 + Include TransferBusinessFieldsObject
 
 ## TransferAddress (object,fixed-type)
@@ -367,9 +423,11 @@
 ## TransferStep (object,fixed-type)
 + intent                            (enum[string],optional) - The intent of the step
     + `provide_pin`
+    + `provide_credentials`
     + `provide_challenge_answer`
     + `select_auth_method`
     + `confirm_similar_transfer`
+    + `consent`
 + data                              (TransferStepData,optional) - Data.
 + challenge                         (Challenge,optional) - Challenges required for completing the job
 
@@ -395,6 +453,12 @@
 + updated                                    (string,optional) - Last updated timestamp.
 + remote_id:  `3617da210`                    (string,optional) - An identifier assigned to the transfer by the payment processor
 + errors                                     (array[Problem],optional,fixed-type) - List of errors.
++ consent                                    (TransferConsent,optional,fixed-type) - Details of the consent required to authorise the transfer.
+
+## TransferConsent (object,fixed-type)
++ id                    (string) - Unique identifier of the consent object.
++ auth_url              (string,optional) - The URL the user should use to authorise the consent request.
++ auth_message          (string,optional) - Instructions the user should follow to authorise the consent request.
 
 ## AuthMethod (object,fixed-type)
 + id                'pin'         (string) - The unique identifier for the auth method.
@@ -405,12 +469,13 @@
 + category_id: 2              (string, required) - The category ID.
 
 ## AccountReference (object,fixed-type)
-+ provider_id:             `DE-BIN-23232424`            (string,required) - the id of the financial institution
-+ iban:                    `DE56120300001036391454`     (string,required) - Account IBAN
-+ id:                      `83723211`                   (string,optional) - Account identifier, usually account number issued by the financial provider
-+ label:                   `Current giro account`       (string,optional) - Account name
-+ type:                    `current`                    (enum[string],optional) - Type of account
++ provider_id:          `DE-BIN-23232424`            (string,required) - the id of the financial institution
++ iban:                 `DE56120300001036391454`     (string,required) - Account IBAN
++ id:                   `83723211`                   (string,optional) - Account identifier, usually account number issued by the financial provider
++ label:                `Current giro account`   (string,optional) - Account name
++ type:                 `current`  (enum[string],optional) - Type of account
     + `current`
+    + `depot`
     + `savings`
     + `creditcard`
     + `loan`
@@ -641,3 +706,4 @@
 + id:               1                                            (number,required) - Beneficiary ID, unique within a single access.
 + remote_account                                                 (AccountReference,required,fixed-type) - Identifying details of the beneficiary account
 + reference:        `X100201`                                    (string,optional) - Reference to be used when the beneficiary is used in a transfer
+
