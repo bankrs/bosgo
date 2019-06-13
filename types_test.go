@@ -115,6 +115,7 @@ var typeMap = map[string]interface{}{
 	"WebhookTest":                      nil,
 	"WebhookTestResult":                WebhookTestResult{},
 	"WebhookTestResponse":              WebhookTestResponse{},
+	"UserInfo":                         UserInfo{},
 }
 
 var exclusions = map[string][]string{
@@ -146,13 +147,7 @@ func TestTypes(t *testing.T) {
 				t.Errorf("unexpected kind of value in typeMap, got %s, wanted %s", bosType.Kind(), reflect.Struct)
 			}
 
-			fieldsByTag := map[string]reflect.StructField{}
-			for i := 0; i < bosType.NumField(); i++ {
-				f := bosType.Field(i)
-				names := strings.Split(f.Tag.Get("json"), ",")
-				fieldsByTag[names[0]] = f
-			}
-
+			fieldsByTag := getFieldTags(bosType)
 			// Check if bosgo has all the fields defined
 			bpFields := map[string]bool{}
 			for _, bpField := range bpType.Fields {
@@ -190,6 +185,25 @@ func TestTypes(t *testing.T) {
 	if p.Err() != nil {
 		t.Errorf("unexpected error: %v", p.Err())
 	}
+}
+
+// getFieldTags returns the type field tags and handles anonymously fields recursively
+func getFieldTags(typ reflect.Type) map[string]reflect.StructField {
+	fieldsByTag := map[string]reflect.StructField{}
+	var rec func(typ reflect.Type)
+	rec = func(typ reflect.Type) {
+		for i := 0; i < typ.NumField(); i++ {
+			f := typ.Field(i)
+			if f.Anonymous {
+				rec(f.Type)
+				continue
+			}
+			names := strings.Split(f.Tag.Get("json"), ",")
+			fieldsByTag[names[0]] = f
+		}
+	}
+	rec(typ)
+	return fieldsByTag
 }
 
 func excluded(typeName, fieldName string) bool {

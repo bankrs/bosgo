@@ -207,16 +207,16 @@ type Access struct {
 	Beneficiaries     []Beneficiary      `json:"beneficiaries,omitempty"`
 	ConsentExpiration time.Time          `json:"consent_expiration,omitempty"`
 	// Personal information of the user, just for this access
-	UserInfo
+	UserInfo UserInfo `json:"user_info,omitempty"`
 }
 
 // UserInfo represents personal information about the user of this access
 type UserInfo struct {
-	UserPhoneNumber   string     `json:"user_phone_number,omitempty"`
-	UserLastUpdated   *time.Time `json:"user_last_updated,omitempty"`
-	UserKYCUpdated    *time.Time `json:"user_kyc_completed,omitempty"`
-	UserCardActivated *time.Time `json:"user_card_activated,omitempty"`
-	UserCountry       string     `json:"user_country,omitempty"`
+	PhoneNumber   string     `json:"phone_number,omitempty"`
+	LastUpdated   *time.Time `json:"last_updated,omitempty"`
+	KYCUpdated    *time.Time `json:"kyc_completed,omitempty"`
+	CardActivated *time.Time `json:"card_activated,omitempty"`
+	Country       string     `json:"country,omitempty"`
 }
 
 type Account struct {

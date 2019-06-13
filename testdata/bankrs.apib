@@ -105,6 +105,15 @@
 + capabilities                            (AccessCapabilities) - Description of the features supported by the access
 + beneficiaries                           (array[Beneficiary],optional) - List of trusted beneficiaries used by the accounts belonging to the access
 + consent_expiration                      (string,optional) - Date when the user granted consent for usage of the access expires
++ user_info                               (UserInfo) - User information related to this access
+
+## UserInfo (object,fixed-type)
+
++ phone_number                       (string,optional) - User phone number, if available
++ last_updated                       (string,optional) - User last account update date, if available
++ kyc_completed                      (string,optional) - User kyc completed date, if available
++ card_activated                     (string,optional) - User card activation date, if available
++ country                            (string,optional) - User residence country, if available
 
 ## Accesses (object,fixed-type)
 
