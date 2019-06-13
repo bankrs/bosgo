@@ -206,6 +206,17 @@ type Access struct {
 	Capabilities      AccessCapabilities `json:"capabilities"`
 	Beneficiaries     []Beneficiary      `json:"beneficiaries,omitempty"`
 	ConsentExpiration time.Time          `json:"consent_expiration,omitempty"`
+	// Personal information of the user, just for this access
+	UserInfo UserInfo `json:"user_info,omitempty"`
+}
+
+// UserInfo represents personal information about the user of this access
+type UserInfo struct {
+	PhoneNumber   string     `json:"phone_number,omitempty"`
+	LastUpdated   *time.Time `json:"last_updated,omitempty"`
+	KYCUpdated    *time.Time `json:"kyc_completed,omitempty"`
+	CardActivated *time.Time `json:"card_activated,omitempty"`
+	Country       string     `json:"country,omitempty"`
 }
 
 type Account struct {
