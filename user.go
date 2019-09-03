@@ -37,6 +37,7 @@ type UserClient struct {
 	environment   string
 	retryPolicy   RetryPolicy
 
+	UUID                  string
 	Accesses              *AccessesService
 	Jobs                  *JobsService
 	Accounts              *AccountsService
@@ -49,12 +50,13 @@ type UserClient struct {
 }
 
 // NewUserClient creates a new user client, ready to use.
-func NewUserClient(client *http.Client, addr string, token string, applicationID string) *UserClient {
+func NewUserClient(client *http.Client, addr string, uid string, token string, applicationID string) *UserClient {
 	uc := &UserClient{
 		hc:            client,
 		addr:          addr,
 		token:         token,
 		applicationID: applicationID,
+		UUID:           uid,
 	}
 	uc.Accesses = NewAccessesService(uc)
 	uc.Jobs = NewJobsService(uc)
