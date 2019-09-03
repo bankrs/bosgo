@@ -324,7 +324,7 @@ func TestRetryPost(t *testing.T) {
 	}
 
 	// Request fails since retries are not allowed when creating a transfer
-	userClient := NewUserClient(hc, SandboxAddr, "usertoken", "applicationid")
+	userClient := NewUserClient(hc, SandboxAddr, "uid", "usertoken", "applicationid")
 	userClient.retryPolicy = policy
 
 	_, err := userClient.Transfers.Create(1, TransferAddress{Name: "test"}, MoneyAmount{Currency: "EUR", Value: "40.15"}).Send()
