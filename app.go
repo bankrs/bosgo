@@ -80,8 +80,8 @@ func (a *AppClient) userAgent() string {
 
 // WithUserToken creates a UserClient with the supplied user token and
 // application ID, copying options set on the receiver.
-func (a *AppClient) WithUserToken(token string) *UserClient {
-	uc := NewUserClient(a.hc, a.addr, token, a.applicationID)
+func (a *AppClient) WithUserIDAndUserToken(userID, token string) *UserClient {
+	uc := NewUserClient(a.hc, a.addr, userID, token, a.applicationID)
 	uc.ua = a.ua
 	uc.environment = a.environment
 	uc.retryPolicy = a.retryPolicy
@@ -281,7 +281,7 @@ func (r *UserCreateReq) Send() (*UserClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	return r.client.WithUserToken(t.Token), nil
+	return r.client.WithUserIDAndUserToken(t.ID, t.Token), nil
 }
 
 // Login returns a request that may be used to login a user with the given username and password.
@@ -333,7 +333,7 @@ func (r *UserLoginReq) Send() (*UserClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	return r.client.WithUserToken(t.Token), nil
+	return r.client.WithUserIDAndUserToken(t.ID, t.Token), nil
 }
 
 // ResetPassword prepares and returns a request to reset a user's password.
