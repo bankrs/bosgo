@@ -26,13 +26,12 @@ import (
 // valid developer session. It is safe for concurrent use by multiple goroutines.
 type DevClient struct {
 	// never modified once they have been set
-	hc             *http.Client
-	addr           string
-	token          string // session token
-	applicationKey string
-	ua             string
-	environment    string
-	retryPolicy    RetryPolicy
+	hc          *http.Client
+	addr        string
+	token       string // session token
+	ua          string
+	environment string
+	retryPolicy RetryPolicy
 
 	Applications    *ApplicationsService
 	ApplicationKeys *ApplicationKeysService
@@ -42,12 +41,11 @@ type DevClient struct {
 }
 
 // NewDevClient creates a new developer client, ready to use.
-func NewDevClient(client *http.Client, addr string, token string, applicationKey string) *DevClient {
+func NewDevClient(client *http.Client, addr string, token string) *DevClient {
 	dc := &DevClient{
-		hc:             client,
-		addr:           addr,
-		token:          token,
-		applicationKey: applicationKey,
+		hc:    client,
+		addr:  addr,
+		token: token,
 	}
 	dc.Applications = NewApplicationsService(dc)
 	dc.ApplicationKeys = NewApplicationKeysService(dc)
@@ -77,9 +75,8 @@ func (d *DevClient) newReq(path string) req {
 		addr: d.addr,
 		path: path,
 		headers: headers{
-			"User-Agent":        d.userAgent(),
-			"x-token":           d.token,
-			"x-application-key": d.applicationKey,
+			"User-Agent": d.userAgent(),
+			"x-token":    d.token,
 		},
 		par:         params{},
 		environment: d.environment,
@@ -526,8 +523,9 @@ func (r *CreateAppKeyReq) Send() (*ApplicationKey, error) {
 	return &key, nil
 }
 
-func (d *ApplicationsService) ListUsers() *ListDevUsersReq {
+func (d *ApplicationsService) ListUsers(applicationID string) *ListDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users")
+	r.headers["x-application-id"] = applicationID
 	r.allowRetry = true
 	return &ListDevUsersReq{
 		req: r,
@@ -594,8 +592,9 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 }
 
 // UserInfo prepares and returns a request to lookup information about a user.
-func (d *ApplicationsService) UserInfo(id string) *DevUserInfoReq {
+func (d *ApplicationsService) UserInfo(applicationID, id string) *DevUserInfoReq {
 	r := d.client.newReq(apiV1 + "/developers/user/" + url.PathEscape(id))
+	r.headers["x-application-id"] = applicationID
 	return &DevUserInfoReq{
 		req: r,
 	}
@@ -635,8 +634,9 @@ func (r *DevUserInfoReq) Send() (*DevUserInfo, error) {
 }
 
 // ResetUsers prepares and returns a request to reset user data.
-func (d *ApplicationsService) ResetUsers(usernames []string) *ResetDevUsersReq {
+func (d *ApplicationsService) ResetUsers(applicationID string, usernames []string) *ResetDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users/reset")
+	r.headers["x-application-id"] = applicationID
 	return &ResetDevUsersReq{
 		req:       r,
 		usernames: usernames,
