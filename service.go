@@ -42,21 +42,23 @@ const (
 // safe for concurrent use by multiple goroutines.
 type Client struct {
 	// never modified once they have been set
-	hc          *http.Client
-	addr        string
-	ua          string
-	environment string
-	retryPolicy RetryPolicy
+	hc             *http.Client
+	addr           string
+	applicationKey string
+	ua             string
+	environment    string
+	retryPolicy    RetryPolicy
 }
 
 type ClientOption func(*Client)
 
 // New creates a new client that will use the supplied HTTP client and connect
 // via the specified API host address.
-func New(client *http.Client, addr string, opts ...ClientOption) *Client {
+func New(client *http.Client, addr string, applicationKey string, opts ...ClientOption) *Client {
 	c := &Client{
-		hc:   client,
-		addr: addr,
+		hc:             client,
+		addr:           addr,
+		applicationKey: applicationKey,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -99,7 +101,7 @@ func (c *Client) WithApplicationID(applicationID string) *AppClient {
 // WithDeveloperToken creates a DevClient with the supplied developer token,
 // copying options set on the receiver.
 func (c *Client) WithDeveloperToken(token string) *DevClient {
-	dc := NewDevClient(c.hc, c.addr, token)
+	dc := NewDevClient(c.hc, c.addr, token, c.applicationKey)
 	dc.ua = c.ua
 	dc.environment = c.environment
 	dc.retryPolicy = c.retryPolicy
@@ -209,7 +211,7 @@ func (r *DeveloperCreateReq) Send() (*DevClient, error) {
 		return nil, decodeError(err, res)
 	}
 
-	dc := NewDevClient(r.client.hc, r.client.addr, t.Token)
+	dc := NewDevClient(r.client.hc, r.client.addr, t.Token, r.client.applicationKey)
 	dc.ua = r.client.ua
 	dc.environment = r.client.environment
 	return dc, nil
@@ -304,18 +306,6 @@ func (r *ResetPasswordReq) Send() error {
 	}
 
 	return nil
-}
-
-// UserAgent is a client option that may be used to add information to the user agent header used by
-// the client.
-func UserAgent(ua string) ClientOption {
-	return func(c *Client) { c.ua = ua }
-}
-
-// Environment is a client option that may be used to set the X-Environment header used by
-// the client.
-func Environment(environment string) ClientOption {
-	return func(c *Client) { c.environment = environment }
 }
 
 // WithRetryPolicy is a client option that may be used to set the retry policy used by the client.

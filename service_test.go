@@ -30,12 +30,6 @@ var (
 		w.WriteHeader(http.StatusNoContent)
 	}
 
-	errorHandler = func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
-	}
-
 	devTokenHandler = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -53,9 +47,9 @@ type routeMap map[string]map[string]http.HandlerFunc
 
 func startTestServer(t *testing.T, routes routeMap) (*http.Client, func()) {
 	mux := http.NewServeMux()
-	for path, methodHandlers := range routes {
+	for route, methodHandlers := range routes {
 		for method, handler := range methodHandlers {
-			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != method {
 					w.WriteHeader(http.StatusNotFound)
 					return
@@ -111,7 +105,7 @@ func TestDeveloperLoginSuccess(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	client := New(hc, SandboxAddr)
+	client := New(hc, SandboxAddr, "applicationid")
 	devClient, err := client.Login("dev@example.com", "pwd").Send()
 
 	if err != nil {
@@ -137,7 +131,7 @@ func TestDeveloperLoginUnknown(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	client := New(hc, SandboxAddr)
+	client := New(hc, SandboxAddr, "applicationid")
 	_, err := client.Login("dev@example.com", "pwd").Send()
 
 	if err == nil {
@@ -160,7 +154,7 @@ func TestCreateDeveloper(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	client := New(hc, SandboxAddr)
+	client := New(hc, SandboxAddr, "applicationid")
 	devClient, err := client.CreateDeveloper("dev@example.com", "pwd").Send()
 
 	if err != nil {
@@ -222,7 +216,7 @@ func TestRetryGet(t *testing.T) {
 	defer cleanup()
 
 	// Request fails without retry policy
-	clientNoRetry := New(hc, SandboxAddr)
+	clientNoRetry := New(hc, SandboxAddr, "applicationid")
 	appClientNoRetry := clientNoRetry.WithApplicationID("applicationid")
 
 	_, err := appClientNoRetry.Providers.Search("foo").Send()
@@ -237,7 +231,7 @@ func TestRetryGet(t *testing.T) {
 	}
 
 	// Request succeeds with retry policy
-	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	clientWithRetry := New(hc, SandboxAddr, "applicationid", WithRetryPolicy(policy))
 	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
 
 	_, err = appClientWithRetry.Providers.Search("foo").Send()
@@ -269,7 +263,7 @@ func TestRetryGetReturnsLastError(t *testing.T) {
 	}
 
 	// Request succeeds with retry policy
-	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
+	clientWithRetry := New(hc, SandboxAddr, "applicationid", WithRetryPolicy(policy))
 	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
 
 	_, err := appClientWithRetry.Providers.Search("foo").Send()
@@ -333,10 +327,10 @@ func TestRetryPost(t *testing.T) {
 	}
 
 	// Request succeeds since retries are allowed when searching for users
-	devClient := NewDevClient(hc, SandboxAddr, "devtoken")
+	devClient := NewDevClient(hc, SandboxAddr, "devtoken", "applicationid")
 	devClient.retryPolicy = policy
 
-	_, err = devClient.Applications.ListUsers("applicationid").Limit(40).Send()
+	_, err = devClient.Applications.ListUsers().Limit(40).Send()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
