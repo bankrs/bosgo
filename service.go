@@ -306,6 +306,18 @@ func (r *ResetPasswordReq) Send() error {
 	return nil
 }
 
+// UserAgent is a client option that may be used to add information to the user agent header used by
+// the client.
+func UserAgent(ua string) ClientOption {
+	return func(c *Client) { c.ua = ua }
+}
+
+// Environment is a client option that may be used to set the X-Environment header used by
+// the client.
+func Environment(environment string) ClientOption {
+	return func(c *Client) { c.environment = environment }
+}
+
 // WithRetryPolicy is a client option that may be used to set the retry policy used by the client.
 func WithRetryPolicy(policy RetryPolicy) ClientOption {
 	return func(c *Client) {
