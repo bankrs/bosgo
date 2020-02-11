@@ -37,7 +37,7 @@ This package contains several unit tests that demonstrate how to use the test se
 
 
     // Create a client using the server-supplied HTTP client which is configured to accept the test server's TLS config
-    appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+    appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
  
    // The rest of this code is standard usage of bosgo and does not depend on the test server
 

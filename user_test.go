@@ -29,7 +29,7 @@ func TestUserLogout(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	userClient := NewUserClient(hc, SandboxAddr, "uid", "usertoken", "appid")
+	userClient := NewUserClient(hc, SandboxAddr, "uid", "usertoken", "appkey")
 	err := userClient.Logout().Send()
 	if err != nil {
 		t.Fatalf("failed to send logout request: %v", err)

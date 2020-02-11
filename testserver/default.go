@@ -13,17 +13,17 @@ const (
 	ChallengePassword   = "password"
 	ChallengeTAN        = "tan"
 
-	DefaultDeveloperID   = "default-dev"
-	DefaultApplicationID = "default-app"
-	DefaultUserID        = "default-user"
-	DefaultUsername      = "username@example.com"
-	DefaultPassword      = "password"
-	DefaultProviderID    = "def-provider-id"
-	DefaultAccessLogin   = "user"
-	DefaultAccessPIN     = "1234"
-	DefaultAuthMethod    = "901"
-	DefaultAuthMessage   = "tan challenge - (enter 4321 as tan)"
-	DefaultAuthAnswer    = "4321"
+	DefaultDeveloperID    = "default-dev"
+	DefaultApplicationKey = "default-app"
+	DefaultUserID         = "default-user"
+	DefaultUsername       = "username@example.com"
+	DefaultPassword       = "password"
+	DefaultProviderID     = "def-provider-id"
+	DefaultAccessLogin    = "user"
+	DefaultAccessPIN      = "1234"
+	DefaultAuthMethod     = "901"
+	DefaultAuthMessage    = "tan challenge - (enter 4321 as tan)"
+	DefaultAuthAnswer     = "4321"
 )
 
 // NewWithDefaults creates a new test server with a default developer, application and user account
@@ -31,7 +31,7 @@ func NewWithDefaults() *Server {
 	s := New()
 
 	app := App{
-		ID:          DefaultApplicationID,
+		ID:          DefaultApplicationKey,
 		DeveloperID: DefaultDeveloperID,
 	}
 	s.setApp(app)
@@ -40,7 +40,7 @@ func NewWithDefaults() *Server {
 		ID:            DefaultUserID,
 		Username:      DefaultUsername,
 		Password:      DefaultPassword,
-		ApplicationID: DefaultApplicationID,
+		ApplicationID: DefaultApplicationKey,
 		StoredAnswers: map[string][]bosgo.ChallengeAnswer{},
 	}
 	s.SetUser(user)

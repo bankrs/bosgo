@@ -523,9 +523,9 @@ func (r *CreateAppKeyReq) Send() (*ApplicationKey, error) {
 	return &key, nil
 }
 
-func (d *ApplicationsService) ListUsers(applicationID string) *ListDevUsersReq {
+func (d *ApplicationsService) ListUsers(applicationKey string) *ListDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users")
-	r.headers["x-application-id"] = applicationID
+	r.headers["x-application-key"] = applicationKey
 	r.allowRetry = true
 	return &ListDevUsersReq{
 		req: r,
@@ -592,9 +592,9 @@ func (r *ListDevUsersReq) Send() (*UserListPage, error) {
 }
 
 // UserInfo prepares and returns a request to lookup information about a user.
-func (d *ApplicationsService) UserInfo(applicationID, id string) *DevUserInfoReq {
+func (d *ApplicationsService) UserInfo(applicationKey, id string) *DevUserInfoReq {
 	r := d.client.newReq(apiV1 + "/developers/user/" + url.PathEscape(id))
-	r.headers["x-application-id"] = applicationID
+	r.headers["x-application-key"] = applicationKey
 	return &DevUserInfoReq{
 		req: r,
 	}
@@ -634,9 +634,9 @@ func (r *DevUserInfoReq) Send() (*DevUserInfo, error) {
 }
 
 // ResetUsers prepares and returns a request to reset user data.
-func (d *ApplicationsService) ResetUsers(applicationID string, usernames []string) *ResetDevUsersReq {
+func (d *ApplicationsService) ResetUsers(applicationKey string, usernames []string) *ResetDevUsersReq {
 	r := d.client.newReq(apiV1 + "/developers/users/reset")
-	r.headers["x-application-id"] = applicationID
+	r.headers["x-application-key"] = applicationKey
 	return &ResetDevUsersReq{
 		req:       r,
 		usernames: usernames,

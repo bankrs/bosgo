@@ -38,7 +38,7 @@ func TestUserLogin(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	appClient := NewAppClient(hc, SandboxAddr, "appid")
+	appClient := NewAppClient(hc, SandboxAddr, "appkey")
 	userClient, err := appClient.Users.Login("name", "password").Send()
 	if err != nil {
 		t.Fatalf("failed to send logout request: %v", err)
@@ -63,7 +63,7 @@ func TestUserLoginUnknown(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	appClient := NewAppClient(hc, SandboxAddr, "appid")
+	appClient := NewAppClient(hc, SandboxAddr, "appkey")
 	_, err := appClient.Users.Login("name", "password").Send()
 
 	if err == nil {
@@ -86,7 +86,7 @@ func TestUserCreate(t *testing.T) {
 	hc, cleanup := startTestServer(t, routes)
 	defer cleanup()
 
-	appClient := NewAppClient(hc, SandboxAddr, "appid")
+	appClient := NewAppClient(hc, SandboxAddr, "appkey")
 	userClient, err := appClient.Users.Create("name", "password").Send()
 	if err != nil {
 		t.Fatalf("failed to send logout request: %v", err)

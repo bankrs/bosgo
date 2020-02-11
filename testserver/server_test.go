@@ -18,7 +18,7 @@ func TestUserLogin(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	_, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -32,7 +32,7 @@ func TestUserLoginFail(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	_, err := appClient.Users.Login(DefaultUsername, "foo").Send()
 	if err == nil {
 		t.Fatalf("got no error, wanted one")
@@ -60,7 +60,7 @@ func TestAccessesList(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -83,7 +83,7 @@ func TestUserCreate(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
@@ -107,7 +107,7 @@ func TestUserCreateEmptyUsername(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	_, err := appClient.Users.Create("", "sandwich").Send()
 	if err == nil {
 		t.Fatalf("no error received")
@@ -131,7 +131,7 @@ func TestUserCreateEmptyPassword(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	_, err := appClient.Users.Create("scooby@example.com", "").Send()
 	if err == nil {
 		t.Fatalf("no error received")
@@ -155,7 +155,7 @@ func TestUserCreateDuplicateUsername(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	_, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
@@ -184,7 +184,7 @@ func TestUserDelete(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
@@ -210,7 +210,7 @@ func TestUserDeleteWrongPassword(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Create("scooby@example.com", "sandwich").Send()
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
@@ -240,7 +240,7 @@ func TestAccessCreateNoLogin(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -273,7 +273,7 @@ func TestAccessCreateWithLogin(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
@@ -324,7 +324,7 @@ func TestAccessCreateUnknownProvider(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -362,7 +362,7 @@ func TestAccessCreateMultiStep(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
@@ -457,7 +457,7 @@ func TestAccessCreateAddsAccessToList(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -488,7 +488,7 @@ func TestGetAccess(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -515,7 +515,7 @@ func TestUpdateAccess(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -603,7 +603,7 @@ func TestDeleteAccess(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -639,7 +639,7 @@ func TestListScheduledTransactions(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -666,7 +666,7 @@ func TestListTransactions(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -693,7 +693,7 @@ func TestListTransactionsLimit(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -720,7 +720,7 @@ func TestListTransactionsOffset(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -752,7 +752,7 @@ func TestListTransactionsSince(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -784,7 +784,7 @@ func TestListRepeatedTransactions(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -811,7 +811,7 @@ func TestCreateTransfer(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -914,7 +914,7 @@ func TestCreateRecurringTransfer(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -1022,7 +1022,7 @@ func TestDeleteRecurringTransfer(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -1131,7 +1131,7 @@ func TestUpdateRecurringTransfer(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -1245,7 +1245,7 @@ func TestWriteReadState(t *testing.T) {
 	s := NewWithDefaults()
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login as user: %v", err)
@@ -1265,7 +1265,7 @@ func TestWriteReadState(t *testing.T) {
 	defer s2.Close()
 	s2.ReadState(&buf)
 
-	appClient2 := bosgo.NewAppClient(s2.Client(), s2.Addr(), DefaultApplicationID)
+	appClient2 := bosgo.NewAppClient(s2.Client(), s2.Addr(), DefaultApplicationKey)
 	userClient2, err := appClient2.Users.Login(DefaultUsername, DefaultPassword).Send()
 	if err != nil {
 		t.Fatalf("failed to login to new server as user: %v", err)
@@ -1303,7 +1303,7 @@ func TestAccessRefreshMultiStep(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
@@ -1405,7 +1405,7 @@ func TestAccessRefreshWrongPin(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
@@ -1538,7 +1538,7 @@ func TestAccessRefreshCustomProblems(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
@@ -1587,7 +1587,7 @@ func TestAccessRefreshStored(t *testing.T) {
 	}
 	defer s.Close()
 
-	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationID)
+	appClient := bosgo.NewAppClient(s.Client(), s.Addr(), DefaultApplicationKey)
 	userClient, err := appClient.Users.Login(DefaultUsername, DefaultPassword).Send()
 
 	if err != nil {
