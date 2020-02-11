@@ -217,7 +217,7 @@ func TestRetryGet(t *testing.T) {
 
 	// Request fails without retry policy
 	clientNoRetry := New(hc, SandboxAddr)
-	appClientNoRetry := clientNoRetry.WithApplicationID("applicationid")
+	appClientNoRetry := clientNoRetry.WithApplicationKey("applicationkey")
 
 	_, err := appClientNoRetry.Providers.Search("foo").Send()
 	if err == nil {
@@ -232,7 +232,7 @@ func TestRetryGet(t *testing.T) {
 
 	// Request succeeds with retry policy
 	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
-	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+	appClientWithRetry := clientWithRetry.WithApplicationKey("applicationkey")
 
 	_, err = appClientWithRetry.Providers.Search("foo").Send()
 	if err != nil {
@@ -264,7 +264,7 @@ func TestRetryGetReturnsLastError(t *testing.T) {
 
 	// Request succeeds with retry policy
 	clientWithRetry := New(hc, SandboxAddr, WithRetryPolicy(policy))
-	appClientWithRetry := clientWithRetry.WithApplicationID("applicationid")
+	appClientWithRetry := clientWithRetry.WithApplicationKey("applicationkey")
 
 	_, err := appClientWithRetry.Providers.Search("foo").Send()
 	if err == nil {
@@ -318,7 +318,7 @@ func TestRetryPost(t *testing.T) {
 	}
 
 	// Request fails since retries are not allowed when creating a transfer
-	userClient := NewUserClient(hc, SandboxAddr, "uid", "usertoken", "applicationid")
+	userClient := NewUserClient(hc, SandboxAddr, "uid", "usertoken", "applicationkey")
 	userClient.retryPolicy = policy
 
 	_, err := userClient.Transfers.Create(1, TransferAddress{Name: "test"}, MoneyAmount{Currency: "EUR", Value: "40.15"}).Send()
@@ -330,7 +330,7 @@ func TestRetryPost(t *testing.T) {
 	devClient := NewDevClient(hc, SandboxAddr, "devtoken")
 	devClient.retryPolicy = policy
 
-	_, err = devClient.Applications.ListUsers("applicationid").Limit(40).Send()
+	_, err = devClient.Applications.ListUsers("applicationkey").Limit(40).Send()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

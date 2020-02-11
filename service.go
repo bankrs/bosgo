@@ -86,10 +86,10 @@ func (c *Client) userAgent() string {
 	return DefaultUserAgent + " " + c.ua
 }
 
-// WithApplicationID creates an AppClient with the supplied application ID,
+// WithApplicationKey creates an AppClient with the supplied application ID,
 // copying options set on the receiver.
-func (c *Client) WithApplicationID(applicationID string) *AppClient {
-	ac := NewAppClient(c.hc, c.addr, applicationID)
+func (c *Client) WithApplicationKey(applicationKey string) *AppClient {
+	ac := NewAppClient(c.hc, c.addr, applicationKey)
 	ac.ua = c.ua
 	ac.environment = c.environment
 	ac.retryPolicy = c.retryPolicy
