@@ -30,12 +30,6 @@ var (
 		w.WriteHeader(http.StatusNoContent)
 	}
 
-	errorHandler = func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"errors":[{"code":"general"}]}`)
-	}
-
 	devTokenHandler = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -53,9 +47,9 @@ type routeMap map[string]map[string]http.HandlerFunc
 
 func startTestServer(t *testing.T, routes routeMap) (*http.Client, func()) {
 	mux := http.NewServeMux()
-	for path, methodHandlers := range routes {
+	for route, methodHandlers := range routes {
 		for method, handler := range methodHandlers {
-			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != method {
 					w.WriteHeader(http.StatusNotFound)
 					return

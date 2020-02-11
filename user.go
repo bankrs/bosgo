@@ -29,13 +29,13 @@ import (
 // concurrent use by multiple goroutines.
 type UserClient struct {
 	// never modified once they have been set
-	hc            *http.Client
-	addr          string
-	token         string // session token
-	applicationID string
-	ua            string
-	environment   string
-	retryPolicy   RetryPolicy
+	hc             *http.Client
+	addr           string
+	token          string // session token
+	applicationKey string
+	ua             string
+	environment    string
+	retryPolicy    RetryPolicy
 
 	UserID                string
 	Accesses              *AccessesService
@@ -50,13 +50,13 @@ type UserClient struct {
 }
 
 // NewUserClient creates a new user client, ready to use.
-func NewUserClient(client *http.Client, addr string, userID string, token string, applicationID string) *UserClient {
+func NewUserClient(client *http.Client, addr string, userID string, token string, applicationKey string) *UserClient {
 	uc := &UserClient{
-		hc:            client,
-		addr:          addr,
-		token:         token,
-		applicationID: applicationID,
-		UserID:        userID,
+		hc:             client,
+		addr:           addr,
+		token:          token,
+		applicationKey: applicationKey,
+		UserID:         userID,
 	}
 	uc.Accesses = NewAccessesService(uc)
 	uc.Jobs = NewJobsService(uc)
@@ -84,9 +84,9 @@ func (u *UserClient) newReq(path string) req {
 		addr: u.addr,
 		path: path,
 		headers: headers{
-			"User-Agent":       u.userAgent(),
-			"x-token":          u.token,
-			"x-application-id": u.applicationID,
+			"User-Agent":        u.userAgent(),
+			"x-token":           u.token,
+			"x-application-key": u.applicationKey,
 		},
 		par:         params{},
 		environment: u.environment,
@@ -853,50 +853,6 @@ func (r *GetTransactionReq) Send() (*Transaction, error) {
 	}
 
 	return &tx, nil
-}
-
-func (a *TransactionsService) Categorise() *CategoriseTransactionsReq {
-	return &CategoriseTransactionsReq{
-		req:  a.client.newReq(apiV1 + "/transactions/categorise"),
-		cats: []categorisation{},
-	}
-}
-
-type categorisation struct {
-	TransactionID string `json:"id"`
-	CategoryID    string `json:"category_id"`
-}
-
-type CategoriseTransactionsReq struct {
-	req
-	cats []categorisation
-}
-
-func (r *CategoriseTransactionsReq) Context(ctx context.Context) *CategoriseTransactionsReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *CategoriseTransactionsReq) ClientID(id string) *CategoriseTransactionsReq {
-	r.req.clientID = id
-	return r
-}
-
-func (r *CategoriseTransactionsReq) Category(transactionID string, categoryID string) *CategoriseTransactionsReq {
-	r.cats = append(r.cats, categorisation{TransactionID: transactionID, CategoryID: categoryID})
-	return r
-}
-
-func (r *CategoriseTransactionsReq) Send() error {
-	_, cleanup, err := r.req.putJSON(r.cats)
-	defer cleanup()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ScheduledTransactionsService provides access to scheduled transaction related API services.

@@ -304,7 +304,7 @@ func (s *Server) setApp(app App) {
 }
 
 func (s *Server) requireApp(w http.ResponseWriter, req *http.Request) (App, bool) {
-	id := req.Header.Get("X-Application-Id")
+	id := req.Header.Get("X-Application-Key")
 	if id == "" {
 		s.sendError(w, http.StatusUnauthorized, "authentication_app_id_invalid")
 		return App{}, false
@@ -612,7 +612,7 @@ func (s *Server) newTransfer(userID string, providerID string, trp *transferPara
 	tr.Transfer.Step = bosgo.TransferStep{
 		Intent: transferInit,
 	}
-	s.progressTransfer(&tr, false, trp.ChallengeAnswers)
+	s.progressTransfer(&tr, trp.ChallengeAnswers)
 	s.setTransfer(tr)
 	return tr
 
@@ -670,7 +670,7 @@ func (s *Server) requireTransfer(w http.ResponseWriter, req *http.Request, trans
 	return tr, true
 }
 
-func (s *Server) progressTransfer(tr *TransferOrder, confirm bool, answers []bosgo.ChallengeAnswer) {
+func (s *Server) progressTransfer(tr *TransferOrder, answers []bosgo.ChallengeAnswer) {
 	combinedAnswers := append([]bosgo.ChallengeAnswer{}, answers...)
 	u, _ := s.GetUser(tr.UserID)
 	combinedAnswers = append(combinedAnswers, u.StoredAnswers[tr.AccessDetails.Access.ProviderID]...)
@@ -1631,7 +1631,6 @@ type transferProcessParams struct {
 	Intent           bosgo.TransferIntent      `json:"intent"`
 	Version          int                       `json:"version,omitempty"`
 	Type             bosgo.TransferType        `json:"type"`
-	Confirm          bool                      `json:"confirm,omitempty"`
 	ChallengeAnswers bosgo.ChallengeAnswerList `json:"challenge_answers,omitempty"`
 }
 
@@ -1669,7 +1668,7 @@ func (s *Server) handleTransferProcess(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	s.progressTransfer(&tr, data.Confirm, data.ChallengeAnswers)
+	s.progressTransfer(&tr, data.ChallengeAnswers)
 	s.setTransfer(tr)
 
 	s.sendJSON(w, http.StatusOK, &tr.Transfer)
@@ -1722,7 +1721,7 @@ func deleteAccess(user User, access bosgo.Access) (User, bosgo.Access) {
 	var deleteIdx int
 	for i, a := range user.Accesses {
 		if access.ID == a.ID {
-			deleteIdx = int(i)
+			deleteIdx = i
 		}
 	}
 	user.Accesses = append(user.Accesses[:deleteIdx], user.Accesses[deleteIdx+1:]...)

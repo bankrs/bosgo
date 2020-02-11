@@ -487,12 +487,3 @@ func (r RetryPolicy) NextWait(requestsAttempted int) time.Duration {
 
 	return time.Duration(wait)
 }
-
-// SensibleRetryPolicy is a retry policy with sensible defaults.
-var SensibleRetryPolicy = RetryPolicy{
-	MaxRetries: 4,
-	Wait:       30 * time.Millisecond,
-	MaxWait:    200 * time.Millisecond,
-	Multiplier: 1.4,
-	Jitter:     15 * time.Millisecond,
-}

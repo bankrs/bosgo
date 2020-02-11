@@ -26,29 +26,27 @@ import (
 // for concurrent use by multiple goroutines.
 type AppClient struct {
 	// never modified once they have been set
-	hc            *http.Client
-	addr          string
-	applicationID string
-	ua            string
-	environment   string
-	retryPolicy   RetryPolicy
+	hc             *http.Client
+	addr           string
+	applicationKey string
+	ua             string
+	environment    string
+	retryPolicy    RetryPolicy
 
-	Categories *CategoriesService
-	Providers  *ProvidersService
-	Users      *AppUsersService
-	IBAN       *IBANService
+	Providers *ProvidersService
+	Users     *AppUsersService
+	IBAN      *IBANService
 }
 
 // NewAppClient creates a new client that may be used to interact with
 // services that require a specific application context.
-func NewAppClient(client *http.Client, addr string, applicationID string) *AppClient {
+func NewAppClient(client *http.Client, addr string, applicationKey string) *AppClient {
 	ac := &AppClient{
-		hc:            client,
-		addr:          addr,
-		applicationID: applicationID,
+		hc:             client,
+		addr:           addr,
+		applicationKey: applicationKey,
 	}
 
-	ac.Categories = NewCategoriesService(ac)
 	ac.Providers = NewProvidersService(ac)
 	ac.Users = NewAppUsersService(ac)
 	ac.IBAN = NewIBANService(ac)
@@ -61,8 +59,8 @@ func (a *AppClient) newReq(path string) req {
 		addr: a.addr,
 		path: path,
 		headers: headers{
-			"User-Agent":       a.userAgent(),
-			"x-application-id": a.applicationID,
+			"User-Agent":        a.userAgent(),
+			"x-application-key": a.applicationKey,
 		},
 		par:         params{},
 		environment: a.environment,
@@ -81,59 +79,11 @@ func (a *AppClient) userAgent() string {
 // WithUserToken creates a UserClient with the supplied user token and
 // application ID, copying options set on the receiver.
 func (a *AppClient) WithUserIDAndUserToken(userID, token string) *UserClient {
-	uc := NewUserClient(a.hc, a.addr, userID, token, a.applicationID)
+	uc := NewUserClient(a.hc, a.addr, userID, token, a.applicationKey)
 	uc.ua = a.ua
 	uc.environment = a.environment
 	uc.retryPolicy = a.retryPolicy
 	return uc
-}
-
-// CategoriesService provides access to category related API services.
-type CategoriesService struct {
-	client *AppClient
-}
-
-func NewCategoriesService(a *AppClient) *CategoriesService { return &CategoriesService{client: a} }
-
-// List returns a request that may be used to request a list of classification categories.
-func (c *CategoriesService) List() *CategoriesReq {
-	return &CategoriesReq{
-		req: c.client.newReq(apiV1 + "/categories"),
-	}
-}
-
-type CategoriesReq struct {
-	req
-}
-
-// Context sets the context to be used during this request. If no context is supplied then
-// the request will use context.Background.
-func (r *CategoriesReq) Context(ctx context.Context) *CategoriesReq {
-	r.req.ctx = ctx
-	return r
-}
-
-// ClientID sets a client identifier that will be passed to the Bankrs API in
-// the X-Client-Id header.
-func (r *CategoriesReq) ClientID(id string) *CategoriesReq {
-	r.req.clientID = id
-	return r
-}
-
-// Send sends the request to list categories.
-func (r *CategoriesReq) Send() (*CategoryList, error) {
-	res, cleanup, err := r.req.get()
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
-	var list CategoryList
-	if err := json.NewDecoder(res.Body).Decode(&list); err != nil {
-		return nil, decodeError(err, res)
-	}
-
-	return &list, nil
 }
 
 // ProvidersService provides access to financial provider related API services.
