@@ -235,9 +235,8 @@ func (a *AccessesService) Add(providerID string) *AddAccessReq {
 
 type AddAccessReq struct {
 	req
-	providerID     string
-	destinationURL string
-	answers        ChallengeAnswerList
+	providerID string
+	answers    ChallengeAnswerList
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -254,13 +253,6 @@ func (r *AddAccessReq) ClientID(id string) *AddAccessReq {
 	return r
 }
 
-// DestinationURL sets the URL that the user should be redirected to once they have granted
-// authorisation for the operation
-func (r *AddAccessReq) DestinationURL(u string) *AddAccessReq {
-	r.destinationURL = u
-	return r
-}
-
 // ChallengeAnswer adds an answer to one of the authorisation challenges required to complete addition of the access.
 func (r *AddAccessReq) ChallengeAnswer(answer ChallengeAnswer) *AddAccessReq {
 	r.answers = append(r.answers, answer)
@@ -271,11 +263,9 @@ func (r *AddAccessReq) Send() (*Job, error) {
 	data := struct {
 		ProviderID       string              `json:"provider_id"`
 		ChallengeAnswers ChallengeAnswerList `json:"challenge_answers"`
-		DestinationURL   string              `json:"destination_url"`
 	}{
 		ProviderID:       r.providerID,
 		ChallengeAnswers: r.answers,
-		DestinationURL:   r.destinationURL,
 	}
 
 	res, cleanup, err := r.req.postJSON(&data)
@@ -442,7 +432,6 @@ func (a *AccessesService) Refresh(id int64) *RefreshAccessReq {
 
 type RefreshAccessReq struct {
 	req
-	destinationURL string
 }
 
 // Context sets the context to be used during this request. If no context is supplied then
@@ -459,21 +448,8 @@ func (r *RefreshAccessReq) ClientID(id string) *RefreshAccessReq {
 	return r
 }
 
-// DestinationURL sets the URL that the user should be redirected to once they have granted
-// authorisation for the operation
-func (r *RefreshAccessReq) DestinationURL(u string) *RefreshAccessReq {
-	r.destinationURL = u
-	return r
-}
-
 func (r *RefreshAccessReq) Send() (*Job, error) {
-	data := struct {
-		DestinationURL string `json:"destination_url,omitempty"`
-	}{
-		DestinationURL: r.destinationURL,
-	}
-
-	res, cleanup, err := r.req.postJSON(data)
+	res, cleanup, err := r.req.postJSON(nil)
 	defer cleanup()
 	if err != nil {
 		return nil, err
@@ -1195,7 +1171,6 @@ type transferParams struct {
 	Usage            string              `json:"usage,omitempty"`
 	Type             TransferType        `json:"type,omitempty"`
 	ChallengeAnswers ChallengeAnswerList `json:"challenge_answers,omitempty"`
-	DestinationURL   string              `json:"destination_url,omitempty"`
 }
 
 type transferProcessParams struct {
@@ -1257,13 +1232,6 @@ func (r *CreateTransferReq) Description(s string) *CreateTransferReq {
 // ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the transfer.
 func (r *CreateTransferReq) ChallengeAnswer(answer ChallengeAnswer) *CreateTransferReq {
 	r.data.ChallengeAnswers = append(r.data.ChallengeAnswers, answer)
-	return r
-}
-
-// DestinationURL sets the URL that the user should be redirected to once they have granted
-// authorisation for the operation
-func (r *CreateTransferReq) DestinationURL(u string) *CreateTransferReq {
-	r.data.DestinationURL = u
 	return r
 }
 
@@ -1455,13 +1423,6 @@ func (r *CreateRecurringTransferReq) Description(s string) *CreateRecurringTrans
 // ChallengeAnswer adds an answer to one of the authorisation challenges required to complete the transfer.
 func (r *CreateRecurringTransferReq) ChallengeAnswer(answer ChallengeAnswer) *CreateRecurringTransferReq {
 	r.data.ChallengeAnswers = append(r.data.ChallengeAnswers, answer)
-	return r
-}
-
-// DestinationURL sets the URL that the user should be redirected to once they have granted
-// authorisation for the operation
-func (r *CreateRecurringTransferReq) DestinationURL(u string) *CreateRecurringTransferReq {
-	r.data.DestinationURL = u
 	return r
 }
 
